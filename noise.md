@@ -135,8 +135,7 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
     standaloneBox(ext_data, sender_key, recvr_key_pub, pad_lens, contents):
         sender_eph_key = GENERATE_KEY()
         authtext = ext_data || sender_eph_key.pub || recvr_key_pub
-        box = noiseBox(sender_eph_key, sender_key, recvr_key_pub, pad_lens,
-                                  contents, authtext, 0, zeros[CV_LEN])
+        box = noiseBox(sender_eph_key, sender_key, recvr_key_pub, pad_lens, contents, authtext, 0, zeros[CV_LEN])
         return addLen(ext_data || sender_eph_key.pub || box), sender_eph_key
 
 # Creating boxes and messages for pipes
@@ -145,20 +144,15 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
         client_eph_key = GENERATE_KEY()
         return addLen(start_ext_data || client_eph_key.pub), client_eph_key
 
-    serverBox(start_ext_data, server_ext_data,
-                    server_key, client_eph_key_pub, pad_lens, contents):
+    serverBox(start_ext_data, server_ext_data, server_key, client_eph_key_pub, pad_lens, contents):
         server_eph_key = GENERATE_KEY()
         authtext = start_ext_data || server_ext_data || server_eph_key.pub || client_eph_key_pub
-        box, cv_h1 = noise_box(server_eph_key, server_key, client_eph_key_pub,
-                                                pad_lens, contents, authtext, 2, zeros[CV_LEN])
+        box, cv_h1 = noise_box(server_eph_key, server_key, client_eph_key_pub, pad_lens, contents, authtext, 2, zeros[CV_LEN])
         return addLen(server_ext_data || box), server_eph_key, cv_h1
 
-    clientBox(start_ext_data, server_ext_data, client_ext_data,
-                    client_eph_key, client_key, server_eph_key_pub, pad_lens, contents):
-        authtext = start_ext_data || server_ext_data || client_ext_data || client_eph_key.pub ||
-                          server_eph_key_pub
-        box, cv_h2 = (client_eph_key, client_key, server_eph_key_pub,
-                                pad_lens, contents, authtext, 4, cv_h1)
+    clientBox(start_ext_data, server_ext_data, client_ext_data, client_eph_key, client_key, server_eph_key_pub, pad_lens, contents):
+        authtext = start_ext_data || server_ext_data || client_ext_data || client_eph_key.pub || server_eph_key_pub
+        box, cv_h2 = (client_eph_key, client_key, server_eph_key_pub, pad_lens, contents, authtext, 4, cv_h1)
         return addLen(client_ext_data ||  box), cv_h2
 
     blobMessage(cc, pad_len, contents):
