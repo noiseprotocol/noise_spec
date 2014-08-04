@@ -148,7 +148,7 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
         server_eph_key = GENERATE_KEY()
         authtext = start_ext_data || server_ext_data || server_eph_key.pub || client_eph_key_pub
         box, cv_h1 = noiseBox(server_eph_key, server_key, client_eph_key_pub, pad_lens, contents, authtext, 2, zeros[CV_LEN])
-        return addLen(server_ext_data || box), server_eph_key, cv_h1
+        return addLen(server_ext_data || server_eph_key.pub || box), server_eph_key, cv_h1
 
     clientBox(start_ext_data, server_ext_data, client_ext_data, client_eph_key, client_key, server_eph_key_pub, pad_lens, contents):
         authtext = start_ext_data || server_ext_data || client_ext_data || client_eph_key.pub || server_eph_key_pub
