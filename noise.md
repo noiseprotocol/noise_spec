@@ -30,7 +30,7 @@ Noise offers a simple and efficient cryptographic core which can be used in diff
 
     struct {
         NoiseBlob header;  # sender public key
-        NoiseBlob body;     # contents
+        NoiseBlob body;    # contents
     } NoiseBox;
 
     struct {
@@ -147,16 +147,16 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
     serverBox(start_ext_data, server_ext_data, server_key, client_eph_key_pub, pad_lens, contents):
         server_eph_key = GENERATE_KEY()
         authtext = start_ext_data || server_ext_data || server_eph_key.pub || client_eph_key_pub
-        box, cv_h1 = noise_box(server_eph_key, server_key, client_eph_key_pub, pad_lens, contents, authtext, 2, zeros[CV_LEN])
+        box, cv_h1 = noiseBox(server_eph_key, server_key, client_eph_key_pub, pad_lens, contents, authtext, 2, zeros[CV_LEN])
         return addLen(server_ext_data || box), server_eph_key, cv_h1
 
     clientBox(start_ext_data, server_ext_data, client_ext_data, client_eph_key, client_key, server_eph_key_pub, pad_lens, contents):
         authtext = start_ext_data || server_ext_data || client_ext_data || client_eph_key.pub || server_eph_key_pub
-        box, cv_h2 = (client_eph_key, client_key, server_eph_key_pub, pad_lens, contents, authtext, 4, cv_h1)
+        box, cv_h2 = noiseBox(client_eph_key, client_key, server_eph_key_pub, pad_lens, contents, authtext, 4, cv_h1)
         return addLen(client_ext_data ||  box), cv_h2
 
     blobMessage(cc, pad_len, contents):
-        blob = noise_blob(cc, pad_len, contents)
+        blob = noiseBlob(cc, pad_len, contents)
         return len(blob) || blob
 
 # Pipe Handshake
