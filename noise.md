@@ -156,8 +156,8 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
         return addLen(client_ext_data ||  box), cv_h2
 
     blobMessage(cc, pad_len, contents):
-        blob = noiseBlob(cc, pad_len, contents)
-        return len(blob) || blob
+        blob = noiseBlob(cc, pad_len, contents, "")
+        return addLen(blob)
 
 # Pipe Handshake
 
@@ -170,16 +170,14 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
     Client->Server: start_msg
 
     Server: server_box, server_eph_key, cv_h1 =
-        serverBox("", "", server_key, start_msg.client_eph_key_pub,
-                         server_pad_lens, server_handshake_data)
+        serverBox("", "", server_key, start_msg.client_eph_key_pub, server_pad_lens, server_handshake_data)
     Server->Client: server_box
 
     Client: client_box, cv_h2 =
-        clientBox("", "", "", client_eph_key, client_key, server_box.server_eph_key_pub,
-                        client_pad_lens, client_handshake_data)
+        clientBox("", "", "", client_eph_key, client_key, server_box.server_eph_key_pub, client_pad_lens, client_handshake_data)
     Client->Server: client_box
 
-    Both: cc_client || cc_server = KDF(cv_h2, zeros[CV_LEN], SUITE_NAME || (byte)6, CC_LEN*2)
+    Both: cc_client || cc_server = KDF(cv_h2, zeros[CV_LEN], SUITE_NAME || (byte)6, CC_LEN * 2)
 
     # In any order:
 
