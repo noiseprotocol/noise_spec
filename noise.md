@@ -111,7 +111,7 @@ All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation func
         output = []
         t = zeros[H_LEN]
         for c = 0...(ceil(output_len / H_LEN) - 1)
-            t = HMAC-SHA2-512(secret, info || (byte)c || t[0:32] || extra_secret)
+            t = HMAC-SHA2-512(secret, info || (byte)c || t[0:31] || extra_secret)
             output = output || t
         return output
 
