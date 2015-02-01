@@ -14,11 +14,6 @@ Noise offers a simple and efficient cryptographic core which can be used in diff
 
 # Data Structures
 
-## Ciphersuite variables
-
-    DH_LEN = ?? # Length in bytes of DH private, public keys, and DH outputs
-    MAC_LEN = ?? # Length in bytes that ciphertext is enlarged due to MAC
-
 ## Basic structures: blobs, boxes, and extension data
 
     struct {
@@ -79,6 +74,8 @@ Noise offers a simple and efficient cryptographic core which can be used in diff
 
     SUITE_NAME = ? # 24-byte string uniquely naming the ciphersuite
     CC_LEN = ? # Length in bytes of cipher context
+    DH_LEN = ?? # Length in bytes of DH private, public keys, and DH outputs
+    MAC_LEN = ?? # Length in bytes that ciphertext is enlarged due to MAC
 
     GENERATE_KEY():
         # Returns a DH keypair
