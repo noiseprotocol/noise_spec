@@ -1,84 +1,218 @@
 
-# Introduction
+Noise
+======
 
-Noise is a pair of crypto protocols:
+ * **Author:** Trevor Perrin (curves @ trevp.net)
+ * **Date:** 2015-03-16
+ * **Revision:** 00 (work in progress)
+ * **Copyright:** This document is placed in the public domain
 
- * Noise boxes protect stand-alone messages (similar to PGP, NaCl, etc.)
- * Noise pipes protect interactive sessions (similar to SSL, SSH, CurveCP, etc.)
+1. Introduction
+================
 
-Noise pipes are built from Noise boxes for easy implementation.
+Noise is a framework for DH-based crypto protocols. 
 
-Noise offers a simple and efficient cryptographic core which can be used in different applications.
+Messages are described in a "descriptor" language that allows exchange of DH
+public keys and DH calculations.  The DH shared secrets are accumulated into a
+"PRF chain" that produces output keys based on all previous shared secrets.
 
-# Notation
+The resulting protocols can be instantiated based on various ciphersuites that
+fill in the details of the DH calculation and other crypto primitives.
 
-# Data Structures
 
-## Ciphersuite variables
+2. Overview
+============
 
-    DH_LEN = ?? # Length in bytes of DH private, public keys, and DH outputs
-    MAC_LEN = ?? # Length in bytes that ciphertext is enlarged due to MAC
+2.1. PRF chains
+----------------
 
-## Basic structures: blobs, boxes, and extension data
+A PRF is a "pseudorandom function" which takes a secret key and some input data
+and returns output data. The output data is indistinguishable from random
+provided the key isn't known.  HMAC-SHA2-512 is an example.
+
+We use the term "PRF chain" when some of the output from a PRF is used as an
+"output key", and some is used as a new PRF key to process another input.  The
+below diagram represents a PRF chain processing inputs `i0...i2` and producing
+output keys `ok0...ok2`, with a starting PRF key `k0` and a final PRF key `k3`:
+
+                                     k0
+                                i0 ->|
+                                     v
+                                     k1 ok0
+                                i1 ->|
+                                     v
+                                     k2 ok1
+                                i2 ->|
+                                     v
+                                     k3 ok2
+
+                           (k1, ok0) = PRF(k0, i0)
+                           (k2, ok1) = PRF(k1, i1)
+                           (k3, ok2) = PRF(k2, i2)t
+
+2.2. Noise session state 
+-------------------------
+
+A Noise protocol consists of a series of messages between two parties.  Each
+party has a session state which is updated as it processes messages.
+
+The state contains DH variables:
+
+ * `e`: The local ephemeral key pair
+
+ * `s`: The local static key pair 
+
+ * `re`: An ephemeral public key for the remote party
+
+ * `rs`: The remote party's static public key
+
+The state contains variables for a PRF chain:
+
+ * `k`: A PRF key for a PRF chain 
+
+ * `ok`: An output key from the PRF chain, for use in encrypting data
+
+The state also contains a hash context that hashes all sent and received
+message data.  
+
+ * `h`: A hash context 
+
+2.3. Noise descriptors
+-----------------------
+
+A Noise message is described by a "descriptor", which is a comma-separated list
+containing some of the following tokens.  The tokens describe the sequential
+actions taken by a sender or receiver of the message:
+
+ * `e`: The sender generates an ephemeral public key, stores it in their `e`
+variable, and then appends it to the message in cleartext.  The receiver reads
+the value into their `re` variable. 
+
+ * `s`: The sender appends their static public key.  If there's a non-empty
+`ok` variable, the message is encrypted. The receiver reads the value into
+their `rs` variable (decrypting with `ok` if non-empty).
+
+ * `dh[es][es]`: A DH calculation is performed between the sender's static or
+ephemeral key (the first value) and the receiver's static or ephemeral key (the
+second value).  The result is input to the PRF chain, and new `k` and `ok`
+variables are computed.
+
+ * `ndh[es][es]`: Like previous, except that a 16-byte random nonce is appended
+to the message in cleartext, and is prepended to the DH secret prior to
+inputing it to the PRF chain.  This is necessary in cases where DH calculations
+might be reused.
+
+In addition to the descriptor-specified fields, every Noise message begins with
+a "prologue" that can contain arbitrary plaintext for routing, versioning, or
+other purposes.
+
+Each Noise message also ends with a payload which contains arbitrary data, and
+will be encrypted if the `ok` is non-empty.
+
+2.4. Example Noise protocols
+-----------------------------
+
+The following "Box" protocols represent one-shot messages from a sender to a
+recipient.
+
+    Box naming:
+     S_ = static key for sender known to recipient
+     N_ = no static key for sender
+     X_ = static key for sender transmitted to recipient
+     _S = static key for recipient known to sender 
+     _E = static and ephemeral keys for recipient known to sender 
+
+    BoxSS(s, rs):            # ~ Nacl crypto_box
+      ndhss  
+
+    BoxNS(rs):               # ~ public-key encryption
+      e, dhes
+
+    BoxXS(s, rs):            # ~ miniLock, old Noise box
+      e, dhes, s, dhss
+
+    BoxNE(rs, re):           # ~ public-key encryption + prekey
+      e, dhee, dhes
+
+    BoxXE(s, rs, re):        # ~ TripleDH
+      e, dhee, dhes, s, dhse
+
+The following Noise protocols represent handshakes where the initiator and
+responder exchange messages.
+
+    Handshake naming:
+
+     N_ = no static key for initiator
+     X_ = static key for initiator transmitted to responder
+     _S = static key for responder known to initiator
+     _X = static key for responder transmitted to initiator
+     _E = static key and an initial prekey for responder are known
+          to the initiator (but responder will also use a fresher
+          ephemeral)
+
+    HandshakeNX():           # ~ Ntor (+ server-id-hiding)
+    (1)    -> e
+    (2)    <- e, dhee, s, dhse
+
+    HandshakeXX(s):          # ~ old Noise pipe
+    (1,2)  HandshakeNX()
+    (3)    -> s, dhse
+
+    HandshakeNS(rs):         
+    (1)    BoxNS(rs)
+    (2)    <- e, dhee
+
+    HandshakeXS(s, rs):
+    (1,2)  HandshakeNS(rs)
+    (3)    -> s, dhse
+
+    HandshakeNE(s, rs, re):
+    (1)    BoxNE(s, rs, re)
+           <- e, dhee
+
+    HandshakeXE(s, rs, re):
+    (1)    BoxXE(s, rs, re)
+           <- e, dhee, dhse
+
+
+3. Data Structures
+===================
 
     struct {
-        bytes encrypted_contents[contents_len];
-        bytes encrypted_padding[padding_len];
-        bytes encrypted_padding_len[4];
-        bytes mac[MAC_LEN];
-    } NoiseBlob;
+        uint32 msg_len;
+        uint32 prologue_len;
+        uint8 prologue[prologue_len];
+
+        /* 0 or more of of following (public_key) */ 
+        PublicKey public_key;
+
+        Payload payload;
+    } NoiseMessage;
 
     struct {
-        NoiseBlob header;  # sender public key
-        NoiseBlob body;    # contents
-    } NoiseBox;
+        uint8 public_key[DH_LEN];   
+    } PublicKey;
 
     struct {
-        uint32 len;
-        bytes data[len];
-    } ExtensionData;
+        uint8 data[];
+        uint8 padding[padding_len];
+        uint32 padding_len;
+    } Payload;
 
-## Standalone boxes
+The public key and payload structures may be in plaintext, or may be
+encrypted-and-authenticated ciphertexts.  The hash value h is included as
+additional authenticated data for the payload ciphertext.
 
-    struct {
-        uint32 len;
-        ExtensionData ext_data;
-        bytes sender_eph_key_pub[DH_LEN];
-        NoiseBox box;
-    } StandaloneBox;
+4. Algorithms
+==============
 
-## Boxes and messages for pipes
-
-    struct {
-        uint32 len;
-        ExtensionData start_ext_data;
-        bytes client_eph_key_pub[DH_LEN];
-    } StartMessage;
-
-    struct {
-        uint32 len;
-        ExtensionData server_ext_data;
-        bytes server_eph_key_pub[DH_LEN];
-        NoiseBox box;
-    } ServerBox;
-
-    struct {
-        uint32 len;
-        ExtensionData client_ext_data;
-        NoiseBox box;
-    } ClientBox;
-
-    struct {
-        uint32 len;
-        NoiseBlob blob;
-    } BlobMessage;
-
-# Functions
-
-# Ciphersuite variables
+4.1. Ciphersuite variables
+---------------------------
 
     SUITE_NAME = ? # 24-byte string uniquely naming the ciphersuite
-    CC_LEN = ? # Length in bytes of cipher context
+    K_LEN = Length of PRF key in bytes
+    OK_LEN = Length of output key in bytes
+
 
     GENERATE_KEY():
         # Returns a DH keypair
@@ -93,99 +227,12 @@ Noise offers a simple and efficient cryptographic core which can be used in diff
         # plaintext plus MAC_LEN.
         # Modifies the value of 'cc'.
 
-# Key Derivation
+    PRF(k, input):
+        # Takes a PRF key and some input data and returns a new PRF key and output key.
 
-All Noise ciphersuites use the following HMAC-SHA2-512 based key derivation function:
-
-    CV_LEN = 48
-    H_LEN = 64  # output length of hash, >= 32
-
-    KDF(secret, extra_secret, info, output_len):
-        # Outputs a byte sequence that the caller typically splits into multiple variables
-        # such as a chain variable and cipher context, or two cipher contexts.
-        #
-        # The 'extra_secret' is used to pass a chaining variable to mix into the KDF.
-        # The 'info' ensures that applying the KDF to the same secret values will 
-        # produce independent output, provided 'info' is different.
-
-        output = []
-        t = zeros[H_LEN]
-        for c = 0...(ceil(output_len / H_LEN) - 1)
-            t = HMAC-SHA2-512(secret, info || (byte)c || t[0:32] || extra_secret)
-            output = output || t
-        return output
-
-# Box and blob creation
-
-    noiseBlob(cc, pad_len, contents, authtext):
-        plaintext = contents || random(pad_len) || (uint32)pad_len
-        return ENCRYPT(cc, plaintext, authtext)
-
-    noiseBox(eph_key, sender_key, target_key_pub, pad_lens[2], contents, authtext, kdf_num, cv):
-        dh1 = DH(eph_key.priv, target_key_pub)
-        dh2 = DH(sender_key.priv, target_key_pub)
-        cc1 || cv1 = KDF(dh1, cv,  SUITE_NAME || (byte)kdf_num, CC_LEN + CV_LEN)
-        cc2 || cv2 = KDF(dh2, cv1, SUITE_NAME || (byte)(kdf_num + 1), CC_LEN + CV_LEN)
-        header = noiseBlob(cc1, pad_len[0], sender_key.pub, authtext)
-        body = noiseBlob(cc2, pad_len[1], contents, authtext || header)
-        return (header || body), cv2
-
-## Creating standalone boxes
-
-    standaloneBox(ext_data, sender_key, recvr_key_pub, pad_lens, contents):
-        sender_eph_key = GENERATE_KEY()
-        authtext = ext_data || sender_eph_key.pub || recvr_key_pub
-        box = noiseBox(sender_eph_key, sender_key, recvr_key_pub, pad_lens, contents, authtext, 0, zeros[CV_LEN])
-        return addLen(ext_data || sender_eph_key.pub || box), sender_eph_key
-
-# Creating boxes and messages for pipes
-
-    startMessage(start_ext_data):
-        client_eph_key = GENERATE_KEY()
-        return addLen(start_ext_data || client_eph_key.pub), client_eph_key
-
-    serverBox(start_ext_data, server_ext_data, server_key, client_eph_key_pub, pad_lens, contents):
-        server_eph_key = GENERATE_KEY()
-        authtext = start_ext_data || server_ext_data || server_eph_key.pub || client_eph_key_pub
-        box, cv_h1 = noiseBox(server_eph_key, server_key, client_eph_key_pub, pad_lens, contents, authtext, 2, zeros[CV_LEN])
-        return addLen(server_ext_data || server_eph_key.pub || box), server_eph_key, cv_h1
-
-    clientBox(start_ext_data, server_ext_data, client_ext_data, client_eph_key, client_key, server_eph_key_pub, pad_lens, contents):
-        authtext = start_ext_data || server_ext_data || client_ext_data || client_eph_key.pub || server_eph_key_pub
-        box, cv_h2 = noiseBox(client_eph_key, client_key, server_eph_key_pub, pad_lens, contents, authtext, 4, cv_h1)
-        return addLen(client_ext_data ||  box), cv_h2
-
-    blobMessage(cc, pad_len, contents):
-        blob = noiseBlob(cc, pad_len, contents, "")
-        return addLen(blob)
-
-# Pipe Handshake
-
-(C,c)   : client's public key C and private key c
-(S,s)   : server's public key S and private key s
-(C',c') : client's ephemeral public key C' and private key c'
-(S',s') : server's ephemeral public key S' and private key s'
-
-    Client: start_msg, client_eph_key = startMessage("")
-    Client->Server: start_msg
-
-    Server: server_box, server_eph_key, cv_h1 =
-        serverBox("", "", server_key, start_msg.client_eph_key_pub, server_pad_lens, server_handshake_data)
-    Server->Client: server_box
-
-    Client: client_box, cv_h2 =
-        clientBox("", "", "", client_eph_key, client_key, server_box.server_eph_key_pub, client_pad_lens, client_handshake_data)
-    Client->Server: client_box
-
-    Both: cc_client || cc_server = KDF(cv_h2, zeros[CV_LEN], SUITE_NAME || (byte)6, CC_LEN * 2)
-
-    # In any order:
-
-    Client: blob_message = blobMessage(cc_client, pad_len, app_data)
-    Client->Server: blob_message
-
-    Server: blob_message = blobMessage(cc_server, pad_len, app_data)
-    Server->Client: blob_message
+    HASH(h, input):
+        # Takes a hash context and some input data, and hashes the input data.  The eventual
+        # value of the hash context is the hash of all input data.
 
 # IPR
 
