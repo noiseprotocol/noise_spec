@@ -151,28 +151,30 @@ responder exchange messages.
           ephemeral)
 
     HandshakeNX():           # ~ Ntor (+ server-id-hiding)
-    (1)    -> e
-    (2)    <- e, dhee, s, dhse
+      -> e
+      <- e, dhee, s, dhse
 
     HandshakeXX(s):          # ~ old Noise pipe
-    (1,2)  HandshakeNX()
-    (3)    -> s, dhse
+      -> e
+      <- e, dhee, s, dhse
+      -> s, dhse
 
     HandshakeNS(rs):         
-    (1)    BoxNS(rs)
-    (2)    <- e, dhee
+      -> e, dhes
+      <- e, dhee
 
     HandshakeXS(s, rs):
-    (1,2)  HandshakeNS(rs)
-    (3)    -> s, dhse
+      -> e, dhes
+      <- e, dhee
+      -> s, dhse
 
     HandshakeNE(s, rs, re):
-    (1)    BoxNE(s, rs, re)
-           <- e, dhee
+      -> e, dhee, dhes
+      <- e, dhee
 
     HandshakeXE(s, rs, re):
-    (1)    BoxXE(s, rs, re)
-           <- e, dhee, dhse
+      -> e, dhee, dhes, s, dhse
+      <- e, dhee, dhes
 
 
 3. Data Structures
