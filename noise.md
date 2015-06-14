@@ -45,7 +45,7 @@ The output is **prologue** and **payload** data, and an updated **session**.
 
 Noise messages will contain prologue and payload data.  The payload is typically
 (but not always) encrypted.  The prologue is an unencrypted header that can be
-used for versioning.  
+used for version and feature negotiation.  
 
 Prologue data is authenticated but ignored by default, so version numbers and
 other data can be added into the prologue.  Older implementations that don't
@@ -393,15 +393,30 @@ These are the default and recommended ciphersuites.
  * **DH(privkey, pubkey):** Curve25519 (Noise255) or Goldilocks (Noise448).
  
  * **ENCRYPT(k, authtext, plainttext), DECRYPT(k, authtext, ciphertext):**
- AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 44-byte value consisting of 32
- bytes key and 12 bytes nonce.  `k` is updated by inverting each bit of the
+ AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 44-byte value consisting of
+ 32 bytes key and 12 bytes nonce.  `k` is updated by inverting each bit of the
  nonce and then calculating a 64-byte ChaCha20 output with the previous key and
  new nonce, then taking the first 44 bytes as the new key and nonce.
 
- * **KDF(k, input):** `HMAC-SHA2-512(k, input)`.
+ * **KDF(k, input):** `HMAC-SHA2-512(k, input)`.  The first 44 bytes of the
+ output are used as the new `k`.
  
  * **HASH(input):** `SHA2-512`.
 
+7.2. AES256-GCM ciphersuites
+-----------------------------
+
+These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
+DH, and HASH functions are the same as above.
+
+Encryption uses AES-GCM but only increments the counter (the last 64 bits of the
+96-bit nonce, treated as a big-endian integer), instead of replacing the entire
+`k`.  (This is due to AES-GCM's lack of key agility).
+
+The KDF is the same as above except the first 32 bits of the nonce are inverted,
+the remainder are set to zero, and then 64 bytes of AES-CTR keystream are
+generated.  These are then used as the key for KDF(key, input).  This ensures
+that the ENCRYPT and KDF operations never operate on the same key.
 
 # IPR
 
