@@ -414,7 +414,7 @@ Encryption uses AES-GCM but only increments the counter (the last 64 bits of the
 `k`.  (This is due to AES-GCM's lack of key agility).
 
 The KDF is the same as above except the first 32 bits of the nonce are inverted,
-the remainder are set to zero, and then 64 bytes of AES-CTR keystream are
+the remainder are set to zero, and then 48 bytes of AES-CTR keystream are
 generated.  These are then used as the key for KDF(key, input).  This ensures
 that the ENCRYPT and KDF operations never operate on the same key.
 
