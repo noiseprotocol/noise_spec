@@ -59,6 +59,10 @@ key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that are created and
 destroyed during the protocol.
 
+The parties may have prior knowledge of each other's static public keys, before
+executing a Noise protocol.  This is represented by "pre-messages" containing
+these public keys that both parties use to initialize their session state.
+
 3. Crypto functions
 ====================
 
@@ -183,8 +187,8 @@ Takes an ASCII label and writes its bytes into `h` sequentially, zero-filling
 any unused bytes.  The label should be unique to the particular ciphertext,
 descriptor, and protocol. 
 
-All other variables are set to empty.
-
+Also takes an optional key pair for the `s` variable.  All other variables are
+set to empty.
 
 5.3. Creating a message
 ------------------------
@@ -209,8 +213,9 @@ On input of a message and descriptor, the message is consumed with the following
 
  1) The prologue data is returned via some callback.  The caller can examine the
  prologue data to see if the message is requesting different processing (e.g.,
- requesting a different ciphersuite or protocol - however the details of this
- negotation is out of scope).
+ requesting a different ciphersuite or protocol - the details of this negotation
+ is out of scope).
+
 
  2) The descriptor is processed sequentially, as described above.
 
@@ -241,10 +246,17 @@ for sending messages, and the second session for receiving them.
 
 6.1. Box protocols
 -------------------
+
 The following "Box" protocols represent one-shot messages from a sender to a
-recipient.  The descriptor for the message is given, and whether the message
-requires initialization with only the recipient's public key (`rs`) or also the
-sender's key pair (`s`).
+recipient.  Each protocol is given a name, and then described via a sequence of
+descriptors.  Descriptors with right-pointing arrows are for messages created
+and sent by the protocol initiator; with left-pointing arrows are for messages
+sent by the responder.
+
+Pre-messages are used to represent prior knowledge of static public keys.  These
+are shown as descriptors prior to the delimiter "---".  These messages are not
+part of the protocol proper, but the parties should create and consume them as
+if they were.
 
     Box naming:
      N  = no static key for sender
@@ -253,21 +265,22 @@ sender's key pair (`s`).
 
     BoxN:
       <- s
-      -----
+      ---
       -> e, dhes
 
     BoxK:
       <- s
-      -----
+      -> s
+      ---
       -> e, dhes, dhss
 
     BoxX:
       <- s
-      -----
+      ---
       -> e, dhes, s, dhss
 
-Handshake protocols
---------------------
+6.2. Handshake protocols
+-------------------------
 
 The following "Handshake" protocols represent handshakes where the initiator and
 responder exchange messages.
@@ -275,12 +288,13 @@ responder exchange messages.
     Handshake naming:
 
      N_ = no static key for initiator
-     X_ = static key for initiator transmitted to responder without forward secrecy
-     F_ = static key for initiator transmitted to responder with forward secrecy 
+     K_ = static key for initiator known to responder
+     X_ = static key for initiator transmitted to responder
 
      _N = no static key for responder
      _K = static key for responder known to initiator
-     _F = static key for responder transmitted to initiator with forward secrecy
+     _X = static key for responder transmitted to initiator
+
 
     HandshakeNN:
       -> e
@@ -288,102 +302,106 @@ responder exchange messages.
 
     HandshakeNK:
       <- s
+      ---
       -> e, dhes 
       <- e, dhee
 
-    HandshakeNF:
+    HandshakeNX:
       -> e
       <- e, dhee, s, dhse
 
 
-    HandshakeXK:
+    HandshakeKN:
+      -> s
+      ---
+      -> e
+      <- e, dhee, dhes
+    
+    HandshakeKK:
       <- s
-      -----
-      -> e, dhes, s, dhss
+      -> s
+      ---
+      -> e, dhes
       <- e, dhee, dhes
 
+    HandshakeKX:
+      -> s
+      ---
+      -> e
+      <- e, dhee, dhes, s, dhse
 
-    HandshakeFK:
+
+    HandshakeXN:
+      -> e
+      <- e, dhee
+      -> s, dhse
+
+    HandshakeXK:
       <- s
       -----
       -> e, dhes
       <- e, dhee
       -> s, dhse 
 
-    HandshakeFF:
+    HandshakeXX:
       -> e
       <- e, dhee, s, dhse
       -> s, dhse
 
 
+The above protocols perform 2 or 3 DHs, and are suitable for most purposes.
+Below are some 4-DH variants.
+
+`KX_quad` and `XX_quad` tack on a static-static DH to add some forward secrecy
+in case both ephemeral private keys are bad.  `KK_quad` and `XK_quad` perform
+the static-static DH in the first message, so allow the client to send some
+initial data protected under the static-static DH.
+
+    HandshakeKK_quad:
+      <- s
+      -> s
+      ---
+      -> e, dhes, dhss
+      <- e, dhee, dhes
+
+    HandshakeKX_quad:
+      -> s
+      ---
+      -> e
+      <- e, dhee, dhes, s, dhse, dhss
+
+    HandshakeXK_quad:
+      <- s
+      -----
+      -> e, dhes, s, dhss
+      <- e, dhee, dhes
+
+    HandshakeXX_quad:
+      -> e
+      <- e, dhee, s, dhse
+      -> s, dhse, dhss
 
 
+7. Ciphersuites
+================
 
-BoxSS                     sAuth* rAuth* (* = not KCI-resistant)
-BoxNS           sFS              rAuth   -
-BoxXS           sFS       sAuth* rAuth   sIDhide
-BoxNE           sFS rFS          rAuth   -
-BoxXE           sFS rFS   sAuth  rAuth   sIDhide
-
-For handshakes, I only show messages up to the point that features
-"stabilize", all subsequent messages in same direction have same
-properties:
-
-HandshakeNX->                            -
-HandshakeNX<-   sFS rFS   sAuth          sIDhide* (* = anyone can solicit)
-HandshakeNX->   sFS rFS          rAuth   -
-
-HandshakeXX->
-HandshakeXX<-   sFS rFS   sAuth          sIDhide*
-HandshakeXX->   sFS rFS   sAuth  rAuth   sIDhide
-HandshakeXX<-   sFS rFS   sAuth  rAuth   sIDhide*
-
-HandshakeNS->   sFS              rAuth   -
-HandshakeNS<-   sFS rFS   sAuth          sIDhide
-HandshakeNS->   sFS rFS          rAuth   -
-
-HandshakeXS->   sFS              rAuth   -
-HandshakeXS<-   sFS rFS   sAuth          sIDhide
-HandshakeXS->   sFS rFS   sAuth  rAuth   sIDhide
-HandshakeXS<-   sFS rFS   sAuth  rAuth   sIDhide
-
-HandshakeNE->   sFS rFS          rAuth   -
-HandshakeNE<-   sFS rFS   sAuth          sIDhide
-
-HandshakeXE->   sFS rFS   sAuth  rAuth   sIDhide
-HandshakeXE<-   sFS rFS   sAuth  sAuth   sIDhide
-
-
-4. Algorithms
-==============
-
-4.1. Ciphersuite variables
+7.1. Noise255 and Noise448
 ---------------------------
 
-    SUITE_NAME = ? # 24-byte string uniquely naming the ciphersuite
-    K_LEN = Length of PRF key in bytes
-    OK_LEN = Length of output key in bytes
+These are the default and recommended ciphersuites.
 
+ * **DH(privkey, pubkey):** Curve25519 (Noise255) or Goldilocks (Noise448).
+ 
+ * **ENCRYPT(k, authtext, plainttext), DECRYPT(k, authtext, ciphertext):**
+ AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 44-byte value consisting of 32
+ bytes key and 12 bytes nonce.  `k` is updated by inverting each bit of the
+ nonce and then calculating a 64-byte ChaCha20 output with the previous key and
+ new nonce, then taking the first 44 bytes as the new key and nonce.
 
-    GENERATE_KEY():
-        # Returns a DH keypair
+ * **KDF(k, input):** `HMAC-SHA2-512(k, input)`.
+ 
+ * **HASH(input):** `SHA2-512`.
 
-    DH(privkey, pubkey):
-        # Calculates a DH result.
-        # Returns a DH secret of length DH_LEN.
-
-    ENCRYPT(cc, plaintext, authtext):
-        # Takes a cipher context, some additional authenticated data, and plaintext.
-        # Returns an "authenticated encryption" ciphertext of length equal to 
-        # plaintext plus MAC_LEN.
-        # Modifies the value of 'cc'.
-
-    PRF(k, input):
-        # Takes a PRF key and some input data and returns a new PRF key and output key.
-
-    HASH(h, input):
-        # Takes a hash context and some input data, and hashes the input data.  The eventual
-        # value of the hash context is the hash of all input data.
 
 # IPR
 
@@ -404,29 +422,4 @@ Stephen Touset, and Tony Arcieri.
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
 
-2.1. PRF chains
-----------------
 
-A PRF is a "pseudorandom function" which takes a secret key and some input data
-and returns output data. The output data is indistinguishable from random
-provided the key isn't known.  HMAC-SHA2-512 is an example.
-
-We use the term "PRF chain" when some of the output from a PRF is used as an
-"output key", and some is used as a new PRF key to process another input.  The
-below diagram represents a PRF chain processing inputs `i0...i2` and producing
-output keys `ok0...ok2`, with a starting PRF key `k0` and a final PRF key `k3`:
-
-                                     k0
-                                i0 ->|
-                                     v
-                                     k1 ok0
-                                i1 ->|
-                                     v
-                                     k2 ok1
-                                i2 ->|
-                                     v
-                                     k3 ok2
-
-                           (k1, ok0) = PRF(k0, i0)
-                           (k2, ok1) = PRF(k1, i1)
-                           (k3, ok2) = PRF(k2, i2)t
