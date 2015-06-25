@@ -69,18 +69,22 @@ these public keys that both parties use to initialize their session state.
 Noise depends on the following functions, which are supplied by a **ciphersuite**:
 
  * **DH(privkey, pubkey):** Performs a DH or ECDH calculation and returns an
- output sequence of bytes. 
+   output sequence of bytes. 
  
- * **ENCRYPT(k, authtext, plainttext), DECRYPT(k, authtext, ciphertext):**
- Encrypts or decrypts data using the cipher key `k`, using authenticated
- encryption with the additional authenticated data `authtext`.  Returns an
- updated cipher key that may be used for subsequent calls to encrypt, so the
- encryption should be randomized or use an IV that's stored as part of the key.
+ * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
+   ciphertext):** Encrypts or decrypts data using the cipher key `k` and a 64-bit
+   unique nonce `n` using authenticated encryption with the additional
+   authenticated data `authtext`.  Increments the nonce.
 
- * **KDF(k, input):** Takes a cipher key and some input data and returns a new
- cipher key.  The KDF should be a PRF when keyed by `k`.  The same `k` may be
- used in a call to `KDF` and to `ENCRYPT` or `DECRYPT`, so these functions
- should use nonces or internal key derivation steps to make this secure.
+ * **GETKEY(k, n):**  Calls the `ENCRYPT` function with `k` and `n` to encrypt
+   a block of zeros equal in length to `k`.  Returns the same number of bytes
+   from the beginning of the encrypted output.  This function can typically be
+   implemented more efficiently than calling `ENCRYPT` (e.g. by skipping the
+   MAC).
+
+ * **KDF(k, n, input):** Takes a cipher key and nonce and some input data and
+   returns a new cipher key.  The KDF should call `GETKEY(k, n)` to generate an
+   internal key and then provide a PRF when keyed by the internal key.
 
  * **HASH(input):** Hashes some input and returns the output.
 
@@ -108,6 +112,8 @@ The following variables are used for symmetric cryptography:
 
  * **`k`**: A symmetric key for the cipher algorithm specified in the
  ciphersuite.  
+
+ * **`n`**: A 64-bit unsigned integer nonce used with `k` for encryption.
 
  * **`h`**: A hash output from the hash algorithm specified in the ciphersuite.
 
@@ -138,8 +144,8 @@ message, the processor will maintain a local pointer to the last byte written
 (or read), and will write (or read) after that, and advance the pointer.
 
 "Clear" reads and writes are performed without encryption.  "Encrypted" reads
-and writes will encrypt or decrypt the value using `k` if `k` is non-empty, and
-replace `k`.  When encrypting or decrypting, the additional authenticated data
+and writes will encrypt or decrypt the value using `k` and `n` if `k` is
+non-empty.  When encrypting or decrypting, the additional authenticated data
 (`authtext`) is set to `h` followed by all preceding bytes of the message.
 
 5.1. Descriptors
@@ -161,7 +167,7 @@ message.
  * **`dhss, dhee, dhse, dhes`**: A DH calculation is performed between the
  creator's static or ephemeral key (specified by the first character) and the
  consumer's static or ephemeral key (specified by the second character).  The
- output is used to update `k` by calculating `k = KDF(k, output)`.
+ output is used to update `k` by calculating `k = KDF(k, n, output)`.
 
 5.2. Session operations
 ------------------------
@@ -176,9 +182,12 @@ A Noise session supports the following operations:
  * **Consume message:** Takes a message and descriptor and returns a prologue
  and payload.
 
- * **Split:** Takes a session and returns two derived sessions.  This is called
- at the end of a handshaking protocol to create sending and receiving sessions for
- each party and delete ephemeral private keys.
+ * **Set nonce:** Changes the session's nonce value.  
+
+ * **Derive session:** Derives a new session from this session.  This can be
+   called at the end of a handshaking protocol to create sending and receiving
+   sessions for each party and delete ephemeral private keys.  It can also be
+   called after sending a message to provide forward secrecy.
 
 5.3. Initializing a session
 ----------------------------
@@ -213,8 +222,8 @@ On input of a message and descriptor, the message is consumed with the following
 
  1) The prologue data is returned via some callback.  The caller can examine the
  prologue data to see if the message is requesting different processing (e.g.,
- requesting a different ciphersuite or protocol - the details of this negotation
- is out of scope).
+ requesting a different ciphersuite or protocol - the details of this negotiation
+ are out of scope).
 
 
  2) The descriptor is processed sequentially, as described above.
@@ -224,22 +233,34 @@ On input of a message and descriptor, the message is consumed with the following
 
  4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
-5.5. Splitting a session
--------------------------
+5.5. Setting a nonce 
+---------------------
 
-A session is split with the following steps:
+On input of a 64-bit nonce, replace the current nonce.  Extreme care must be
+taken never to reuse a nonce, considering that certain nonce values may have
+been used by Noise message processing.  This should be used for counter-based
+nonces instead of random nonces.  (If you want to use a random 128 bit nonce,
+you can alternate setting a nonce with session derivation).
 
- 1) All private keys are deleted from the session.
+5.6. Deriving a new session
+----------------------------
 
- 2) The session is copied into two child sessions.
+Deriving a new session takes no input and calculates a new session with these
+steps:
 
- 3) The first child's `k` is set to `k = KDF(k, zeros)` where `zeros` is a
- string of length equal to a DH output filled with zeros.  The second child's
- `k` is set the same way except using a string filled with 0x01 bytes.
+ 1) The session is copied into a child session.
 
-The two children are returned.  Splitting typically happens after a handshake
-protocol is complete.  The initiator of a protocol should use the first session
-for sending messages, and the second session for receiving them.
+ 2) All ephemeral keys are deleted from the child session.
+
+ 3) The child session's `k` is set to `GETKEY(k, n)` from the parent session.
+
+Typically session derivation will be called twice after a handshake protocol to
+provide separate sending and receiving sessions for each party (the initiator
+using the first session).
+
+Derivation may also be used after sending a message to provide forward-secrecy,
+since the old session key can be deleted and its `k` will be unrecoverable.
+Since session derivation may be called frequently, it should be efficient. 
 
 6. Protocols
 =============
@@ -253,10 +274,10 @@ descriptors.  Descriptors with right-pointing arrows are for messages created
 and sent by the protocol initiator; with left-pointing arrows are for messages
 sent by the responder.
 
-Pre-messages are used to represent prior knowledge of static public keys.  These
-are shown as descriptors prior to the delimiter "---".  These messages are not
-part of the protocol proper, but the parties should create and consume them as
-if they were.
+Pre-messages are used to represent prior knowledge of static public keys.
+These are shown as descriptors prior to the delimiter "******".  These messages
+are not part of the protocol proper, but the parties should create and consume
+them as if they were.
 
     Box naming:
      N  = no static key for sender
@@ -265,18 +286,18 @@ if they were.
 
     BoxN:
       <- s
-      ---
+      ******
       -> e, dhes
 
     BoxK:
       <- s
       -> s
-      ---
+      ******
       -> e, dhes, dhss
 
     BoxX:
       <- s
-      ---
+      ******
       -> e, dhes, s, dhss
 
 6.2. Handshake protocols
@@ -302,7 +323,7 @@ responder exchange messages.
 
     HandshakeNK:
       <- s
-      ---
+      ******
       -> e, dhes 
       <- e, dhee
 
@@ -313,20 +334,20 @@ responder exchange messages.
 
     HandshakeKN:
       -> s
-      ---
+      ******
       -> e
       <- e, dhee, dhes
     
     HandshakeKK:
       <- s
       -> s
-      ---
+      ******
       -> e, dhes
       <- e, dhee, dhes
 
     HandshakeKX:
       -> s
-      ---
+      ******
       -> e
       <- e, dhee, dhes, s, dhse
 
@@ -338,7 +359,7 @@ responder exchange messages.
 
     HandshakeXK:
       <- s
-      -----
+      ******
       -> e, dhes
       <- e, dhee
       -> s, dhse 
@@ -352,27 +373,27 @@ responder exchange messages.
 The above protocols perform 2 or 3 DHs, and are suitable for most purposes.
 Below are some 4-DH variants.
 
-`KX_quad` and `XX_quad` tack on a static-static DH to add some forward secrecy
-in case both ephemeral private keys are bad.  `KK_quad` and `XK_quad` perform
-the static-static DH in the first message, so allow the client to send some
-initial data protected under the static-static DH.
+`KX_quad` and `XX_quad` add on a static-static DH for forward secrecy in case
+both ephemeral private keys are bad.  `KK_quad` and `XK_quad` perform the
+static-static DH in the first message, so allow the client to send some initial
+data protected under the static-static DH.
 
     HandshakeKK_quad:
       <- s
       -> s
-      ---
+      ******
       -> e, dhes, dhss
       <- e, dhee, dhes
 
     HandshakeKX_quad:
       -> s
-      ---
+      ******
       -> e
       <- e, dhee, dhes, s, dhse, dhss
 
     HandshakeXK_quad:
       <- s
-      -----
+      ******
       -> e, dhes, s, dhss
       <- e, dhee, dhes
 
@@ -392,14 +413,13 @@ These are the default and recommended ciphersuites.
 
  * **DH(privkey, pubkey):** Curve25519 (Noise255) or Goldilocks (Noise448).
  
- * **ENCRYPT(k, authtext, plainttext), DECRYPT(k, authtext, ciphertext):**
- AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 44-byte value consisting of
- 32 bytes key and 12 bytes nonce.  `k` is updated by inverting each bit of the
- nonce and then calculating a 64-byte ChaCha20 output with the previous key and
- new nonce, then taking the first 44 bytes as the new key and nonce.
-
- * **KDF(k, input):** `HMAC-SHA2-512(k, input)`.  The first 44 bytes of the
- output are used as the new `k`.
+ * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
+   ciphertext):** AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 32-byte
+   key.  The 96-bit ChaChaPoly nonce is formed by encoding 32 bits of zeros
+   followed by little-endian encoding of `n`.
+   
+ * **KDF(k, n, input):** `HMAC-SHA2-512(GETKEY(k, n), input)`.  The first 32 bytes
+   of output are used as the new k.
  
  * **HASH(input):** `SHA2-512`.
 
@@ -407,16 +427,9 @@ These are the default and recommended ciphersuites.
 -----------------------------
 
 These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
-DH, and HASH functions are the same as above.
+DH, KDF, and HASH functions are the same as above.
 
-Encryption uses AES-GCM but only increments the counter (the last 64 bits of the
-96-bit nonce, treated as a big-endian integer), instead of replacing the entire
-`k`.  (This is due to AES-GCM's lack of key agility).
-
-The KDF is the same as above except the first 32 bits of the nonce are inverted,
-the remainder are set to zero, and then 48 bytes of AES-CTR keystream are
-generated.  These are then used as the key for KDF(key, input).  This ensures
-that the ENCRYPT and KDF operations never operate on the same key.
+Encryption uses AES-GCM and forms the 96-bit AES-GCM nonce from `n` as above.
 
 # IPR
 
