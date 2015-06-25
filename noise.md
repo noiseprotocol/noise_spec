@@ -3,7 +3,7 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (curves @ trevp.net)
- * **Date:** 2015-06-12
+ * **Date:** 2015-06-25
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
