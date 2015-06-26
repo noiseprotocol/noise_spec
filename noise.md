@@ -80,11 +80,12 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    a block of zeros equal in length to `k`.  Returns the same number of bytes
    from the beginning of the encrypted output.  This function can typically be
    implemented more efficiently than calling `ENCRYPT` (e.g. by skipping the
-   MAC).
+   MAC).  Since it calls `ENCRYPT`, this function increments the nonce `n`.
 
  * **KDF(k, n, input):** Takes a cipher key and nonce and some input data and
    returns a new cipher key.  The KDF should call `GETKEY(k, n)` to generate an
-   internal key and then provide a PRF when keyed by the internal key.
+   internal key and then be considered a "PRF" based on this internal key.  The
+   KDF should also be a collision-resistant hash function given a known key.
 
  * **HASH(input):** Hashes some input and returns the output.
 
@@ -111,11 +112,13 @@ Each session has two variables for DH (or ECDH) public keys:
 The following variables are used for symmetric cryptography:
 
  * **`k`**: A symmetric key for the cipher algorithm specified in the
- ciphersuite.  
+ ciphersuite.  At least 256 bits in length for security reasons.
 
  * **`n`**: A 64-bit unsigned integer nonce used with `k` for encryption.
 
  * **`h`**: A hash output from the hash algorithm specified in the ciphersuite.
+   This hashes data used in a Noise protocol, and is included as additional
+   authenticated data for encryption.
 
 4.2. Messages
 --------------
@@ -139,16 +142,19 @@ A Noise message has the following structure:
 -------------------------
 
 While processing messages, a Noise party will perform writes into the message
-(for a creator) or reads from the message (for a consumer).  While processing a
-message, the processor will maintain a local pointer to the last byte written
-(or read), and will write (or read) after that, and advance the pointer.
+(for a creator) or reads from the message (for a consumer).  Each write will
+append onto the previous bytes written, and each read will read after the
+previous bytes read.
 
 "Clear" reads and writes are performed without encryption.  "Encrypted" reads
 and writes will encrypt or decrypt the value using `k` and `n` if `k` is
-non-empty.  When encrypting or decrypting, the additional authenticated data
-(`authtext`) is set to `h` followed by all preceding bytes of the message.
+non-empty.  If `k` is empty then an encrypted write is equivalent to a clear
+write.  When encrypting or decrypting, the additional authenticated data
+(`authtext`) is set to `h` followed by all preceding bytes of the message.  The
+session nonce `n` is incremented after every encryption or decryption
+operation.
 
-5.1. Descriptors
+5.2. Descriptors
 -----------------
 
 A descriptor is a comma-separated list containing some of the following tokens.
@@ -165,11 +171,13 @@ message.
  variable.
 
  * **`dhss, dhee, dhse, dhes`**: A DH calculation is performed between the
- creator's static or ephemeral key (specified by the first character) and the
- consumer's static or ephemeral key (specified by the second character).  The
- output is used to update `k` by calculating `k = KDF(k, n, output)`.
+   creator's static or ephemeral key (specified by the first character) and the
+   consumer's static or ephemeral key (specified by the second character).  The
+   output is used to update `k` and `n` by calculating `k = KDF(k, n, output)`,
+   and setting `n` to zero.  If `k` is empty, it's interpreted as zero-filled
+   for input to the KDF.  This does not write any data into the message.
 
-5.2. Session operations
+5.3. Session operations
 ------------------------
 
 A Noise session supports the following operations:
@@ -189,17 +197,17 @@ A Noise session supports the following operations:
    sessions for each party and delete ephemeral private keys.  It can also be
    called after sending a message to provide forward secrecy.
 
-5.3. Initializing a session
+5.4. Initializing a session
 ----------------------------
 
 Takes an ASCII label and writes its bytes into `h` sequentially, zero-filling
-any unused bytes.  The label should be unique to the particular ciphertext,
-descriptor, and protocol. 
+any unused bytes.  The label should be unique to the particular ciphersuite,
+descriptor, and protocol.  For example: "Noise255\_BoxX\_ExampleProtocol".
 
 Also takes an optional key pair for the `s` variable.  All other variables are
 set to empty.
 
-5.3. Creating a message
+5.5. Creating a message
 ------------------------
 
 On input of some prologue and payload data and a descriptor, a message is
@@ -215,34 +223,31 @@ constructed with the following steps:
 
  4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
-5.4. Consuming a message
+5.6. Consuming a message
 -------------------------
 
 On input of a message and descriptor, the message is consumed with the following steps:
 
- 1) The prologue data is returned via some callback.  The caller can examine the
- prologue data to see if the message is requesting different processing (e.g.,
- requesting a different ciphersuite or protocol - the details of this negotiation
- are out of scope).
+ 1) The descriptor is processed sequentially, as described above.
 
-
- 2) The descriptor is processed sequentially, as described above.
-
- 3) The payload is read via an encrypted read (so the ciphertext is decrypted if
+ 2) The payload is read via an encrypted read (so the ciphertext is decrypted if
  `k` is not empty).
 
- 4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
+ 3) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
-5.5. Setting a nonce 
+5.7. Setting a nonce 
 ---------------------
 
 On input of a 64-bit nonce, replace the current nonce.  Extreme care must be
 taken never to reuse a nonce, considering that certain nonce values may have
 been used by Noise message processing.  This should be used for counter-based
-nonces instead of random nonces.  (If you want to use a random 128 bit nonce,
-you can alternate setting a nonce with session derivation).
+nonces instead of random nonces.  
 
-5.6. Deriving a new session
+If you want to use a random 128 bit nonce (call it `R`), you can set the nonce
+to the first 64 bits of `R`, then derive a new session, then set the child
+session's nonce to the next 64 bits of `R`, and derive a second child from it.
+
+5.8. Deriving a new session
 ----------------------------
 
 Deriving a new session takes no input and calculates a new session with these
@@ -254,9 +259,9 @@ steps:
 
  3) The child session's `k` is set to `GETKEY(k, n)` from the parent session.
 
-Typically session derivation will be called twice after a handshake protocol to
-provide separate sending and receiving sessions for each party (the initiator
-using the first session).
+Typically session derivation will be called twice on the handshake session
+after a handshake protocol to provide separate sending and receiving sessions
+for each party (the initiator using the first session).
 
 Derivation may also be used after sending a message to provide forward-secrecy,
 since the old session key can be deleted and its `k` will be unrecoverable.
@@ -371,36 +376,76 @@ responder exchange messages.
 
 
 The above protocols perform 2 or 3 DHs, and are suitable for most purposes.
-Below are some 4-DH variants.
 
-`KX_quad` and `XX_quad` add on a static-static DH for forward secrecy in case
-both ephemeral private keys are bad.  `KK_quad` and `XK_quad` perform the
-static-static DH in the first message, so allow the client to send some initial
-data protected under the static-static DH.
+In some cases the initiator might have pre-knowledge of an ephemeral key and
+want to perform a "0-RTT" handshake where encrypted data is sent in the first
+message.  This data will have less forward secrecy and be subject to replay
+attacks.
 
-    HandshakeKK_quad:
-      <- s
-      -> s
+The below protocols are 0-RTT versions of the above handshakes.  Note that these protocols are designed for use with pre-knowledge of the remote ephemeral.  If pre-knowledge of the remote static public key is available instead, then that public key can be passed as the remote ephemeral, but this weakens forward secrecy further:
+
+    HandshakeNN0:
+      <- e
       ******
-      -> e, dhes, dhss
-      <- e, dhee, dhes
+      -> e, dhee
+      <- e, dhee
 
-    HandshakeKX_quad:
-      -> s
+    HandshakeNK0:
+      <- s, e
       ******
-      -> e
-      <- e, dhee, dhes, s, dhse, dhss
+      -> e, dhee, dhes 
+      <- e, dhee
 
-    HandshakeXK_quad:
-      <- s
+    HandshakeNX0:
+      <- e
       ******
-      -> e, dhes, s, dhss
-      <- e, dhee, dhes
-
-    HandshakeXX_quad:
-      -> e
+      -> e, dhee
       <- e, dhee, s, dhse
-      -> s, dhse, dhss
+
+
+    HandshakeKN0:
+      <- e
+      -> s
+      ******
+      -> e, dhee
+      <- e, dhee, dhes
+    
+    HandshakeKK0:
+      <- s, e
+      -> s
+      ******
+      -> e, dhee, dhes
+      <- e, dhee, dhes
+
+    HandshakeKX0:
+      <- s, e
+      -> s
+      ******
+      -> e, dhee
+      <- e, dhee, dhes, s, dhse
+
+
+    HandshakeXN0:
+      <- e
+      ******
+      -> e, dhee
+      <- e, dhee
+      -> s, dhse
+
+    HandshakeXK0:
+      <- s, e
+      ******
+      -> e, dhee, dhes
+      <- e, dhee
+      -> s, dhse 
+
+    HandshakeXX0:
+      <- e
+      ******
+      -> e, dhee
+      <- e, dhee, s, dhse
+      -> s, dhse
+
 
 
 7. Ciphersuites
@@ -418,10 +463,9 @@ These are the default and recommended ciphersuites.
    key.  The 96-bit ChaChaPoly nonce is formed by encoding 32 bits of zeros
    followed by little-endian encoding of `n`.
    
- * **KDF(k, n, input):** `HMAC-SHA2-512(GETKEY(k, n), input)`.  The first 32 bytes
-   of output are used as the new k.
+ * **KDF(k, n, input):** `HMAC-SHA2-256(GETKEY(k, n), input)`.  
  
- * **HASH(input):** `SHA2-512`.
+ * **HASH(input):** `SHA2-256`.
 
 7.2. AES256-GCM ciphersuites
 -----------------------------
@@ -431,21 +475,39 @@ DH, KDF, and HASH functions are the same as above.
 
 Encryption uses AES-GCM and forms the 96-bit AES-GCM nonce from `n` as above.
 
-# IPR
+8. Rationale
+=============
+
+This section collects various design rationale:
+
+Nonces are 64 bits in length because:
+
+ * Some ciphers (e.g. Salsa20) only have 64 bit nonces
+ * 64 bits allows the entire nonce to be treated as an integer and incremented 
+ * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
+
+The default ciphersuites use SHA2-256 because:
+
+ * SHA2 is widely available
+ * SHA2-256 requires less state and produces a sufficient-sized output (32 bytes)
+
+
+8. IPR
+=======
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-# Acknowledgements
+9. Acknowledgements
+====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
 and also by HOMQV from Hugo Krawzcyk.
 
-Moxie Marlinspike and Christian Winnerlein assisted in designing the key
-derivation process. The Noise KDF has some similarity with HKDF from Hugo
-Krawzcyk, who also provided some feedback.
+Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
+earlier versions of the key derivation.
 
-Additional feedback on spec and pseudocode came from: Jonathan Rudenberg,
-Stephen Touset, and Tony Arcieri.
+Additional feedback on spec and pseudocode came from: Jason Donenfeld, Jonathan
+Rudenberg, Stephen Touset, and Tony Arcieri.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
