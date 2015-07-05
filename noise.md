@@ -2,8 +2,8 @@
 Noise
 ======
 
- * **Author:** Trevor Perrin (curves @ trevp.net)
- * **Date:** 2015-06-25
+ * **Author:** Trevor Perrin (noise @ trevp.net)
+ * **Date:** 2015-07-05
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
