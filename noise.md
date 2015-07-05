@@ -208,8 +208,8 @@ Takes an ASCII label and writes its bytes into `h` sequentially, zero-filling
 any unused bytes.  The label should be unique to the particular ciphersuite,
 descriptor, and protocol.  For example: "Noise255\_BoxX\_ExampleProtocol".
 
-Also takes an optional key pair for the `s` variable.  All other variables are
-set to empty.
+Also takes an optional key pair for the `s` variable, and an optional
+"pre-shared" key for the `k` variable.  All other variables are set to empty.
 
 5.5. Creating a message
 ------------------------
