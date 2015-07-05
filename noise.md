@@ -53,9 +53,7 @@ recognize these fields will ignore them, but they will be authenticated to
 distinguish older implementations and prevent rollback attacks on newer
 implementations.  Prologue data will be 0-255 bytes in length.
 
-Payload data may be 0-4GB in length, or null.  A zero-length payload will
-correspond to a non-zero-length ciphertext (typically containing an
-authentication tag).  A null payload will cause the ciphertext to be omitted.
+Payload data may be 0-4GB in length.
 
 2.3. Key agreement
 -------------------
@@ -224,8 +222,9 @@ constructed with the following steps:
 
  2) The descriptor is processed sequentially, as described above.
 
- 3) If the payload is non-null, the payload is written into the message via an
- encrypted write (so ciphertext is written if `k` is not empty).
+ 3) The payload is written into the message via an encrypted write (so
+ ciphertext is written if `k` is not empty).  If `k` is empty and the payload
+ has zero length, then no bytes are written.
 
  4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
@@ -236,9 +235,8 @@ On input of a message and descriptor, the message is consumed with the following
 
  1) The descriptor is processed sequentially, as described above.
 
- 2) If any bytes remain in the message, the payload is read via an encrypted
- read (so the ciphertext is decrypted if `k` is not empty).  If no bytes remain
- in the message, a null payload is returned.
+ 2) The payload is read via an encrypted read (so the ciphertext is decrypted
+ if `k` is not empty).
 
  3) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
