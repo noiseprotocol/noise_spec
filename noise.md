@@ -34,7 +34,7 @@ Each Noise party will have a **session** which contains the state used to
 process messages.  Each Noise message corresponds to a **descriptor** which
 describes the contents of a message and the rules for processing it.
 
-Creating a message takes (optional) **prologue** and **payload** data, a **descriptor**,
+Creating a message takes **prologue** and **payload** data, a **descriptor**,
 and a **session**.  The output is a **message** and an updated **session**.
 
 Consuming a message requires a **message**, a **descriptor**, and a **session**.
@@ -90,6 +90,7 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    returns a new cipher key.  The KDF should call `GETKEY(k, n)` to generate an
    internal key and then be considered a "PRF" based on this internal key.  The
    KDF should also be a collision-resistant hash function given a known key.
+   Calling `HMAC` on the output from `GETKEY` is an example KDF.
 
  * **HASH(input):** Hashes some input and returns the output.
 
@@ -116,7 +117,8 @@ Each session has two variables for DH (or ECDH) public keys:
 The following variables are used for symmetric cryptography:
 
  * **`k`**: A symmetric key for the cipher algorithm specified in the
- ciphersuite.  At least 256 bits in length for security reasons.
+   ciphersuite.  This value must be at least 256 bits in length for security
+   reasons.
 
  * **`n`**: A 64-bit unsigned integer nonce used with `k` for encryption.
 
@@ -243,10 +245,10 @@ On input of a message and descriptor, the message is consumed with the following
 5.7. Setting a nonce 
 ---------------------
 
-On input of a 64-bit nonce, replace the current nonce.  Extreme care must be
-taken never to reuse a nonce, considering that certain nonce values may have
-been used by Noise message processing.  This should be used for counter-based
-nonces instead of random nonces.  
+On input of a 64-bit nonce, replace the current nonce.  Users of this function
+must take extreme care never to reuse a nonce, and must consider that certain
+nonce values may have been used by Noise message processing.  This should be
+used for counter-based nonces instead of random nonces.  
 
 If you want to use a random 128 bit nonce (call it `R`), you can set the nonce
 to the first 64 bits of `R`, then derive a new session, then set the child
