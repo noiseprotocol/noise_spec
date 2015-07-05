@@ -34,7 +34,7 @@ Each Noise party will have a **session** which contains the state used to
 process messages.  Each Noise message corresponds to a **descriptor** which
 describes the contents of a message and the rules for processing it.
 
-Creating a message requires **prologue** and **payload** data, a **descriptor**,
+Creating a message takes (optional) **prologue** and **payload** data, a **descriptor**,
 and a **session**.  The output is a **message** and an updated **session**.
 
 Consuming a message requires a **message**, a **descriptor**, and a **session**.
@@ -43,13 +43,19 @@ The output is **prologue** and **payload** data, and an updated **session**.
 2.2. Prologue and payload
 --------------------------
 
-Noise messages will contain prologue and payload data.  The payload is typically
+Noise messages may contain prologue and payload data.  The payload is typically
 (but not always) encrypted.  The prologue is an unencrypted header that can be
 used for version and feature negotiation.  
 
 Prologue data is authenticated but ignored by default, so version numbers and
 other data can be added into the prologue.  Older implementations that don't
-recognize these fields will ignore them.   
+recognize these fields will ignore them, but they will be authenticated to
+distinguish older implementations and prevent rollback attacks on newer
+implementations.  Prologue data will be 0-255 bytes in length.
+
+Payload data may be 0-4GB in length, or null.  A zero-length payload will
+correspond to a non-zero-length ciphertext (typically containing an
+authentication tag).  A null payload will cause the ciphertext to be omitted.
 
 2.3. Key agreement
 -------------------
@@ -218,8 +224,8 @@ constructed with the following steps:
 
  2) The descriptor is processed sequentially, as described above.
 
- 3) The payload is written into the message via an encrypted write (so
- ciphertext is written if `k` is not empty).
+ 3) If the payload is non-null, the payload is written into the message via an
+ encrypted write (so ciphertext is written if `k` is not empty).
 
  4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
@@ -230,8 +236,9 @@ On input of a message and descriptor, the message is consumed with the following
 
  1) The descriptor is processed sequentially, as described above.
 
- 2) The payload is read via an encrypted read (so the ciphertext is decrypted if
- `k` is not empty).
+ 2) If any bytes remain in the message, the payload is read via an encrypted
+ read (so the ciphertext is decrypted if `k` is not empty).  If no bytes remain
+ in the message, a null payload is returned.
 
  3) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
 
