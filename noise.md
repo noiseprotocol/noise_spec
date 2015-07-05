@@ -259,6 +259,8 @@ steps:
 
  3) The child session's `k` is set to `GETKEY(k, n)` from the parent session.
 
+ 4) The child session's `n` is set to zero.
+
 Typically session derivation will be called twice on the handshake session
 after a handshake protocol to provide separate sending and receiving sessions
 for each party (the initiator using the first session).
