@@ -325,9 +325,11 @@ responder exchange messages.
      N_ = no static key for initiator
      K_ = static key for initiator known to responder
      X_ = static key for initiator transmitted to responder
-
+     I_ = static key for inititiator immediately transmitted to responder
+ 
      _N = no static key for responder
      _K = static key for responder known to initiator
+     _E = static key plus a semi-ephemeral key for responder known to initiator
      _X = static key for responder transmitted to initiator
 
 
@@ -339,6 +341,12 @@ responder exchange messages.
       <- s
       ******
       -> e, dhes 
+      <- e, dhee
+
+    HandshakeNE:
+      <- s, e
+      ******
+      -> e, dhee, dhes 
       <- e, dhee
 
     HandshakeNX:
@@ -356,7 +364,14 @@ responder exchange messages.
       <- s
       -> s
       ******
-      -> e, dhes
+      -> e, dhes, dhss
+      <- e, dhee, dhes
+
+    HandshakeKE:
+      <- s, e
+      -> s
+      ******
+      -> e, dhee, dhes, dhse
       <- e, dhee, dhes
 
     HandshakeKX:
@@ -378,83 +393,38 @@ responder exchange messages.
       <- e, dhee
       -> s, dhse 
 
-    HandshakeXX:
-      -> e
-      <- e, dhee, s, dhse
-      -> s, dhse
-
-
-The above protocols perform 2 or 3 DHs, and are suitable for most purposes.
-
-In some cases the initiator might have pre-knowledge of an ephemeral key and
-want to perform a "0-RTT" handshake where encrypted data is sent in the first
-message.  This data will have less forward secrecy and be subject to replay
-attacks.
-
-The below protocols are 0-RTT versions of the above handshakes.  Note that these protocols are designed for use with pre-knowledge of the remote ephemeral.  If pre-knowledge of the remote static public key is available instead, then that public key can be passed as the remote ephemeral, but this weakens forward secrecy further:
-
-    HandshakeNN0:
-      <- e
-      ******
-      -> e, dhee
-      <- e, dhee
-
-    HandshakeNK0:
-      <- s, e
-      ******
-      -> e, dhee, dhes 
-      <- e, dhee
-
-    HandshakeNX0:
-      <- e
-      ******
-      -> e, dhee
-      <- e, dhee, s, dhse
-
-
-    HandshakeKN0:
-      <- e
-      -> s
-      ******
-      -> e, dhee
-      <- e, dhee, dhes
-    
-    HandshakeKK0:
-      <- s, e
-      -> s
-      ******
-      -> e, dhee, dhes
-      <- e, dhee, dhes
-
-    HandshakeKX0:
-      <- s, e
-      -> s
-      ******
-      -> e, dhee
-      <- e, dhee, dhes, s, dhse
-
-
-    HandshakeXN0:
-      <- e
-      ******
-      -> e, dhee
-      <- e, dhee
-      -> s, dhse
-
-    HandshakeXK0:
+    HandshakeXE:
       <- s, e
       ******
       -> e, dhee, dhes
       <- e, dhee
       -> s, dhse 
 
-    HandshakeXX0:
-      <- e
-      ******
-      -> e, dhee
+    HandshakeXX:
+      -> e
       <- e, dhee, s, dhse
       -> s, dhse
 
+
+    HandshakeIN:
+      -> e, s
+      <- e, dhee, dhes
+    
+    HandshakeIK:
+      <- s
+      ******
+      -> e, dhes, s, dhss
+      <- e, dhee, dhes
+    
+    HandshakeIE:
+      <- s, e
+      ******
+      -> e, dhee, dhes, s, dhse
+      <- e, dhee, dhes
+    
+    HandshakeIX:
+      -> e, s
+      <- e, dhee, dhes, s, dhse
 
 
 7. Ciphersuites
