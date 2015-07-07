@@ -3,7 +3,7 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-07-05
+ * **Date:** 2015-07-07
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -64,8 +64,8 @@ protocol.  Ephemeral key pairs are short-term key pairs that are created and
 destroyed during the protocol.
 
 The parties may have prior knowledge of each other's static public keys, before
-executing a Noise protocol.  This is represented by "pre-messages" containing
-these public keys that both parties use to initialize their session state.
+executing a Noise protocol.  This is represented by "pre-messages" that both
+parties use to initialize their session state.
 
 3. Crypto functions
 ====================
@@ -76,23 +76,28 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    output sequence of bytes. 
  
  * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
-   ciphertext):** Encrypts or decrypts data using the cipher key `k` and a 64-bit
-   unique nonce `n` using authenticated encryption with the additional
-   authenticated data `authtext`.  Increments the nonce.
+   ciphertext):** Encrypts or decrypts data using the cipher key `k` and a
+   64-bit unique nonce `n` using authenticated encryption with the additional
+   authenticated data `authtext`.  This must be a deterministic function (i.e.
+   it shall not add a random IV; this ensures the `GETKEY` function
+   is deterministic).  Increments the nonce.
 
- * **GETKEY(k, n):**  Calls the `ENCRYPT` function with `k` and `n` to encrypt
-   a block of zeros equal in length to `k`.  Returns the same number of bytes
-   from the beginning of the encrypted output.  This function can typically be
-   implemented more efficiently than calling `ENCRYPT` (e.g. by skipping the
-   MAC).  Since it calls `ENCRYPT`, this function increments the nonce `n`.
+ * **GETKEY(k, n):**  Calls the `ENCRYPT` function with cipher key `k` and
+   nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
+   same number of bytes from the beginning of the encrypted output.  This
+   function can typically be implemented more efficiently than calling
+   `ENCRYPT` (e.g. by skipping the MAC calculation).  Since it calls `ENCRYPT`,
+   this function increments the nonce `n`.
 
- * **KDF(k, n, input):** Takes a cipher key and nonce and some input data and
-   returns a new cipher key.  The KDF should call `GETKEY(k, n)` to generate an
-   internal key and then be considered a "PRF" based on this internal key.  The
-   KDF should also be a collision-resistant hash function given a known key.
-   Calling `HMAC` on the output from `GETKEY` is an example KDF.
+ * **KDF(kdf\_key, input):** Takes a **KDF key** of the same size as `k` and
+   some input data and returns a new value for the cipher key `k`.  The KDF key
+   will be set to `GETKEY(k, n)` and the KDF should implement a "PRF" based on
+   the KDF key.  The KDF should also be a collision-resistant hash function
+   given a known KDF key.  `HMAC-SHA2-256` is an example KDF.
 
- * **HASH(input):** Hashes some input and returns the output.
+ * **HASH(input):** Hashes some input and returns a collision-resistant hash
+   output of the same length as the cipher key `k`.  `SHA2-256` is an example
+   hash function.
 
 4. Structures
 ==============
@@ -117,8 +122,8 @@ Each session has two variables for DH (or ECDH) public keys:
 The following variables are used for symmetric cryptography:
 
  * **`k`**: A symmetric key for the cipher algorithm specified in the
-   ciphersuite.  This value must be at least 256 bits in length for security
-   reasons.
+   ciphersuite.  This value also accumulates the results of all DH operations.
+   This value must be at least 256 bits in length for security reasons.
 
  * **`n`**: A 64-bit unsigned integer nonce used with `k` for encryption.
 
@@ -179,7 +184,7 @@ message.
  * **`dhss, dhee, dhse, dhes`**: A DH calculation is performed between the
    creator's static or ephemeral key (specified by the first character) and the
    consumer's static or ephemeral key (specified by the second character).  The
-   output is used to update `k` and `n` by calculating `k = KDF(k, n, output)`,
+   output is used to update `k` and `n` by calculating `k = KDF(GETKEY(k, n), output)`,
    and setting `n` to zero.  If `k` is empty, it's interpreted as zero-filled
    for input to the KDF.  This does not write any data into the message.
 
@@ -190,11 +195,15 @@ A Noise session supports the following operations:
 
  * **Initialize:** Initializes a session.
  
- * **Create message:** Takes a prologue and payload (either of which may be
- empty) and a descriptor and returns a message.
+ * **Create message:** Takes a prologue, payload, and a descriptor and
+   returns a message.
 
  * **Consume message:** Takes a message and descriptor and returns a prologue
  and payload.
+ 
+ * **Create and consume pre-messages:** As above, but handles special
+   unencrypted messages which represent the party's knowledge prior to
+   executing the protocol.
 
  * **Set nonce:** Changes the session's nonce value.  
 
@@ -207,8 +216,9 @@ A Noise session supports the following operations:
 ----------------------------
 
 Takes an ASCII label and writes its bytes into `h` sequentially, zero-filling
-any unused bytes.  The label should be unique to the particular ciphersuite,
-descriptor, and protocol.  For example: "Noise255\_BoxX\_ExampleProtocol".
+any unused bytes.  The label should be unique to the particular ciphersuite and
+protocol.  By convention the label should begin with the ciphersuite.  For
+example: "Noise255\_ExampleProtocol".
 
 Also takes an optional key pair for the `s` variable, and an optional
 "pre-shared" key for the `k` variable.  All other variables are set to empty.
@@ -241,6 +251,15 @@ On input of a message and descriptor, the message is consumed with the following
  if `k` is not empty).
 
  3) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
+
+
+5.7. Creating and consuming pre-messages
+-----------------------------------------
+
+Pre-messages are used to represent prior knowledge of the other party's static
+and/or ephemeral public keys.  These messages are created and consumed internally by each party prior to executing a protocol.
+
+Pre-messages are created and consumed just like regular messages, except that all writes and reads are performed in the clear (this makes it easier to use pre-messages in conjunction with pre-shared symmetric keys).
 
 5.7. Setting a nonce 
 ---------------------
@@ -288,10 +307,9 @@ descriptors.  Descriptors with right-pointing arrows are for messages created
 and sent by the protocol initiator; with left-pointing arrows are for messages
 sent by the responder.
 
-Pre-messages are used to represent prior knowledge of static public keys.
-These are shown as descriptors prior to the delimiter "******".  These messages
-are not part of the protocol proper, but the parties should create and consume
-them as if they were.
+Pre-messages are shown as descriptors prior to the delimiter "\*\*\*\*\*\*".
+These messages are not part of the protocol proper, but the parties should
+create and consume them as if they were.
 
     Box naming:
      N  = no static key for sender
@@ -468,8 +486,11 @@ Nonces are 64 bits in length because:
 The default ciphersuites use SHA2-256 because:
 
  * SHA2 is widely available
- * SHA2-256 requires less state and produces a sufficient-sized output (32 bytes)
+ * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
 
+The cipher key must be at least 256 bits because:
+
+ * The cipher key accumulates the DH output, so collision-resistance is desirable
 
 8. IPR
 =======
