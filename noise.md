@@ -460,7 +460,7 @@ These are the default and recommended ciphersuites.
    key.  The 96-bit ChaChaPoly nonce is formed by encoding 32 bits of zeros
    followed by little-endian encoding of `n`.
    
- * **KDF(k, n, input):** `HMAC-SHA2-256(GETKEY(k, n), input)`.  
+ * **KDF(kdf\_key, input):** `HMAC-SHA2-256(kdf_key, input)`.  
  
  * **HASH(input):** `SHA2-256`.
 
