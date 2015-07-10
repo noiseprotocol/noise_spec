@@ -457,8 +457,10 @@ These are the default and recommended ciphersuites.
  
  * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
    ciphertext):** AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 32-byte
-   key.  The 96-bit ChaChaPoly nonce is formed by encoding 32 bits of zeros
-   followed by little-endian encoding of `n`.
+   key.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by
+   little-endian encoding of `n`.  (Earlier implementations of ChaCha20 used a
+   64-bit nonce, in which case `n` can be encoded directly into the ChaCha20
+   nonce).
    
  * **KDF(kdf\_key, input):** `HMAC-SHA2-256(kdf_key, input)`.  
  
@@ -480,6 +482,7 @@ This section collects various design rationale:
 Nonces are 64 bits in length because:
 
  * Some ciphers (e.g. Salsa20) only have 64 bit nonces
+ * 64 bit nonces were used in the initial specification and implementations of ChaCha20, so Noise nonces can be used with these implementations.
  * 64 bits allows the entire nonce to be treated as an integer and incremented 
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
 
