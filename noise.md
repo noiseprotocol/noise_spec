@@ -67,6 +67,15 @@ The parties may have prior knowledge of each other's static public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
 parties use to initialize their session state.
 
+2.4. Protocols and patterns
+----------------------------
+
+A sequence of descriptors for pre-messages and messages is a **Noise pattern**.
+
+A Noise-based protocol combines a pattern and a ciphersuite.  It may also specify how to initialize Noise session(s), or specify other operations to perform on the sessions (see Section 5.3).  Finally it may specify application-specific processing rules.
+
+Some example Noise patterns are defined in Section 7.
+
 3. Crypto functions
 ====================
 
@@ -295,8 +304,12 @@ Derivation may also be used after sending a message to provide forward-secrecy,
 since the old session key can be deleted and its `k` will be unrecoverable.
 Since session derivation may be called frequently, it should be efficient. 
 
-6. Protocols
-=============
+6. Patterns
+============
+
+The following Noise patterns represent the intended "mainstream" use of Noise,
+and can be used to construct a wide range of protocols.  Of course, other
+patterns can be defined in other documents.
 
 6.1. Box protocols
 -------------------
