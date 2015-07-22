@@ -71,8 +71,15 @@ parties use to initialize their session state.
 ----------------------------
 
 A sequence of descriptors for pre-messages and messages is a **Noise pattern**.
+A simple pattern might describe a single "box" message that encrypts one
+plaintext from Alice to Bob.  A more complex pattern might describe an
+interactive handshake whereby Alice and Bob mutually authenticate and arrive at
+a shared session key with forward secrecy.
 
-A Noise-based protocol combines a pattern and a ciphersuite.  It may also specify how to initialize Noise session(s), or specify other operations to perform on the sessions (see Section 5.3).  Finally it may specify application-specific processing rules.
+A Noise-based protocol combines a pattern and a ciphersuite.  It may also
+specify how to initialize Noise session(s), or specify other operations to
+perform on the sessions (see Section 5.3).  Finally it may specify
+application-specific processing rules.
 
 Some example Noise patterns are defined in Section 7.
 
