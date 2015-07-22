@@ -314,22 +314,22 @@ Since session derivation may be called frequently, it should be efficient.
 6. Patterns
 ============
 
-The following Noise patterns represent the intended "mainstream" use of Noise,
-and can be used to construct a wide range of protocols.  Of course, other
-patterns can be defined in other documents.
+The following patterns represent the intended "mainstream" use of Noise, and
+can be used to construct a wide range of protocols.  Of course, other patterns
+can be defined in other documents.
 
-6.1. Box protocols
--------------------
+6.1. Box patterns
+------------------
 
-The following "Box" protocols represent one-shot messages from a sender to a
-recipient.  Each protocol is given a name, and then described via a sequence of
+The following "Box" patterns represent one-shot messages from a sender to a
+recipient.  Each pattern is given a name, and then described via a sequence of
 descriptors.  Descriptors with right-pointing arrows are for messages created
 and sent by the protocol initiator; with left-pointing arrows are for messages
 sent by the responder.
 
 Pre-messages are shown as descriptors prior to the delimiter "\*\*\*\*\*\*".
-These messages are not part of the protocol proper, but the parties should
-create and consume them as if they were.
+These messages aren't sent as part of the protocol proper, but the parties
+should create and consume them as if they were.
 
     Box naming:
      N  = no static key for sender
@@ -352,10 +352,10 @@ create and consume them as if they were.
       ******
       -> e, dhes, s, dhss
 
-6.2. Handshake protocols
--------------------------
+6.2. Handshake patterns
+------------------------
 
-The following "Handshake" protocols represent handshakes where the initiator and
+The following "Handshake" patterns represent handshakes where the initiator and
 responder exchange messages.
 
     Handshake naming:
