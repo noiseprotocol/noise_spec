@@ -3,7 +3,7 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-07-07
+ * **Date:** 2015-07-22
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -96,20 +96,19 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    64-bit unique nonce `n` using authenticated encryption with the additional
    authenticated data `authtext`.  This must be a deterministic function (i.e.
    it shall not add a random IV; this ensures the `GETKEY` function
-   is deterministic).  Increments the nonce.
+   is deterministic).
 
  * **GETKEY(k, n):**  Calls the `ENCRYPT` function with cipher key `k` and
    nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
    same number of bytes from the beginning of the encrypted output.  This
    function can typically be implemented more efficiently than calling
-   `ENCRYPT` (e.g. by skipping the MAC calculation).  Since it calls `ENCRYPT`,
-   this function increments the nonce `n`.
+   `ENCRYPT` (e.g. by skipping the MAC calculation).
 
  * **KDF(kdf\_key, input):** Takes a **KDF key** of the same size as `k` and
    some input data and returns a new value for the cipher key `k`.  The KDF key
-   will be set to `GETKEY(k, n)` and the KDF should implement a "PRF" based on
-   the KDF key.  The KDF should also be a collision-resistant hash function
-   given a known KDF key.  `HMAC-SHA2-256` is an example KDF.
+   will be set the caller to `GETKEY(k, n)` and the KDF should implement a
+   "PRF" based on the KDF key.  The KDF should also be a collision-resistant
+   hash function given a known KDF key.  `HMAC-SHA2-256` is an example KDF.
 
  * **HASH(input):** Hashes some input and returns a collision-resistant hash
    output of the same length as the cipher key `k`.  `SHA2-256` is an example
@@ -174,12 +173,12 @@ append onto the previous bytes written, and each read will read after the
 previous bytes read.
 
 "Clear" reads and writes are performed without encryption.  "Encrypted" reads
-and writes will encrypt or decrypt the value using `k` and `n` if `k` is
-non-empty.  If `k` is empty then an encrypted write is equivalent to a clear
+and writes will use the `ENCRYPT()` and `DECRYPT()` functions to encrypt or
+decrypt the data using the key `k` and nonce `n`, if `k` is non-empty.  If `k`
+is empty then an encrypted read or write is equivalent to a clear read or
 write.  When encrypting or decrypting, the additional authenticated data
 (`authtext`) is set to `h` followed by all preceding bytes of the message.  The
-session nonce `n` is incremented after every encryption or decryption
-operation.
+nonce `n` is incremented after every call to `ENCRYPT()` or `DECRYPT()`.
 
 5.2. Descriptors
 -----------------
@@ -301,7 +300,9 @@ steps:
 
  3) The child session's `k` is set to `GETKEY(k, n)` from the parent session.
 
- 4) The child session's `n` is set to zero.
+ 4) The parent session's `n` is incremented.
+
+ 5) The child session's `n` is set to zero.
 
 Typically session derivation will be called twice on the handshake session
 after a handshake protocol to provide separate sending and receiving sessions
