@@ -3,22 +3,23 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-07-22
+ * **Date:** 2015-07-26
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
 ================
 
-Noise is a framework for DH-based crypto protocols.  Noise can describe
-protocols that consist of a single message as well as interactive protocols.
+Noise is a framework for crypto protocols based on Diffie-Hellman key
+agreements.  Noise can describe protocols that consist of a single message as
+well as interactive protocols.
 
 Noise messages are described in a language that specifies the exchange of DH
 public keys and DH calculations.  The DH outputs are accumulated into a session
 state.  This allows the construction of multi-message protocols.
 
 The resulting protocols can be instantiated based on ciphersuites that fill in
-the details of the DH calculation and other crypto primitives.
+the details of the crypto primitives.
 
 
 2. Overview
@@ -27,12 +28,14 @@ the details of the DH calculation and other crypto primitives.
 2.1. Messages, sessions, and descriptors
 -----------------------------------------
 
-Noise messages are ciphertext objects exchanged between parties.  Noise messages
-can be **created** and **consumed**.
+Noise **messages** are ciphertext objects exchanged between parties.  Noise
+messages can be **created** and **consumed**.
 
 Each Noise party will have a **session** which contains the state used to
-process messages.  Each Noise message corresponds to a **descriptor** which
-describes the contents of a message and the rules for processing it.
+process messages.  
+
+Each Noise message corresponds to a **descriptor** which describes the contents
+of a message and the rules for processing it.
 
 Creating a message takes **prologue** and **payload** data, a **descriptor**,
 and a **session**.  The output is a **message** and an updated **session**.
@@ -63,7 +66,7 @@ key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that are created and
 destroyed during the protocol.
 
-The parties may have prior knowledge of each other's static public keys, before
+The parties may have prior knowledge of each other's public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
 parties use to initialize their session state.
 
@@ -78,7 +81,7 @@ arrive at a shared session key with forward secrecy.
 
 A Noise-based protocol combines a pattern and a ciphersuite.  It may also
 specify how to initialize Noise session(s), or specify other operations to
-perform on the sessions (see Section 5.3).  Finally it may specify
+perform on the sessions (see Section 5.3).  Finally, it may specify
 application-specific processing rules.
 
 Some example Noise patterns are defined in Section 7.
@@ -88,27 +91,29 @@ Some example Noise patterns are defined in Section 7.
 
 Noise depends on the following functions, which are supplied by a **ciphersuite**:
 
- * **DH(privkey, pubkey):** Performs a DH or ECDH calculation and returns an
-   output sequence of bytes. 
+ * **DH(privkey, pubkey):** Performs a DH or elliptic-curve DH calculation and
+   returns an output sequence of bytes. 
  
- * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
+ * **ENCRYPT(k, n, authtext, plaintext) / DECRYPT(k, n, authtext,
    ciphertext):** Encrypts or decrypts data using the cipher key `k` and a
    64-bit unique nonce `n` using authenticated encryption with the additional
    authenticated data `authtext`.  This must be a deterministic function (i.e.
-   it shall not add a random IV; this ensures the `GETKEY` function
-   is deterministic).
+   it shall not add a random IV; this ensures the `GETKEY` function is
+   deterministic).  The key `k` must be at least 256 bits in length for
+   security reasons.
 
  * **GETKEY(k, n):**  Calls the `ENCRYPT` function with cipher key `k` and
    nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
    same number of bytes from the beginning of the encrypted output.  This
-   function can typically be implemented more efficiently than calling
-   `ENCRYPT` (e.g. by skipping the MAC calculation).
+   function is provided separately because it can usually be implemented more
+   efficiently than calling `ENCRYPT` (e.g. by skipping the MAC calculation).
 
- * **KDF(kdf\_key, input):** Takes a **KDF key** of the same size as `k` and
+ * **KDF(kdf\_key, input):** Takes a **KDF key** equal in length to `k` and
    some input data and returns a new value for the cipher key `k`.  The KDF key
-   will be set the caller to `GETKEY(k, n)` and the KDF should implement a
-   "PRF" based on the KDF key.  The KDF should also be a collision-resistant
-   hash function given a known KDF key.  `HMAC-SHA2-256` is an example KDF.
+   will be set by this function's caller to `GETKEY(k, n)` and the KDF should
+   implement a "PRF" based on the KDF key.  The KDF should also be a
+   collision-resistant hash function given a known KDF key.  `HMAC-SHA2-256` is
+   an example KDF.
 
  * **HASH(input):** Hashes some input and returns a collision-resistant hash
    output of the same length as the cipher key `k`.  `SHA2-256` is an example
