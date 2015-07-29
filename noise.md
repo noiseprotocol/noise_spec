@@ -106,7 +106,8 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
    same number of bytes from the beginning of the encrypted output.  This
    function is provided separately because it can usually be implemented more
-   efficiently than calling `ENCRYPT` (e.g. by skipping the MAC calculation).
+   efficiently than by calling `ENCRYPT` (e.g. by skipping the MAC
+   calculation).
 
  * **KDF(kdf\_key, input):** Takes a **KDF key** equal in length to `k` and
    some input data and returns a new value for the cipher key `k`.  The KDF key
@@ -116,8 +117,8 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    an example KDF.
 
  * **HASH(input):** Hashes some input and returns a collision-resistant hash
-   output of the same length as the cipher key `k`.  `SHA2-256` is an example
-   hash function.
+   output.  The output shall be at least 256 bits in length for security
+   reasons.  `SHA2-256` is an example hash function.
 
 4. Structures
 ==============
@@ -320,9 +321,9 @@ Since session derivation may be called frequently, it should be efficient.
 6. Patterns
 ============
 
-The following patterns represent the intended "mainstream" use of Noise, and
-can be used to construct a wide range of protocols.  Of course, other patterns
-can be defined in other documents.
+The following patterns represent the mainstream use of Noise, and can be used
+to construct a wide range of protocols.  Of course, other patterns can be
+defined in other documents.
 
 6.1. Box patterns
 ------------------
@@ -487,7 +488,13 @@ These are the default and recommended ciphersuites.
    little-endian encoding of `n`.  (Earlier implementations of ChaCha20 used a
    64-bit nonce, in which case `n` can be encoded directly into the ChaCha20
    nonce).
-   
+
+ * **GETKEY(k, n):**  The first 32 bytes output from the ChaCha20 block
+   function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
+   and the block count set to 1.  This is the same as calling `ENCRYPT()` on a
+   plaintext consisting of 32 bytes of zeros and taking the first 32 bytes of
+   output. 
+
  * **KDF(kdf\_key, input):** `HMAC-SHA2-256(kdf_key, input)`.  
  
  * **HASH(input):** `SHA2-256`.
@@ -496,11 +503,21 @@ These are the default and recommended ciphersuites.
 -----------------------------
 
 These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
-DH, KDF, and HASH functions are the same as above.
+`DH()`, `KDF()`, and `HASH()` functions are the same as above.
 
-Encryption uses AES-GCM and forms the 96-bit AES-GCM nonce from `n` as above.
+The `ENCRYPT()` and `DECRYPT()` functions, and by extension `GETKEY()`, use
+AES-GCM and form the 96-bit AES-GCM nonce from `n` as above.
 
-8. Rationale
+8. Security Considerations
+===========================
+
+This section collects various security considerations:
+
+Reusing a nonce value for `n` with the same key `k` for encryption would be catastrophic.  Implementations must carefully follow the rules for incrementing nonces after `ENCRYPT()`, `DECRYPT()`, or `GETKEY()` functions. 
+
+To avoid catastrophic key reuse, every party in a Noise protocol should send a fresh ephemeral public key and perform a DH with it prior to sending any encrypted data.  All patterns in Section 6 adhere to this rule.  
+
+9. Rationale
 =============
 
 This section collects various design rationale:
@@ -521,13 +538,13 @@ The cipher key must be at least 256 bits because:
 
  * The cipher key accumulates the DH output, so collision-resistance is desirable
 
-8. IPR
-=======
+10. IPR
+========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-9. Acknowledgements
-====================
+11. Acknowledgements
+=====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
 and also by HOMQV from Hugo Krawzcyk.
