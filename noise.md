@@ -11,54 +11,63 @@ Noise
 ================
 
 Noise is a framework for crypto protocols based on Diffie-Hellman key
-agreements.  Noise can describe protocols that consist of a single message as
+agreement.  Noise can describe protocols that consist of a single message as
 well as interactive protocols.
 
 Noise messages are described in a language that specifies the exchange of DH
-public keys and DH calculations.  The DH outputs are accumulated into a session
-state.  This allows the construction of multi-message protocols.
+public keys and DH calculations.
 
-The resulting protocols can be instantiated based on ciphersuites that fill in
-the details of the crypto primitives.
+The resulting patterns can be instantiated into concrete protocols based on
+ciphersuites that fill in the crypto details.
 
 
 2. Overview
 ============
 
-2.1. Messages, sessions, and descriptors
------------------------------------------
+2.1. Messages, sessions, and protocols
+---------------------------------------
 
-Noise **messages** are ciphertext objects exchanged between parties.  Noise
-messages can be **created** and **consumed**.
+The main concepts in Noise are messages, sessions, and protocols:
 
-Each Noise party will have a **session** which contains the state used to
-process messages.  
+**Messages** are exchanged between parties.  Each message will contain
+zero or more public keys followed by an optional payload.  Either the public
+keys or payload may be encrypted.
 
-Each Noise message corresponds to a **descriptor** which describes the contents
-of a message and the rules for processing it.
+Each party will have a **session** which contains the state used to
+process messages.
 
-Creating a message takes **prologue** and **payload** data, a **descriptor**,
-and a **session**.  The output is a **message** and an updated **session**.
+A **protocol** consists of a pattern of messages between a pair of
+sessions.
 
-Consuming a message requires a **message**, a **descriptor**, and a **session**.
-The output is **prologue** and **payload** data, and an updated **session**.
+2.2. Descriptors and patterns
+------------------------------
 
-2.2. Prologue and payload
+A **descriptor** specifies the contents of a message.
+
+A **pattern** specifies the sequence of descriptors that comprise a protocol.
+
+A simple pattern might describe a single **box** message that encrypts one
+plaintext from Alice to Bob.  A more complex pattern might describe an
+interactive **handshake** whereby Alice and Bob mutually authenticate and
+arrive at a shared session key with forward secrecy.
+
+Descriptors and patterns are abstract descriptions of messages and protocols.
+They need to be instantiated with a ciphersuite to give concrete messages and
+protocols.
+
+Some example Noise patterns are defined in Section 7.
+
+2.3. Sessions and kernels
 --------------------------
 
-Noise messages may contain prologue and payload data.  The payload is typically
-(but not always) encrypted.  The prologue is an unencrypted header that can be
-used for version and feature negotiation.  
+To simplify the descriptions and improve modularity, a Noise session is
+considered to contain a **kernel** object.
 
-Prologue data is authenticated but ignored by default, so version numbers and
-other data can be added into the prologue.  Older implementations that don't
-recognize these fields will ignore them, but they will be authenticated to
-distinguish older implementations and prevent rollback attacks on newer
-implementations.  Prologue data will be 0-255 bytes in length.
+The kernel can ingest public data as well as secret data, and updates its
+internal state based on this data.  The kernel can encrypt and decrypt blocks of
+data based on its internal state.
 
-Payload data may be 0-4GB in length.
-
-2.3. Key agreement
+2.4. Key agreement
 -------------------
 
 Noise can implement protocols where each party has a static and/or ephemeral DH
@@ -66,257 +75,170 @@ key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that are created and
 destroyed during the protocol.
 
+In addition to containing a kernel object, a Noise session can contain two DH
+key pairs for its static and ephemeral key pairs, and two DH public keys for the
+remote party.
+
 The parties may have prior knowledge of each other's public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
 parties use to initialize their session state.
 
-2.4. Protocols and patterns
-----------------------------
+2.6. Ciphersuites
+------------------
 
-A sequence of descriptors for pre-messages and messages is a **Noise pattern**.
-A simple pattern might describe a single **box** message that encrypts one
-plaintext from Alice to Bob.  A more complex pattern might describe an
-interactive **handshake** whereby Alice and Bob mutually authenticate and
-arrive at a shared session key with forward secrecy.
+A **ciphersuite** instantiates the symmetric crypto functions needed by the
+kernel, as well as the DH functions used for key agreement.
 
-A Noise-based protocol combines a pattern and a ciphersuite.  It may also
-specify how to initialize Noise session(s), or specify other operations to
-perform on the sessions (see Section 5.3).  Finally, it may specify
-application-specific processing rules.
+2.5. Conventions
+-----------------
 
-Some example Noise patterns are defined in Section 7.
+Noise comes with some conventions for handling protocol versions and type
+fields, length fields, and padding fields.  These aren't a mandatory part of
+Noise, but adoption is encouraged, to lead to greater interoperation between
+implementations.
 
-3. Crypto functions
-====================
+3. Ciphersuite functions
+=========================
 
 Noise depends on the following functions, which are supplied by a **ciphersuite**:
 
- * **DH(privkey, pubkey):** Performs a DH or elliptic-curve DH calculation and
-   returns an output sequence of bytes. 
- 
+ * **GENERATE\_KEYPAIR()**: Generates a new DH keypair.
+
+ * **DH(privkey, pubkey)**: Performs a DH calculation and returns an output
+ sequence of bytes. 
+
  * **ENCRYPT(k, n, authtext, plaintext) / DECRYPT(k, n, authtext,
-   ciphertext):** Encrypts or decrypts data using the cipher key `k` and a
+   ciphertext)**: Encrypts or decrypts data using the cipher key `k` and a
    64-bit unique nonce `n` using authenticated encryption with the additional
    authenticated data `authtext`.  This must be a deterministic function (i.e.
    it shall not add a random IV; this ensures the `GETKEY` function is
    deterministic).  The key `k` must be at least 256 bits in length for
    security reasons.
 
- * **GETKEY(k, n):**  Calls the `ENCRYPT` function with cipher key `k` and
+ * **GETKEY(k, n)**:  Calls the `ENCRYPT` function with cipher key `k` and
    nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
    same number of bytes from the beginning of the encrypted output.  This
    function is provided separately because it can usually be implemented more
    efficiently than by calling `ENCRYPT` (e.g. by skipping the MAC
    calculation).
 
- * **KDF(kdf\_key, input):** Takes a **KDF key** equal in length to `k` and
+ * **KDF(kdf\_key, input)**: Takes a **KDF key** equal in length to `k` and
    some input data and returns a new value for the cipher key `k`.  The KDF key
    will be set by this function's caller to `GETKEY(k, n)` and the KDF should
    implement a "PRF" based on the KDF key.  The KDF should also be a
    collision-resistant hash function given a known KDF key.  `HMAC-SHA2-256` is
    an example KDF.
 
- * **HASH(input):** Hashes some input and returns a collision-resistant hash
-   output.  The output shall be at least 256 bits in length for security
-   reasons.  `SHA2-256` is an example hash function.
+4.  Kernel state and methods
+=============================
 
-4. Structures
-==============
+A kernel object contains the following state variables:
 
-4.1. Session variables
------------------------
+ * **`k`**: A symmetric key for the cipher algorithm specified in the
+   ciphersuite.  This value also accumulates the results of all DH operations.
 
-A Noise session contains several variables.  Any of these variables may be empty.
+ * **`n`**: A 64-bit unsigned integer nonce.
 
-Each session has two variables for DH (or ECDH) key pairs:
+ * **`aad`**: A buffer for "additional authenticated data".
+
+A kernel responds to the following methods:
+
+ * **`Initialize(k)`**:  Sets `k` and `n` to all zeros.  Sets `aad` to empty.
+
+ * **`Auth(data)`**:  Appends the length of `data` in bytes to
+ `aad` as a little-endian `uint16`.  Then appends `data` to `aad`.
+
+ * **`SetKey(key)`**:  Sets `k` to `key`.
+
+ * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
+
+ * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
+
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Sets `n` to zero.
+
+ * **`EncryptOrAuth(plaintext)`**:  If `k` is all zeros, calls `Auth(plaintext)`
+ and returns.  Otherwise calls `ENCRYPT(k, n, aad, plaintext)` to get a
+ ciphertext; then increments `n`, sets `aad` to empty, and returns the
+ ciphertext.
+
+ * **`DecryptOrAuth(ciphertext)`**:  If `k` is all zeros, calls
+ `Auth(ciphertext)` and returns.  Otherwise calls `DECRYPT(k, n, aad,
+ ciphertext)` to get a plaintext.  Then increments `n`, sets `aad` to empty, and
+ returns the plaintext.
+
+5.  Session state and methods
+==============================
+
+Sessions contain a kernel object, plus the following state variables:
 
  * **`s`**: The local static key pair 
 
  * **`e`**: The local ephemeral key pair
 
-Each session has two variables for DH (or ECDH) public keys:
-
  * **`rs`**: The remote party's static public key
 
  * **`re`**: The remote party's ephemeral public key 
 
-The following variables are used for symmetric cryptography:
+A session responds to the following methods for initialization:
 
- * **`k`**: A symmetric key for the cipher algorithm specified in the
-   ciphersuite.  This value also accumulates the results of all DH operations.
-   This value must be at least 256 bits in length for security reasons.
+ * **`Initialize()`**:  Calls `Initialize()` on the kernel.  Sets all other
+ variables to empty. 
+ 
+ * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
- * **`n`**: A 64-bit unsigned integer nonce used with `k` for encryption.
+A session responds to the following methods for writing and reading messages:
 
- * **`h`**: A hash output from the hash algorithm specified in the ciphersuite.
-   This hashes data used in a Noise protocol, and is included as additional
-   authenticated data for encryption.
+ * **`WriteStatic(buffer)`**:  Writes `EncryptOrAuth(s)` to `buffer`.  
 
-4.2. Messages
---------------
+ * **`ReadStatic(buffer)`**:  Reads the correct-size value from `buffer`
+ corresponding to the remote party's `EncryptOrAuth(s)` call, calls
+ `DecryptOrAuth()` on the result, and sets `rs` to the result from
+ decryption.
 
-A Noise message has the following structure:
+ * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
+ public key from `e` to `buffer`.  Calls `Auth()` on the public key from
+ `e`.
 
- * A 1-byte prologue length.
+ * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.  Calls
+ `Auth()` on `re`.
 
- * 0-255 bytes of prologue data.
+ * **`WritePayload(buffer, payload)`**:  Writes `EncryptOrAuth(payload)` into
+ `buffer`.
 
- * A sequence of public keys (perhaps encrypted), as determined by the message's
- descriptor.
+ * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
+ `DecryptOrAuth()` on the result, and returns the result from decryption.
 
- * A message payload which is either encrypted or in clear.
+ * **`DiffieHellmanSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
+
+ * **`DiffieHellmanSE()`**: Calls `MixKey(DH(s, re))` on the kernel.
+
+ * **`DiffieHellmanES()`**: Calls `MixKey(DH(e, rs))` on the kernel.
+
+ * **`DiffieHellmanEE()`**: Calls `MixKey(DS(e, re))` on the kernel.
+
+A session also provides the `Auth()`, `SetKey()`, `SetNonce()`, `StepKey()`, and
+`MixKey()` methods which it forwards to its kernel.
 
 
-5. Processing
---------------
-
-5.1. Reading and writing
--------------------------
-
-While processing messages, a Noise party will perform writes into the message
-(for a creator) or reads from the message (for a consumer).  Each write will
-append onto the previous bytes written, and each read will read after the
-previous bytes read.
-
-"Clear" reads and writes are performed without encryption.  "Encrypted" reads
-and writes will use the `ENCRYPT()` and `DECRYPT()` functions to encrypt or
-decrypt the data using the key `k` and nonce `n`, if `k` is non-empty.  If `k`
-is empty then an encrypted read or write is equivalent to a clear read or
-write.  When encrypting or decrypting, the additional authenticated data
-(`authtext`) is set to `h` followed by all preceding bytes of the message.  The
-nonce `n` is incremented after every call to `ENCRYPT()` or `DECRYPT()`.
-
-5.2. Descriptors
------------------
+6. Descriptors
+===============
 
 A descriptor is a comma-separated list containing some of the following tokens.
-The tokens describe the sequential actions taken by the creator or consumer of a
+The tokens describe the sequential actions taken by the writer or reader of a
 message.
 
- * **`e`**: The creator generates an ephemeral key pair, stores it in her `e`
- variable, and then performs a clear write of her ephemeral public key.  The
- consumer performs a clear read of the ephemeral public key into her `re`
- variable. 
+ * **`s`**: Calls the session's `WriteStatic()` or `ReadStatic()` method. 
 
- * **`s`**: The creator performs an encrypted write of her static public key.
- The consumer performs an encrypted read of the static public key into her `rs`
- variable.
+ * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: A DH calculation is performed between the
-   creator's static or ephemeral key (specified by the first character) and the
-   consumer's static or ephemeral key (specified by the second character).  The
-   output is used to update `k` and `n` by calculating `k = KDF(GETKEY(k, n), output)`,
-   and setting `n` to zero.  If `k` is empty, it's interpreted as zero-filled
-   for input to the KDF.  This does not write any data into the message.
+ * **`dhss, dhee, dhse, dhes`**: Calls the appropriate `DiffieHellman__()`
+ method on the session.   Note that for the writer, `dhse` corresponds to
+ `DiffieHellmanSE()`, but for the reader it corresponds to `DiffieHellmanES()`,
+ and vice versa.
 
-5.3. Session operations
-------------------------
+7. Message processing
+======================
 
-A Noise session supports the following operations:
-
- * **Initialize:** Initializes a session.
- 
- * **Create message:** Takes a prologue, payload, and a descriptor and
-   returns a message.
-
- * **Consume message:** Takes a message and descriptor and returns a prologue
- and payload.
- 
- * **Create and consume pre-messages:** As above, but handles special
-   unencrypted messages which represent the party's knowledge prior to
-   executing the protocol.
-
- * **Set nonce:** Changes the session's nonce value.  
-
- * **Derive session:** Derives a new session from this session.  This can be
-   called at the end of a handshaking protocol to create sending and receiving
-   sessions for each party and delete ephemeral private keys.  It can also be
-   called after sending a message to provide forward secrecy.
-
-5.4. Initializing a session
-----------------------------
-
-Takes an ASCII label and writes its bytes into `h` sequentially, zero-filling
-any unused bytes.  The label should be unique to the particular ciphersuite and
-protocol.  By convention the label should begin with the ciphersuite.  For
-example: "Noise255\_ExampleProtocol".
-
-Also takes an optional key pair for the `s` variable, and an optional
-"pre-shared" key for the `k` variable.  All other variables are set to empty.
-
-5.5. Creating a message
-------------------------
-
-On input of some prologue and payload data and a descriptor, a message is
-constructed with the following steps:
-
- 1) The length of the prologue data is written in the first byte, followed by
- prologue data.  This write is performed in clear.
-
- 2) The descriptor is processed sequentially, as described above.
-
- 3) The payload is written into the message via an encrypted write (so
- ciphertext is written if `k` is not empty).  If `k` is empty and the payload
- has zero length, then no bytes are written.
-
- 4) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
-
-5.6. Consuming a message
--------------------------
-
-On input of a message and descriptor, the message is consumed with the following steps:
-
- 1) The descriptor is processed sequentially, as described above.
-
- 2) The payload is read via an encrypted read (so the ciphertext is decrypted
- if `k` is not empty).
-
- 3) If the descriptor was not empty, `h` is set to `HASH(h || message)`.
-
-
-5.7. Creating and consuming pre-messages
------------------------------------------
-
-Pre-messages are used to represent prior knowledge of the other party's static
-and/or ephemeral public keys.  These messages are created and consumed internally by each party prior to executing a protocol.
-
-Pre-messages are created and consumed just like regular messages, except that all writes and reads are performed in the clear (this makes it easier to use pre-messages in conjunction with pre-shared symmetric keys).
-
-5.7. Setting a nonce 
----------------------
-
-On input of a 64-bit nonce, replace the current nonce.  Users of this function
-must take extreme care never to reuse a nonce, and must consider that certain
-nonce values may have been used by Noise message processing.  This should be
-used for counter-based nonces instead of random nonces.  
-
-If you want to use a random 128 bit nonce (call it `R`), you can set the nonce
-to the first 64 bits of `R`, then derive a new session, then set the child
-session's nonce to the next 64 bits of `R`, and derive a second child from it.
-
-5.8. Deriving a new session
-----------------------------
-
-Deriving a new session takes no input and calculates a new session with these
-steps:
-
- 1) The session is copied into a child session.
-
- 2) All ephemeral keys are deleted from the child session.
-
- 3) The child session's `k` is set to `GETKEY(k, n)` from the parent session.
-
- 4) The parent session's `n` is incremented.
-
- 5) The child session's `n` is set to zero.
-
-Typically session derivation will be called twice on the handshake session
-after a handshake protocol to provide separate sending and receiving sessions
-for each party (the initiator using the first session).
-
-Derivation may also be used after sending a message to provide forward-secrecy,
-since the old session key can be deleted and its `k` will be unrecoverable.
-Since session derivation may be called frequently, it should be efficient. 
 
 6. Patterns
 ============
@@ -325,38 +247,39 @@ The following patterns represent the mainstream use of Noise, and can be used
 to construct a wide range of protocols.  Of course, other patterns can be
 defined in other documents.
 
-6.1. Box patterns
-------------------
-
-The following "Box" patterns represent one-shot messages from a sender to a
-recipient.  Each pattern is given a name, and then described via a sequence of
+Each pattern is given a name, and then described via a sequence of
 descriptors.  Descriptors with right-pointing arrows are for messages created
 and sent by the protocol initiator; with left-pointing arrows are for messages
 sent by the responder.
 
-Pre-messages are shown as descriptors prior to the delimiter "\*\*\*\*\*\*".
-These messages aren't sent as part of the protocol proper, but the parties
-should create and consume them as if they were.
+Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
+These messages aren't sent as part of the protocol proper, but are only used for
+their side-effect of initializing `aad`.
 
-    Box naming:
+
+6.1. Box patterns
+------------------
+
+The following "Box" patterns represent one-shot messages from a sender to a
+recipient.      Box naming:
      N  = no static key for sender
      K  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
     BoxN:
       <- s
-      ******
+      ------
       -> e, dhes
 
     BoxK:
       <- s
       -> s
-      ******
+      ------
       -> e, dhes, dhss
 
     BoxX:
       <- s
-      ******
+      ------
       -> e, dhes, s, dhss
 
 6.2. Handshake patterns
@@ -384,13 +307,13 @@ responder exchange messages.
 
     HandshakeNK:
       <- s
-      ******
+      ------
       -> e, dhes 
       <- e, dhee
 
     HandshakeNE:
       <- s, e
-      ******
+      ------
       -> e, dhee, dhes 
       <- e, dhee
 
@@ -401,27 +324,27 @@ responder exchange messages.
 
     HandshakeKN:
       -> s
-      ******
+      ------
       -> e
       <- e, dhee, dhes
     
     HandshakeKK:
       <- s
       -> s
-      ******
+      ------
       -> e, dhes, dhss
       <- e, dhee, dhes
 
     HandshakeKE:
       <- s, e
       -> s
-      ******
+      ------
       -> e, dhee, dhes, dhse
       <- e, dhee, dhes
 
     HandshakeKX:
       -> s
-      ******
+      ------
       -> e
       <- e, dhee, dhes, s, dhse
 
@@ -433,14 +356,14 @@ responder exchange messages.
 
     HandshakeXK:
       <- s
-      ******
+      ------
       -> e, dhes
       <- e, dhee
       -> s, dhse 
 
     HandshakeXE:
       <- s, e
-      ******
+      ------
       -> e, dhee, dhes
       <- e, dhee
       -> s, dhse 
@@ -457,13 +380,13 @@ responder exchange messages.
     
     HandshakeIK:
       <- s
-      ******
+      ------
       -> e, dhes, s, dhss
       <- e, dhee, dhes
     
     HandshakeIE:
       <- s, e
-      ******
+      ------
       -> e, dhee, dhes, s, dhse
       <- e, dhee, dhes
     
