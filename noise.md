@@ -64,7 +64,7 @@ To simplify the descriptions and improve modularity, a Noise session is
 considered to contain a **kernel** object.
 
 The kernel can ingest public data as well as secret data, and updates its
-internal state based on this data.  The kernel can encrypt and decrypt blocks of
+internal state based on this data.  The kernel can encrypt and decrypt chunks of
 data based on its internal state.
 
 2.4. Key agreement
@@ -122,12 +122,11 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
    efficiently than by calling `ENCRYPT` (e.g. by skipping the MAC
    calculation).
 
- * **KDF(kdf\_key, input)**: Takes a **KDF key** equal in length to `k` and
-   some input data and returns a new value for the cipher key `k`.  The KDF key
-   will be set by this function's caller to `GETKEY(k, n)` and the KDF should
-   implement a "PRF" based on the KDF key.  The KDF should also be a
-   collision-resistant hash function given a known KDF key.  `HMAC-SHA2-256` is
-   an example KDF.
+ * **KDF(kdf\_key, input)**: Takes a `kdf_key` equal in length to `k` and some
+ input data and returns a new value for the cipher key `k`.  The `kdf_key` will
+ be a random secret key and the KDF should implement a "PRF" based on the
+ `kdf_key`.  The KDF should also be a collision-resistant hash function given a
+ known `kdf_key`.  `HMAC-SHA2-256` is an example KDF.
 
 4.  Kernel state and methods
 =============================
@@ -135,7 +134,7 @@ Noise depends on the following functions, which are supplied by a **ciphersuite*
 A kernel object contains the following state variables:
 
  * **`k`**: A symmetric key for the cipher algorithm specified in the
-   ciphersuite.  This value also accumulates the results of all DH operations.
+ ciphersuite.  This value also mixes together the results of all DH operations.
 
  * **`n`**: A 64-bit unsigned integer nonce.
 
@@ -192,8 +191,7 @@ A session responds to the following methods for writing and reading messages:
 
  * **`ReadStatic(buffer)`**:  Reads the correct-size value from `buffer`
  corresponding to the remote party's `EncryptOrAuth(s)` call, calls
- `DecryptOrAuth()` on the result, and sets `rs` to the result from
- decryption.
+ `DecryptOrAuth()` on the result, and sets `rs` to the result.
 
  * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
  public key from `e` to `buffer`.  Calls `Auth()` on the public key from
@@ -206,7 +204,7 @@ A session responds to the following methods for writing and reading messages:
  `buffer`.
 
  * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
- `DecryptOrAuth()` on the result, and returns the result from decryption.
+ `DecryptOrAuth()` on the data, and returns the result.
 
  * **`DiffieHellmanSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
 
