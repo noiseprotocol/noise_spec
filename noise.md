@@ -112,13 +112,16 @@ Noise depends on the following constants and functions, which are supplied by a
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
- * **`ENCRYPT(k, n, authtext, plaintext)` / `DECRYPT(k, n, authtext,
- ciphertext)`**: Encrypts or decrypts data using the cipher key `k` of `klen`
- bytes, and an 8 byte nonce `n` which must be unique for the key `k`.
- Encryption or decryption must be done with an authenticated encryption mode
- with the additional authenticated data `authtext`.  This must be a
- deterministic function (i.e.  it shall not add a random IV; this ensures the
- `GETKEY` function is deterministic).
+ * **`ENCRYPT(k, n, authtext, plaintext)`**: Encrypts data using the cipher key
+ `k` of `klen` bytes, and an 8 byte nonce `n` which must be unique for the key
+ `k`.  Encryption must be done with an authenticated encryption mode with the
+ additional authenticated data `authtext`.  This must be a deterministic
+ function (i.e.  it shall not add a random IV; this ensures the `GETKEY()`
+ function is deterministic).
+
+ * **`DECRYPT(k, n, authtext, ciphertext)`**: Decrypts data using the cipher key
+ `k` of `klen` bytes, an 8 byte nonce `n`, and additional authenticated data
+ `authtext`.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
  nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
@@ -146,18 +149,16 @@ A kernel object contains the following state variables:
 
 A kernel responds to the following methods:
 
- * **`Initialize(k)`**:  Sets `k` and `n` to all zeros.  Sets `aad` to empty.
-
- * **`Auth(data)`**:  Appends the length of `data` in bytes to
- `aad` as a little-endian `uint16`.  Then appends `data` to `aad`.
-
- * **`SetKey(key)`**:  Sets `k` to `key`.
+ * **`Initialize()`**:  Sets `k` and `n` to all zeros.  Sets `aad` to empty.
 
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
  * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
  * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Sets `n` to zero.
+
+ * **`Auth(data)`**:  Appends the length of `data` in bytes to
+ `aad` as a little-endian `uint16`.  Then appends `data` to `aad`.
 
  * **`EncryptOrAuth(plaintext)`**:  If `k` is all zeros, calls `Auth(plaintext)`
  and returns.  Otherwise calls `ENCRYPT(k, n, aad, plaintext)` to get a
@@ -189,12 +190,6 @@ A session responds to the following methods for initialization:
  
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
- * **`Auth(data)`**: Calls `Auth(data)` on the kernel.  Can be used to add
- additional context that will be authenticated by the next message.
-
- * **`SetKey(key)`**: Calls `SetKey(key)` on the kernel.  Can be used when the
- parties have a pre-shared symmetric key.
-
 A session responds to the following methods for writing and reading messages:
 
  * **`WriteStatic(buffer)`**:  Writes `EncryptOrAuth(s)` to `buffer`.  
@@ -224,19 +219,6 @@ A session responds to the following methods for writing and reading messages:
 
  * **`DiffieHellmanEE()`**: Calls `MixKey(DS(e, re))` on the kernel.
 
-A session provides the following methods for low-level control of encryption:
-
- * **`SetNonce(nonce)`**: Calls `SetNonce(nonce)` on the kernel.  Can be used
- for protocols where messages might be lost or re-ordered, so nonces have to be
- explicitly transmitted.  Users of this function must take extreme care never to
- reuse a nonce.
-
- * **`StepKey()`**: Calls `StepKey()` on the kernel.  Can be used to replace the
- existing key `k` for forward secrecy.
-
- * **`MixKey(data)`**: Calls `MixKey(data)` on the kernel.  Can be used for rare
- cases where a large random nonce or other value needs to be mixed with the key.
-
 6. Descriptors
 ===============
 
@@ -256,8 +238,58 @@ message.
 7. Message processing
 ======================
 
+Writing a message requires:
+
+ * A session
+ 
+ * A buffer to write the message into
+
+ * Message prologue data (may be zero bytes).  This is any data such as header
+ fields that should be authenticated along with the message.
+
+ * A descriptor 
+
+ * Payload data (may be zero bytes).
+
+First `Auth()` is called on the session's kernel and is given the message
+prologue.  Then the descriptor is processed sequentially.  Finally
+`WritePayload()` is called on the session and is given the payload.
+
+To read the message requires first calling `Auth()` on the reading session's
+kernel, providing the same prologue that was used when writing the message.
+Then the descriptor is processed sequentially.  Finally `ReadPayload()` is
+called to return the payload.
+
+
 8. Protocol processing
 =======================
+
+Executing a protocol requires:
+
+ * A session
+
+ * Protocol prologue data (may be zero bytes)
+
+ * (Optional) Pre-knowledge of the remote party's static and/or ephemeral public keys
+
+ * (Optional) A static key pair
+
+ * (Optional) Pre-shared symmetric key
+
+ * A pattern
+
+First `Initialize()` is called on the session.  Then `Auth()` is called on the
+session and is given the protocol prologue.
+
+Next any pre-messages in the pattern are processed.  This has no effect except
+possibly performing `Auth()` calls based on the party's pre-knowledge.
+
+If the party has a static key pair, then `SetStaticKeyPair()` is called to set
+it into the session.  If the party has a pre-shared symmetric key then
+`MixKey()` is called to mix it into the kernel.
+
+Following this the parties read and write messages according to the pattern,
+following the rules for message processing from the previous section.
 
 9. Patterns
 ============
