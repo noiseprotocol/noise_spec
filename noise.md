@@ -44,16 +44,16 @@ A **descriptor** specifies the contents of a message.
 
 A **pattern** specifies the sequence of descriptors that comprise a protocol.
 
-A simple pattern might describe a single **box** message that encrypts one
+A simple pattern might describe a single message that encrypts one
 plaintext from Alice to Bob.  A more complex pattern might describe an
-interactive **handshake** whereby Alice and Bob mutually authenticate and
+interactive protocol whereby Alice and Bob mutually authenticate and
 arrive at a shared session key with forward secrecy.
 
 Descriptors and patterns are abstract descriptions of messages and protocols.
 They need to be instantiated with a ciphersuite to give concrete messages and
 protocols.
 
-Some example Noise patterns are defined in Section 7.
+Some example patterns are defined in Section 9.
 
 2.3. Sessions and kernels
 --------------------------
@@ -62,8 +62,7 @@ To simplify the descriptions and improve modularity, a Noise session is
 considered to contain a **kernel** object.  The kernel handles all symmetric-key
 cryptography.
 
-The kernel can ingest public data as well as secret data, and updates its
-internal state based on this data.  The kernel can encrypt and decrypt chunks of
+The kernel can mix inputs into its internal state, and can encrypt and decrypt
 data based on its internal state.
 
 2.4. Key agreement
@@ -73,10 +72,6 @@ Noise can implement protocols where each party has a static and/or ephemeral DH
 key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that are created and
 destroyed during the protocol.
-
-In addition to containing a kernel object, a Noise session can contain two DH
-key pairs for its static and ephemeral key pairs, and two DH public keys for the
-remote party.
 
 The parties may have prior knowledge of each other's public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
@@ -93,8 +88,7 @@ kernel, as well as the DH functions used for key agreement.
 
 Noise comes with some conventions for handling protocol versions and type
 fields, length fields, and padding fields.  These aren't a mandatory part of
-Noise, but adoption is encouraged, to lead to greater interoperation between
-implementations.
+Noise, but adoption is encouraged.
 
 3. Ciphersuite functions
 =========================
@@ -106,6 +100,9 @@ Noise depends on the following constants and functions, which are supplied by a
  for encryption and decryption.  These same keys are used to accumulate the
  results of DH operations, so `klen` must be >= 32 to provide collision
  resistance.
+
+ * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
+ be >= 32 bytes to provide collision resistance.
 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
@@ -129,46 +126,57 @@ Noise depends on the following constants and functions, which are supplied by a
  it can usually be implemented more efficiently than by calling `ENCRYPT` (e.g.
  by skipping the MAC calculation).
 
- * **`KDF(kdf_key, input)`**: Takes a `kdf_key` equal in length to `k` and some
+ * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of `klen` bytes and some
  input data and returns a new value for the cipher key `k`.  The `kdf_key` will
  be a random secret key and the KDF should implement a "PRF" based on the
  `kdf_key`.  The KDF should also be a collision-resistant hash function given a
  known `kdf_key`.  `HMAC-SHA2-256` is an example KDF.
+
+ * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
+ hash output of `hlen` bytes. SHA2-256 is an example hash function.
 
 4.  Kernel state and methods
 =============================
 
 A kernel object contains the following state variables:
 
- * **`k`**: A symmetric key for the cipher algorithm specified in the
- ciphersuite.  This value also mixes together the results of all DH operations.
+ * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
+ in the ciphersuite.  This value also mixes together the results of all DH
+ operations.
 
  * **`n`**: A 64-bit unsigned integer nonce.
 
- * **`aad`**: A buffer for "additional authenticated data".
+ * **`h`**: A hash output of `hlen` bytes for the hash algorithm specified in
+ the ciphersuite.
 
 A kernel responds to the following methods:
 
- * **`Initialize()`**:  Sets `k` and `n` to all zeros.  Sets `aad` to empty.
+ * **`InitializeKernel()`**:  Sets `k`, `n`, and `h` to all zeros.
 
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
- * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
+ * **`Step()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
  * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Sets `n` to zero.
 
- * **`Auth(data)`**:  Appends the length of `data` in bytes to
- `aad` as a little-endian `uint16`.  Then appends `data` to `aad`.
+ * **`MixHash(data)`**: Sets `h` to `HASH(h || data)`.  In other words, appends
+ `data` to `h` and then hashes it to get the new `h`.
 
- * **`EncryptOrAuth(plaintext)`**:  If `k` is all zeros, calls `Auth(plaintext)`
- and returns.  Otherwise calls `ENCRYPT(k, n, aad, plaintext)` to get a
- ciphertext; then increments `n`, sets `aad` to empty, and returns the
- ciphertext.
 
- * **`DecryptOrAuth(ciphertext)`**:  If `k` is all zeros, calls
- `Auth(ciphertext)` and returns.  Otherwise calls `DECRYPT(k, n, aad,
- ciphertext)` to get a plaintext.  Then increments `n`, sets `aad` to empty, and
- returns the plaintext.
+ * **`ClearHash()`**: Sets `h` to empty (zero length).
+
+ * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h` copied
+ from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`, and
+ increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and
+ increments `n`.  Then returns the child.
+
+ * **`Encrypt(plaintext)`**:  If `k` is all zeros this returns the plaintext
+ without encrypting.  Otherwise calls `ENCRYPT(k, n, h, plaintext)` to get a
+ ciphertext; then increments `n` and returns the ciphertext.
+
+ * **`Decrypt(ciphertext)`**:  If `k` is all zeros this returns the ciphertext
+ without decrypting.  Otherwise calls `DECRYPT(k, n, h, ciphertext)` to get a
+ plaintext; then increments `n` and returns the plaintext.
 
 5.  Session state and methods
 ==============================
@@ -183,33 +191,36 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
-A session responds to the following methods for initialization:
+A session responds to all of the kernel methods by forwarding them to the
+kernel.  In addition, a session responds to the following methods for
+initialization:
 
- * **`Initialize()`**:  Calls `Initialize()` on the kernel.  Sets all other
+ * **`InitializeSession()`**:  Calls `InitializeKernel()`.  Sets all other
  variables to empty. 
  
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
 A session responds to the following methods for writing and reading messages:
 
- * **`WriteStatic(buffer)`**:  Writes `EncryptOrAuth(s)` to `buffer`.  
+ * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer`.  Then calls
+ `MixHash(s)`.  
 
  * **`ReadStatic(buffer)`**:  Reads the correct amount of data from `buffer`
- corresponding to the remote party's `EncryptOrAuth(s)` call, calls
- `DecryptOrAuth()` on the read data, and sets `rs` to the result.
+ corresponding to the remote party's `Encrypt(s)` call.  Then calls `Decrypt()`
+ on the read data and stores the result in `rs`.  Finally calls `MixHash(rs)`.
 
  * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
- public key from `e` to `buffer`.  Calls `Auth()` on the public key from
- `e`.
+ public key from `e` to `buffer`.
 
- * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.  Calls
- `Auth()` on `re`.
+ * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.
 
- * **`WritePayload(buffer, payload)`**:  Writes `EncryptOrAuth(payload)` into
- `buffer`.
+ * **`WritePayload(buffer, payload, final)`**:  Writes `Encrypt(payload)` into
+ `buffer`.  If `final == True`, calls `ClearHash()`.  If `final ==
+ False`, calls `MixHash(payload)`.  
 
- * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
- `DecryptOrAuth()` on the data, and returns the result.
+ * **`ReadPayload(buffer, final)`**: Reads all remaining data in buffer, calls
+ `Decrypt()` on the data to get the payload.  If `final == True`, calls
+ `ClearHash()`.  If `final == False`, calls `MixHash(payload)`.
 
  * **`DiffieHellmanSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
 
@@ -219,8 +230,8 @@ A session responds to the following methods for writing and reading messages:
 
  * **`DiffieHellmanEE()`**: Calls `MixKey(DS(e, re))` on the kernel.
 
-6. Descriptors
-===============
+6. Descriptors and patterns
+============================
 
 A descriptor is a comma-separated list containing some of the following tokens.
 The tokens describe the sequential actions taken by the writer or reader of a
@@ -230,12 +241,30 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Calls the appropriate `DiffieHellman__()`
- method on the session.   Note that for the writer, `dhse` corresponds to
- `DiffieHellmanSE()`, but for the reader it corresponds to `DiffieHellmanES()`,
- and vice versa.
+ * **`dhss, dhee, dhse, dhes`**: Given the `dhXY` token calls
+ `DiffieHellmanXY()` for the writer and `DiffieHellmanYX()` for the reader.
 
-7. Message processing
+A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
+are for messages created and sent by the protocol initiator; with left-pointing
+arrows are for messages sent by the responder.  The following pattern describes
+an unauthenticated DH handshake:
+
+      -> e
+      <- e, dhee
+
+Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
+These messages aren't sent as part of the protocol proper, but are only used for
+their side-effect of calling `MixHash()`.  The following pattern describes a
+handshake where the initiator has pre-knowledge of the responder's static public
+key, and perform a DH with the responder's static public key as well as the
+responder's ephemeral:
+
+      <- s
+      ------
+      -> e, dhes 
+      <- e, dhee
+
+7. Message processing 
 ======================
 
 Writing a message requires:
@@ -244,22 +273,21 @@ Writing a message requires:
  
  * A buffer to write the message into
 
- * Message prologue data (may be zero bytes).  This is any data such as header
- fields that should be authenticated along with the message.
+ * Message prologue data (may be zero bytes).  
 
  * A descriptor 
 
  * Payload data (may be zero bytes).
 
-First `Auth()` is called on the session's kernel and is given the message
-prologue.  Then the descriptor is processed sequentially.  Finally
-`WritePayload()` is called on the session and is given the payload.
+ * A `final` flag indicating whether this is the final handshake message.
 
-To read the message requires first calling `Auth()` on the reading session's
-kernel, providing the same prologue that was used when writing the message.
-Then the descriptor is processed sequentially.  Finally `ReadPayload()` is
-called to return the payload.
+First `MixHash(prologue)` is called.  Then the descriptor is processed
+sequentially.  Finally `WritePayload(buffer, payload, final)` is called on the
+session.
 
+To read the message `MixHash(prologue)` is called on the reading session.  Then
+the descriptor is processed sequentially.  Finally `ReadPayload(buffer, final)`
+is called to return the payload.
 
 8. Protocol processing
 =======================
@@ -278,21 +306,19 @@ Executing a protocol requires:
 
  * A pattern
 
-First `Initialize()` is called on the session.  Then `Auth()` is called on the
-session and is given the protocol prologue.
+First `InitializeSession()` is called.  Then `MixHash(prologue)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
-possibly performing `Auth()` calls based on the party's pre-knowledge.
+possibly performing more `MixHash()` calls based on the party's pre-knowledge.
 
 If the party has a static key pair, then `SetStaticKeyPair()` is called to set
 it into the session.  If the party has a pre-shared symmetric key then
 `MixKey()` is called to mix it into the kernel.
 
-Following this the parties read and write messages according to the pattern,
-following the rules for message processing from the previous section.
+Following this the parties read and write messages according to the pattern.
 
-9. Patterns
-============
+9. Handshake patterns
+======================
 
 The following patterns represent the mainstream use of Noise, and can be used
 to construct a wide range of protocols.  Of course, other patterns can be
@@ -305,7 +331,8 @@ sent by the responder.
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
 These messages aren't sent as part of the protocol proper, but are only used for
-their side-effect of calling `Auth()` on the kernel to initialize `aad`.
+their side-effect of calling `MixHash()`.
+
 
 
 9.1. Box patterns
