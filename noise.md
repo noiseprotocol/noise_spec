@@ -15,29 +15,27 @@ agreement.  Noise can describe protocols that consist of a single message as
 well as interactive protocols.
 
 Noise messages are described in a language that specifies the exchange of DH
-public keys and DH calculations.
-
-The resulting patterns can be instantiated into concrete protocols based on
-ciphersuites that fill in the crypto details.
+public keys and DH calculations.  The resulting patterns can be instantiated
+into concrete protocols based on ciphersuites that fill in the crypto details.
 
 
 2. Overview
 ============
 
-2.1. Messages, sessions, and protocols
+2.1. Messages, protocols, and sessions
 ---------------------------------------
 
-The main concepts in Noise are messages, sessions, and protocols:
+The main concepts in Noise are **messages**, **protocols**, and **sessions**: 
 
 **Messages** are exchanged between parties.  Each message will contain
 zero or more public keys followed by an optional payload.  Either the public
 keys or payload may be encrypted.
 
+A **protocol** consists of some sequence of messages between a pair of
+parties.
+
 Each party will have a **session** which contains the state used to
 process messages.
-
-A **protocol** consists of a pattern of messages between a pair of
-sessions.
 
 2.2. Descriptors and patterns
 ------------------------------
@@ -61,7 +59,8 @@ Some example Noise patterns are defined in Section 7.
 --------------------------
 
 To simplify the descriptions and improve modularity, a Noise session is
-considered to contain a **kernel** object.
+considered to contain a **kernel** object.  The kernel handles all symmetric-key
+cryptography.
 
 The kernel can ingest public data as well as secret data, and updates its
 internal state based on this data.  The kernel can encrypt and decrypt chunks of
@@ -89,7 +88,7 @@ parties use to initialize their session state.
 A **ciphersuite** instantiates the symmetric crypto functions needed by the
 kernel, as well as the DH functions used for key agreement.
 
-2.5. Conventions
+2.7. Conventions
 -----------------
 
 Noise comes with some conventions for handling protocol versions and type
@@ -100,29 +99,34 @@ implementations.
 3. Ciphersuite functions
 =========================
 
-Noise depends on the following functions, which are supplied by a **ciphersuite**:
+Noise depends on the following constants and functions, which are supplied by a
+**ciphersuite**:
 
- * **GENERATE\_KEYPAIR()**: Generates a new DH keypair.
+ * **`klen`**: A constant specifying the length in bytes of symmetric keys used
+ for encryption and decryption.  These same keys are used to accumulate the
+ results of DH operations, so `klen` must be >= 32 to provide collision
+ resistance.
 
- * **DH(privkey, pubkey)**: Performs a DH calculation and returns an output
+ * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
+
+ * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
- * **ENCRYPT(k, n, authtext, plaintext) / DECRYPT(k, n, authtext,
-   ciphertext)**: Encrypts or decrypts data using the cipher key `k` and a
-   64-bit unique nonce `n` using authenticated encryption with the additional
-   authenticated data `authtext`.  This must be a deterministic function (i.e.
-   it shall not add a random IV; this ensures the `GETKEY` function is
-   deterministic).  The key `k` must be at least 256 bits in length for
-   security reasons.
+ * **`ENCRYPT(k, n, authtext, plaintext)` / `DECRYPT(k, n, authtext,
+ ciphertext)`**: Encrypts or decrypts data using the cipher key `k` of `klen`
+ bytes, and an 8 byte nonce `n` which must be unique for the key `k`.
+ Encryption or decryption must be done with an authenticated encryption mode
+ with the additional authenticated data `authtext`.  This must be a
+ deterministic function (i.e.  it shall not add a random IV; this ensures the
+ `GETKEY` function is deterministic).
 
- * **GETKEY(k, n)**:  Calls the `ENCRYPT` function with cipher key `k` and
-   nonce `n` to encrypt a block of zeros equal in length to `k`.  Returns the
-   same number of bytes from the beginning of the encrypted output.  This
-   function is provided separately because it can usually be implemented more
-   efficiently than by calling `ENCRYPT` (e.g. by skipping the MAC
-   calculation).
+ * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
+ nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
+ bytes from the encrypted output.  This function is provided separately because
+ it can usually be implemented more efficiently than by calling `ENCRYPT` (e.g.
+ by skipping the MAC calculation).
 
- * **KDF(kdf\_key, input)**: Takes a `kdf_key` equal in length to `k` and some
+ * **`KDF(kdf_key, input)`**: Takes a `kdf_key` equal in length to `k` and some
  input data and returns a new value for the cipher key `k`.  The `kdf_key` will
  be a random secret key and the KDF should implement a "PRF" based on the
  `kdf_key`.  The KDF should also be a collision-resistant hash function given a
@@ -185,6 +189,12 @@ A session responds to the following methods for initialization:
  
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
+ * **`Auth(data)`**: Calls `Auth(data)` on the kernel.  Can be used to add
+ additional context that will be authenticated by the first messages.
+
+ * **`SetKey(key)`**: Calls `SetKey(key)` on the kernel.  Can be used when the
+ parties have a pre-shared symmetric key.
+
 A session responds to the following methods for writing and reading messages:
 
  * **`WriteStatic(buffer)`**:  Writes `EncryptOrAuth(s)` to `buffer`.  
@@ -214,9 +224,18 @@ A session responds to the following methods for writing and reading messages:
 
  * **`DiffieHellmanEE()`**: Calls `MixKey(DS(e, re))` on the kernel.
 
-A session also provides the `Auth()`, `SetKey()`, `SetNonce()`, `StepKey()`, and
-`MixKey()` methods which it forwards to its kernel.
+A session provides the following methods for low-level control of encryption:
 
+ * **`SetNonce(nonce)`**: Calls `SetNonce(nonce)` on the kernel.  Can be used
+ for protocols where messages might be lost or re-ordered, so nonces have to be
+ explicitly transmitted.  Users of this function must take extreme care never to
+ reuse a nonce.
+
+ * **`StepKey()`**: Calls `StepKey()` on the kernel.  Can be used to replace the
+ existing key `k` for forward secrecy.
+
+ * **`MixKey(data)`**: Calls `MixKey(data)` on the kernel.  Can be used for rare
+ cases where a large random nonce or other value needs to be mixed with the key.
 
 6. Descriptors
 ===============
@@ -237,8 +256,10 @@ message.
 7. Message processing
 ======================
 
+8. Protocol processing
+=======================
 
-6. Patterns
+9. Patterns
 ============
 
 The following patterns represent the mainstream use of Noise, and can be used
@@ -255,11 +276,12 @@ These messages aren't sent as part of the protocol proper, but are only used for
 their side-effect of initializing `aad`.
 
 
-6.1. Box patterns
+9.1. Box patterns
 ------------------
 
 The following "Box" patterns represent one-shot messages from a sender to a
-recipient.      Box naming:
+recipient.  Box naming:
+
      N  = no static key for sender
      K  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
@@ -280,7 +302,7 @@ recipient.      Box naming:
       ------
       -> e, dhes, s, dhss
 
-6.2. Handshake patterns
+9.2. Handshake patterns
 ------------------------
 
 The following "Handshake" patterns represent handshakes where the initiator and
@@ -393,43 +415,57 @@ responder exchange messages.
       <- e, dhee, dhes, s, dhse
 
 
-7. Ciphersuites
+10. Ciphersuites
 ================
 
-7.1. Noise255 and Noise448
+10.1. Noise255 and Noise448
 ---------------------------
 
 These are the default and recommended ciphersuites.
 
- * **DH(privkey, pubkey):** Curve25519 (Noise255) or Goldilocks (Noise448).
- 
- * **ENCRYPT(k, n, authtext, plainttext), DECRYPT(k, n, authtext,
-   ciphertext):** AEAD\_CHACHA20\_POLY1305 from RFC 7539.  `k` is a 32-byte
-   key.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by
-   little-endian encoding of `n`.  (Earlier implementations of ChaCha20 used a
-   64-bit nonce, in which case `n` can be encoded directly into the ChaCha20
-   nonce).
+ * **`klen`** = 32
 
- * **GETKEY(k, n):**  The first 32 bytes output from the ChaCha20 block
+ * **`DH(privkey, pubkey)`:** Curve25519 (Noise255) or Goldilocks (Noise448).
+ 
+ * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
+ ciphertext)`:** `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is
+ formed by encoding 32 bits of zeros followed by little-endian encoding of `n`.
+ (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's
+ compatible to encode `n` directly into the ChaCha20 nonce).
+
+ * **`GETKEY(k, n)`:**  The first 32 bytes output from the ChaCha20 block
    function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
    and the block count set to 1.  This is the same as calling `ENCRYPT()` on a
    plaintext consisting of 32 bytes of zeros and taking the first 32 bytes of
    output. 
 
- * **KDF(kdf\_key, input):** `HMAC-SHA2-256(kdf_key, input)`.  
+ * **`KDF(kdf_key, input)`:** `HMAC-SHA2-256(kdf_key, input)`.  
  
- * **HASH(input):** `SHA2-256`.
 
-7.2. AES256-GCM ciphersuites
+10.2. AES256-GCM ciphersuites
 -----------------------------
 
 These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
-`DH()`, `KDF()`, and `HASH()` functions are the same as above.
+`DH()` and `KDF()` functions are the same as above.
 
-The `ENCRYPT()` and `DECRYPT()` functions, and by extension `GETKEY()`, use
-AES-GCM and form the 96-bit AES-GCM nonce from `n` as above.
+ * **`klen`** = 32
 
-8. Security Considerations
+ * **`DH(privkey, pubkey)`:** Curve25519 (Noise255) or Goldilocks (Noise448).
+
+ * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
+ ciphertext)`:** AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by
+ encoding 32 bits of zeros followed by little-endian encoding of `n`.
+
+The `GetKey()` function is defined by encoding the 96-bit nonce from above into
+the first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of
+`B1` are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are set to (0, 0, 0,
+3).  `B1` and `B2` are both encrypted with AES256 and key `k`, and the resulting
+ciphertexts `C1` and `C2` are concatenated into the final 32-byte key.  This is
+the same as calling `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros
+and taking the first 32 bytes of output.
+
+
+11. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -438,7 +474,7 @@ Reusing a nonce value for `n` with the same key `k` for encryption would be cata
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a fresh ephemeral public key and perform a DH with it prior to sending any encrypted data.  All patterns in Section 6 adhere to this rule.  
 
-9. Rationale
+12. Rationale
 =============
 
 This section collects various design rationale:
@@ -459,12 +495,12 @@ The cipher key must be at least 256 bits because:
 
  * The cipher key accumulates the DH output, so collision-resistance is desirable
 
-10. IPR
+13. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-11. Acknowledgements
+14. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
