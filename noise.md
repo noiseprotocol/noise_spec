@@ -199,9 +199,9 @@ A session responds to the following methods for writing and reading messages:
 
  * **`WriteStatic(buffer)`**:  Writes `EncryptOrAuth(s)` to `buffer`.  
 
- * **`ReadStatic(buffer)`**:  Reads the correct-size value from `buffer`
+ * **`ReadStatic(buffer)`**:  Reads the correct amount of data from `buffer`
  corresponding to the remote party's `EncryptOrAuth(s)` call, calls
- `DecryptOrAuth()` on the result, and sets `rs` to the result.
+ `DecryptOrAuth()` on the read data, and sets `rs` to the result.
 
  * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
  public key from `e` to `buffer`.  Calls `Auth()` on the public key from
@@ -433,8 +433,8 @@ These are the default and recommended ciphersuites.
  (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's
  compatible to encode `n` directly into the ChaCha20 nonce).
 
- * **`GETKEY(kdf_key, n)`**:  The first 32 bytes output from the ChaCha20 block
-   function from RFC 7539 with key `kdf_key`, nonce `n` encoded as for `ENCRYPT()`,
+ * **`GETKEY(k, n)`**:  The first 32 bytes output from the ChaCha20 block
+   function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
    and the block count set to 1.  This is the same as calling `ENCRYPT()` on a
    plaintext consisting of 32 bytes of zeros and taking the first 32 bytes. 
 
@@ -455,10 +455,10 @@ These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
  ciphertext)`**: AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by
  encoding 32 bits of zeros followed by little-endian encoding of `n`.
  
- * **`GETKEY(kdf_key, n)`**: is defined by encoding the 96-bit nonce from above into the
+ * **`GETKEY(k, n)`**: is defined by encoding the 96-bit nonce from above into the
  first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of `B1`
  are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are set to (0, 0, 0, 3).
- `B1` and `B2` are both encrypted with AES256 and key `kdf_key`, and the resulting
+ `B1` and `B2` are both encrypted with AES256 and key `k`, and the resulting
  ciphertexts `C1` and `C2` are concatenated into the final 32-byte output.  This is
  the same as calling `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros
  and taking the first 32 bytes.
