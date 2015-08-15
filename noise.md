@@ -273,7 +273,7 @@ sent by the responder.
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
 These messages aren't sent as part of the protocol proper, but are only used for
-their side-effect of initializing `aad`.
+their side-effect of calling `Auth()` on the kernel to initialize `aad`.
 
 
 9.1. Box patterns
@@ -305,8 +305,8 @@ recipient.  Box naming:
 9.2. Handshake patterns
 ------------------------
 
-The following "Handshake" patterns represent handshakes where the initiator and
-responder exchange messages.
+The following 16 "Handshake" patterns represent protocols where the initiator and
+responder exchange messages to agree on a shared key.
 
     Handshake naming:
 
@@ -425,19 +425,18 @@ These are the default and recommended ciphersuites.
 
  * **`klen`** = 32
 
- * **`DH(privkey, pubkey)`:** Curve25519 (Noise255) or Goldilocks (Noise448).
+ * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
  
  * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
- ciphertext)`:** `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is
+ ciphertext)`**: `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is
  formed by encoding 32 bits of zeros followed by little-endian encoding of `n`.
  (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's
  compatible to encode `n` directly into the ChaCha20 nonce).
 
- * **`GETKEY(k, n)`:**  The first 32 bytes output from the ChaCha20 block
-   function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
+ * **`GETKEY(kdf_key, n)`**:  The first 32 bytes output from the ChaCha20 block
+   function from RFC 7539 with key `kdf_key`, nonce `n` encoded as for `ENCRYPT()`,
    and the block count set to 1.  This is the same as calling `ENCRYPT()` on a
-   plaintext consisting of 32 bytes of zeros and taking the first 32 bytes of
-   output. 
+   plaintext consisting of 32 bytes of zeros and taking the first 32 bytes. 
 
  * **`KDF(kdf_key, input)`:** `HMAC-SHA2-256(kdf_key, input)`.  
  
@@ -450,19 +449,19 @@ These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
 
  * **`klen`** = 32
 
- * **`DH(privkey, pubkey)`:** Curve25519 (Noise255) or Goldilocks (Noise448).
+ * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
 
  * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
- ciphertext)`:** AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by
+ ciphertext)`**: AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by
  encoding 32 bits of zeros followed by little-endian encoding of `n`.
-
-The `GetKey()` function is defined by encoding the 96-bit nonce from above into
-the first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of
-`B1` are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are set to (0, 0, 0,
-3).  `B1` and `B2` are both encrypted with AES256 and key `k`, and the resulting
-ciphertexts `C1` and `C2` are concatenated into the final 32-byte key.  This is
-the same as calling `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros
-and taking the first 32 bytes of output.
+ 
+ * **`GETKEY(kdf_key, n)`**: is defined by encoding the 96-bit nonce from above into the
+ first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of `B1`
+ are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are set to (0, 0, 0, 3).
+ `B1` and `B2` are both encrypted with AES256 and key `kdf_key`, and the resulting
+ ciphertexts `C1` and `C2` are concatenated into the final 32-byte output.  This is
+ the same as calling `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros
+ and taking the first 32 bytes.
 
 
 11. Security Considerations
@@ -470,9 +469,9 @@ and taking the first 32 bytes of output.
 
 This section collects various security considerations:
 
-Reusing a nonce value for `n` with the same key `k` for encryption would be catastrophic.  Implementations must carefully follow the rules for incrementing nonces after `ENCRYPT()`, `DECRYPT()`, or `GETKEY()` functions. 
+Reusing a nonce value for `n` with the same key `k` for encryption would be catastrophic.  Implementations must carefully follow the rules for incrementing nonces.   `SetNonce()` should only be called with extreme caution.
 
-To avoid catastrophic key reuse, every party in a Noise protocol should send a fresh ephemeral public key and perform a DH with it prior to sending any encrypted data.  All patterns in Section 6 adhere to this rule.  
+To avoid catastrophic key reuse, every party in a Noise protocol should send a fresh ephemeral public key and perform a DH with it prior to sending any encrypted data.  All patterns in Section 9 adhere to this rule.  
 
 12. Rationale
 =============
@@ -490,6 +489,7 @@ The default ciphersuites use SHA2-256 because:
 
  * SHA2 is widely available
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
+ * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128 bytes), avoiding unnecessary calculation when processing smaller inputs
 
 The cipher key must be at least 256 bits because:
 
