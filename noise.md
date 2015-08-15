@@ -190,7 +190,7 @@ A session responds to the following methods for initialization:
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
  * **`Auth(data)`**: Calls `Auth(data)` on the kernel.  Can be used to add
- additional context that will be authenticated by the first messages.
+ additional context that will be authenticated by the next message.
 
  * **`SetKey(key)`**: Calls `SetKey(key)` on the kernel.  Can be used when the
  parties have a pre-shared symmetric key.
