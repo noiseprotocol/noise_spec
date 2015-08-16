@@ -167,8 +167,8 @@ A kernel responds to the following methods:
 
  * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h` copied
  from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`, and
- increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and
- increments `n`.  Then returns the child.
+ increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and sets
+ `n` to zero.  Then returns the child.
 
  * **`Encrypt(plaintext)`**:  If `k` is all zeros this returns the plaintext
  without encrypting.  Otherwise calls `ENCRYPT(k, n, h, plaintext)` to get a
@@ -254,10 +254,11 @@ an unauthenticated DH handshake:
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
 These messages aren't sent as part of the protocol proper, but are only used for
-their side-effect of calling `MixHash()`.  The following pattern describes a
-handshake where the initiator has pre-knowledge of the responder's static public
-key, and perform a DH with the responder's static public key as well as the
-responder's ephemeral:
+their side-effect of calling `MixHash()`.  
+
+The following pattern describes a handshake where the initiator has
+pre-knowledge of the responder's static public key, and performs a DH with the
+responder's static public key as well as the responder's ephemeral:
 
       <- s
       ------
@@ -309,7 +310,7 @@ Executing a protocol requires:
 First `InitializeSession()` is called.  Then `MixHash(prologue)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
-possibly performing more `MixHash()` calls based on the party's pre-knowledge.
+performing more `MixHash()` calls based on the party's pre-knowledge.
 
 If the party has a static key pair, then `SetStaticKeyPair()` is called to set
 it into the session.  If the party has a pre-shared symmetric key then
@@ -528,9 +529,13 @@ These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
 
 This section collects various security considerations:
 
-Reusing a nonce value for `n` with the same key `k` for encryption would be catastrophic.  Implementations must carefully follow the rules for incrementing nonces.   `SetNonce()` should only be called with extreme caution.
+Reusing a nonce value for `n` with the same key `k` for encryption would be
+catastrophic.  Implementations must carefully follow the rules for incrementing
+nonces.   `SetNonce()` should only be called with extreme caution.
 
-To avoid catastrophic key reuse, every party in a Noise protocol should send a fresh ephemeral public key and perform a DH with it prior to sending any encrypted data.  All patterns in Section 9 adhere to this rule.  
+To avoid catastrophic key reuse, every party in a Noise protocol should send a
+fresh ephemeral public key and performs a DH with it prior to sending any
+encrypted data.  All patterns in Section 9 adhere to this rule.  
 
 12. Rationale
 =============
