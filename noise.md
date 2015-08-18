@@ -49,9 +49,8 @@ and protocols.
 2.3. Kernels
 -------------
 
-To simplify the descriptions and improve modularity, a Noise session is
-considered to contain a **kernel** object.  The kernel handles all symmetric-key
-cryptography.
+To simplify the descriptions and improve modularity, a session contains a
+**kernel**.  The kernel handles all symmetric-key cryptography.
 
 The kernel can mix inputs into its internal state, and can encrypt and decrypt
 data based on its internal state.
@@ -61,8 +60,8 @@ data based on its internal state.
 
 Noise can implement protocols where each party has a static and/or ephemeral DH
 key pair.  The static keypair is a longer-term key pair that exists prior to the
-protocol.  Ephemeral key pairs are short-term key pairs that are created and
-destroyed during the protocol.
+protocol.  Ephemeral key pairs are short-term key pairs that are created during
+the protocol.
 
 The parties may have prior knowledge of each other's public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
@@ -82,9 +81,9 @@ Noise depends on the following constants and functions, which are supplied by a
 **ciphersuite**:
 
  * **`klen`**: A constant specifying the length in bytes of symmetric keys used
- for encryption and decryption.  These same keys are used to accumulate the
- results of DH operations, so `klen` must be >= 32 to provide collision
- resistance.  32 is recommended.
+ for encryption.  These keys are used to accumulate the results of DH
+ operations, so `klen` must be >= 32 to provide collision resistance.  32 is
+ recommended.
 
  * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
  be >= 32 bytes to provide collision resistance.  32 is recommended.
@@ -95,19 +94,18 @@ Noise depends on the following constants and functions, which are supplied by a
  sequence of bytes. 
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts data using the cipher key `k` of
- `klen` bytes, and an 8 byte nonce `n` which must be unique for the key `k`.
- Encryption must be done with an "AEAD" encryption mode with the associated data
- `ad`.  This must be a deterministic function (i.e.  it shall not add a random
- IV; this ensures the `GETKEY()` function is deterministic).
+ `klen` bytes, and a 64-bit unsigned integer nonce `n` which must be unique for
+ the key `k`.  Encryption must be done with an "AEAD" encryption mode with the
+ associated data `ad`.  This must be a deterministic function (i.e.  it shall
+ not add a random IV; this ensures the `GETKEY()` function is deterministic).
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts data using the cipher key `k`
- of `klen` bytes, an 8 byte nonce `n`, and associated data `ad`.
+ of `klen` bytes, a 64-bit unsigned integer nonce `n`, and associated data `ad`.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
  nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
- bytes from the encrypted output.  This function is provided separately because
- it can usually be implemented more efficiently than by calling `ENCRYPT` (e.g.
- by skipping the MAC calculation).
+ bytes from the encrypted output.  This function can usually be implemented more
+ efficiently than by calling `ENCRYPT` (e.g.  by skipping the MAC calculation).
 
  * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of `klen` bytes and some
  input data and returns a new value for the cipher key `k`.  The `kdf_key` will
@@ -136,8 +134,8 @@ A kernel object contains the following state variables:
  
 A kernel responds to the following methods:
 
- * **`InitializeKernel()`**:  Sets `k` and `n` to all zero bytes.  Sets `h` to
- empty.
+ * **`InitializeKernel()`**:  Sets `k` to all zero bytes, `n` to zero, and `h`
+ to empty.
 
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
