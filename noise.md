@@ -109,16 +109,14 @@ Noise depends on the following constants and functions, which are supplied by a
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
- * **`ENCRYPT(k, n, authtext, plaintext)`**: Encrypts data using the cipher key
- `k` of `klen` bytes, and an 8 byte nonce `n` which must be unique for the key
- `k`.  Encryption must be done with an authenticated encryption mode with the
- additional authenticated data `authtext`.  This must be a deterministic
- function (i.e.  it shall not add a random IV; this ensures the `GETKEY()`
- function is deterministic).
+ * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts data using the cipher key `k` of
+ `klen` bytes, and an 8 byte nonce `n` which must be unique for the key `k`.
+ Encryption must be done with an "AEAD" encryption mode with the associated data
+ `ad`.  This must be a deterministic function (i.e.  it shall not add a random
+ IV; this ensures the `GETKEY()` function is deterministic).
 
- * **`DECRYPT(k, n, authtext, ciphertext)`**: Decrypts data using the cipher key
- `k` of `klen` bytes, an 8 byte nonce `n`, and additional authenticated data
- `authtext`.
+ * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts data using the cipher key `k`
+ of `klen` bytes, an 8 byte nonce `n`, and associated data `ad`.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
  nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
@@ -141,42 +139,44 @@ Noise depends on the following constants and functions, which are supplied by a
 A kernel object contains the following state variables:
 
  * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
- in the ciphersuite.  This value also mixes together the results of all DH
- operations.
+ in the ciphersuite.  This value mixes together the results of all DH
+ operations, and is used for encryption.
 
- * **`n`**: A 64-bit unsigned integer nonce.
+ * **`n`**: A 64-bit unsigned integer nonce.  This is used along with with `k`
+ for encryption.
 
- * **`h`**: A hash output of `hlen` bytes for the hash algorithm specified in
- the ciphersuite.
-
+ * **`h`**: Either empty or `hlen` bytes containtaining a hash output.  This
+ value mixes together relevant handshake data, and is then authenticated by
+ encryption.
+ 
 A kernel responds to the following methods:
 
- * **`InitializeKernel()`**:  Sets `k`, `n`, and `h` to all zeros.
+ * **`InitializeKernel()`**:  Sets `k` and `n` to all zero bytes.  Sets `h` to
+ empty.
 
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
- * **`Step()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
+ * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
  * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Sets `n` to zero.
 
- * **`MixHash(data)`**: Sets `h` to `HASH(h || data)`.  In other words, appends
- `data` to `h` and then hashes it to get the new `h`.
+ * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
+ replaces `h` by the hash of `h` with with `data` appended.
 
+ * **`ClearHash(data)`**: Sets `h` to empty.
 
- * **`ClearHash()`**: Sets `h` to empty (zero length).
-
- * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h` copied
+ * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `ad` copied
  from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`, and
  increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and sets
  `n` to zero.  Then returns the child.
 
  * **`Encrypt(plaintext)`**:  If `k` is all zeros this returns the plaintext
  without encrypting.  Otherwise calls `ENCRYPT(k, n, h, plaintext)` to get a
- ciphertext; then increments `n` and returns the ciphertext.
+ ciphertext, then increments `n` and returns the ciphertext.
 
  * **`Decrypt(ciphertext)`**:  If `k` is all zeros this returns the ciphertext
  without decrypting.  Otherwise calls `DECRYPT(k, n, h, ciphertext)` to get a
- plaintext; then increments `n` and returns the plaintext.
+ plaintext, then increments `n` and returns the plaintext.
 
 5.  Session state and methods
 ==============================
@@ -202,25 +202,23 @@ initialization:
 
 A session responds to the following methods for writing and reading messages:
 
- * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer`.  Then calls
+ * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer` and calls
  `MixHash(s)`.  
 
  * **`ReadStatic(buffer)`**:  Reads the correct amount of data from `buffer`
  corresponding to the remote party's `Encrypt(s)` call.  Then calls `Decrypt()`
- on the read data and stores the result in `rs`.  Finally calls `MixHash(rs)`.
+ on the read data and stores the result in `rs`.  Calls `MixHash(rs)`.
 
  * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
  public key from `e` to `buffer`.
 
  * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.
 
- * **`WritePayload(buffer, payload, final)`**:  Writes `Encrypt(payload)` into
- `buffer`.  If `final == True`, calls `ClearHash()`.  If `final ==
- False`, calls `MixHash(payload)`.  
+ * **`WritePayload(buffer, payload)`**:  Writes `Encrypt(payload)` into
+ `buffer`.
 
- * **`ReadPayload(buffer, final)`**: Reads all remaining data in buffer, calls
- `Decrypt()` on the data to get the payload.  If `final == True`, calls
- `ClearHash()`.  If `final == False`, calls `MixHash(payload)`.
+ * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
+ `Decrypt()` on the data to get the payload.
 
  * **`DiffieHellmanSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
 
@@ -241,8 +239,8 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Given the `dhXY` token calls
- `DiffieHellmanXY()` for the writer and `DiffieHellmanYX()` for the reader.
+ * **`dhss, dhee, dhse, dhes`**: Given `dhXY` calls `DiffieHellmanXY()` for the
+ writer and `DiffieHellmanYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
 are for messages created and sent by the protocol initiator; with left-pointing
@@ -274,21 +272,15 @@ Writing a message requires:
  
  * A buffer to write the message into
 
- * Message prologue data (may be zero bytes).  
-
  * A descriptor 
 
  * Payload data (may be zero bytes).
 
- * A `final` flag indicating whether this is the final handshake message.
+First the descriptor is processed sequentially.  Then `WritePayload(buffer,
+payload)` is called on the session.
 
-First `MixHash(prologue)` is called.  Then the descriptor is processed
-sequentially.  Finally `WritePayload(buffer, payload, final)` is called on the
-session.
-
-To read the message `MixHash(prologue)` is called on the reading session.  Then
-the descriptor is processed sequentially.  Finally `ReadPayload(buffer, final)`
-is called to return the payload.
+To read the message the descriptor is processed sequentially.  Then
+`ReadPayload(buffer)` is called to return the payload.
 
 8. Protocol processing
 =======================
@@ -297,7 +289,7 @@ Executing a protocol requires:
 
  * A session
 
- * Protocol prologue data (may be zero bytes)
+ * Protocol name (may be zero bytes)
 
  * (Optional) Pre-knowledge of the remote party's static and/or ephemeral public keys
 
@@ -307,7 +299,7 @@ Executing a protocol requires:
 
  * A pattern
 
-First `InitializeSession()` is called.  Then `MixHash(prologue)` is called.
+First `InitializeSession()` is called.  Then `MixHash(name)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
@@ -316,7 +308,9 @@ If the party has a static key pair, then `SetStaticKeyPair()` is called to set
 it into the session.  If the party has a pre-shared symmetric key then
 `MixKey()` is called to mix it into the kernel.
 
-Following this the parties read and write messages according to the pattern.
+Following this the parties read and write handshake messages.  After every
+handshake message `MixHash(payload)` is called, except for the last handshake
+message.  After the last handshake message `ClearHash()` is called.
 
 9. Handshake patterns
 ======================
@@ -487,11 +481,11 @@ These are the default and recommended ciphersuites.
 
  * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
  
- * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
- ciphertext)`**: `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is
- formed by encoding 32 bits of zeros followed by little-endian encoding of `n`.
- (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's
- compatible to encode `n` directly into the ChaCha20 nonce).
+ * **`ENCRYPT(k, n, aad, plainttext)` / `DECRYPT(k, n, aad, ciphertext)`**:
+ `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
+ 32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
+ implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
+ to encode `n` directly into the ChaCha20 nonce).
 
  * **`GETKEY(k, n)`**:  The first 32 bytes output from the ChaCha20 block
    function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
@@ -511,9 +505,9 @@ These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
 
  * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
 
- * **`ENCRYPT(k, n, authtext, plainttext)` / `DECRYPT(k, n, authtext,
- ciphertext)`**: AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by
- encoding 32 bits of zeros followed by little-endian encoding of `n`.
+ * **`ENCRYPT(k, n, aad, plainttext)` / `DECRYPT(k, n, aad, ciphertext)`**:
+ AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by encoding 32
+ bits of zeros followed by little-endian encoding of `n`.
  
  * **`GETKEY(k, n)`**: is defined by encoding the 96-bit nonce from above into the
  first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of `B1`
