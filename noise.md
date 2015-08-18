@@ -3,7 +3,7 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-07-26
+ * **Date:** 2015-08-26
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -14,18 +14,11 @@ Noise is a framework for crypto protocols based on Diffie-Hellman key
 agreement.  Noise can describe protocols that consist of a single message as
 well as interactive protocols.
 
-Noise messages are described in a language that specifies the exchange of DH
-public keys and DH calculations.  The resulting patterns can be instantiated
-into concrete protocols based on ciphersuites that fill in the crypto details.
-
-
 2. Overview
 ============
 
 2.1. Messages, protocols, and sessions
 ---------------------------------------
-
-The main concepts in Noise are **messages**, **protocols**, and **sessions**: 
 
 **Messages** are exchanged between parties.  Each message will contain
 zero or more public keys followed by an optional payload.  Either the public
@@ -37,8 +30,8 @@ parties.
 Each party will have a **session** which contains the state used to
 process messages.
 
-2.2. Descriptors and patterns
-------------------------------
+2.2. Descriptors, patterns, and ciphersuites
+---------------------------------------------
 
 A **descriptor** specifies the contents of a message.
 
@@ -46,17 +39,15 @@ A **pattern** specifies the sequence of descriptors that comprise a protocol.
 
 A simple pattern might describe a single message that encrypts one
 plaintext from Alice to Bob.  A more complex pattern might describe an
-interactive protocol whereby Alice and Bob mutually authenticate and
+interactive protocol where Alice and Bob mutually authenticate and
 arrive at a shared session key with forward secrecy.
 
 Descriptors and patterns are abstract descriptions of messages and protocols.
-They need to be instantiated with a ciphersuite to give concrete messages and
-protocols.
+They need to be instantiated with a **ciphersuite** to give concrete messages
+and protocols.
 
-Some example patterns are defined in Section 9.
-
-2.3. Sessions and kernels
---------------------------
+2.3. Kernels
+-------------
 
 To simplify the descriptions and improve modularity, a Noise session is
 considered to contain a **kernel** object.  The kernel handles all symmetric-key
@@ -77,12 +68,6 @@ The parties may have prior knowledge of each other's public keys, before
 executing a Noise protocol.  This is represented by "pre-messages" that both
 parties use to initialize their session state.
 
-2.6. Ciphersuites
-------------------
-
-A **ciphersuite** instantiates the symmetric crypto functions needed by the
-kernel, as well as the DH functions used for key agreement.
-
 2.7. Conventions
 -----------------
 
@@ -99,10 +84,10 @@ Noise depends on the following constants and functions, which are supplied by a
  * **`klen`**: A constant specifying the length in bytes of symmetric keys used
  for encryption and decryption.  These same keys are used to accumulate the
  results of DH operations, so `klen` must be >= 32 to provide collision
- resistance.
+ resistance.  32 is recommended.
 
  * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
- be >= 32 bytes to provide collision resistance.
+ be >= 32 bytes to provide collision resistance.  32 is recommended.
 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
@@ -165,7 +150,7 @@ A kernel responds to the following methods:
 
  * **`ClearHash(data)`**: Sets `h` to empty.
 
- * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `ad` copied
+ * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h` copied
  from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`, and
  increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and sets
  `n` to zero.  Then returns the child.
@@ -301,12 +286,14 @@ Executing a protocol requires:
 
 First `InitializeSession()` is called.  Then `MixHash(name)` is called.
 
+If the party has a static key pair, then `SetStaticKeyPair()` is called to set
+it into the session.  
+
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
 
-If the party has a static key pair, then `SetStaticKeyPair()` is called to set
-it into the session.  If the party has a pre-shared symmetric key then
-`MixKey()` is called to mix it into the kernel.
+If the party has a pre-shared symmetric key then `MixKey()` is called to mix it
+into the kernel.
 
 Following this the parties read and write handshake messages.  After every
 handshake message `MixHash(payload)` is called, except for the last handshake
