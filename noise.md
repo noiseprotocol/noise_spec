@@ -192,7 +192,7 @@ A session responds to the following methods for writing and reading messages:
  corresponding to the remote party's `Encrypt(s)` call.  Then calls `Decrypt()`
  on the read data and stores the result in `rs`.  Calls `MixHash(rs)`.
 
- * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATEKEY()`.  Appends the
+ * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATE_KEYPAIR()`.  Appends the
  public key from `e` to `buffer`.
 
  * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.
@@ -282,7 +282,7 @@ Executing a protocol requires:
 
  * A pattern
 
-First `InitializeSession()` is called.  Then `MixHash(name)` is called.
+First `InitializeSession()` is called.  Then `MixKey(name)` is called.
 
 If the party has a static key pair, then `SetStaticKeyPair()` is called to set
 it into the session.  
@@ -466,7 +466,7 @@ These are the default and recommended ciphersuites.
 
  * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
  
- * **`ENCRYPT(k, n, aad, plainttext)` / `DECRYPT(k, n, aad, ciphertext)`**:
+ * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
  32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
@@ -490,7 +490,7 @@ These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
 
  * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
 
- * **`ENCRYPT(k, n, aad, plainttext)` / `DECRYPT(k, n, aad, ciphertext)`**:
+ * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by encoding 32
  bits of zeros followed by little-endian encoding of `n`.
  
