@@ -477,11 +477,14 @@ The following conventions are recommended but not required:
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
- the message.  
+ the message.  Branch number zero indicates the default or "no branch" state.
+ Any other value requires the recipient to process the branch as per Section
+ 4.3).  Sending data too large to fit into a single payload requires sending a
+ stream of messages (see next bullet).
 
- * **Stream termination**: If application messages are sending a stream of data,
- branch number 0 means more data is following in subsequent messages, and branch
- number 1 means this message contains the end of the stream. 
+ * **Stream termination**: If application messages send a stream of data, branch
+ number 0 means more data is following in subsequent messages, and branch number
+ 1 means this message contains the end of the stream. 
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
@@ -541,7 +544,7 @@ These are the default and recommended ciphersuites.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
 
- * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
+ * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by encoding 32
  bits of zeros followed by little-endian encoding of `n`.
  
