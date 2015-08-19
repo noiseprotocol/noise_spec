@@ -381,98 +381,77 @@ responder exchange messages to agree on a shared key.
      _X = static key for responder transmitted to initiator
 
 
-    HandshakeNN:
-      -> e
-      <- e, dhee
+    HandshakeNN:                      HandshakeKN:                 
+      -> e                              -> s                       
+      <- e, dhee                        ------                     
+                                        -> e                       
+                                        <- e, dhee, dhes           
+                                             
+    HandshakeNK:                      HandshakeKK:                 
+      <- s                              <- s                       
+      ------                            -> s                       
+      -> e, dhes                        ------                     
+      <- e, dhee                        -> e, dhes, dhss           
+                                        <- e, dhee, dhes           
+                                              
+    HandshakeNE:                      HandshakeKE:                 
+      <- s, e                           <- s, e                    
+      ------                            -> s                       
+      -> e, dhee, dhes                  ------                     
+      <- e, dhee                        -> e, dhee, dhes, dhse     
+                                          <- e, dhee, dhes           
+                                                                     
+    HandshakeNX:                      HandshakeKX:                 
+      -> e                              -> s                       
+      <- e, dhee, s, dhse               ------                     
+                                        -> e                       
+                                        <- e, dhee, dhes, s, dhse  
+                            
 
-    HandshakeNK:
-      <- s
-      ------
-      -> e, dhes 
-      <- e, dhee
-
-    HandshakeNE:
-      <- s, e
-      ------
-      -> e, dhee, dhes 
-      <- e, dhee
-
-    HandshakeNX:
-      -> e
-      <- e, dhee, s, dhse
-
-
-    HandshakeKN:
-      -> s
-      ------
-      -> e
-      <- e, dhee, dhes
-    
-    HandshakeKK:
-      <- s
-      -> s
-      ------
-      -> e, dhes, dhss
-      <- e, dhee, dhes
-
-    HandshakeKE:
-      <- s, e
-      -> s
-      ------
-      -> e, dhee, dhes, dhse
-      <- e, dhee, dhes
-
-    HandshakeKX:
-      -> s
-      ------
-      -> e
-      <- e, dhee, dhes, s, dhse
-
-
-    HandshakeXN:
-      -> e
-      <- e, dhee
-      -> s, dhse
-
-    HandshakeXK:
-      <- s
-      ------
-      -> e, dhes
-      <- e, dhee
-      -> s, dhse 
-
-    HandshakeXE:
-      <- s, e
-      ------
-      -> e, dhee, dhes
-      <- e, dhee
-      -> s, dhse 
-
-    HandshakeXX:
-      -> e
-      <- e, dhee, s, dhse
+    HandshakeXN:                      HandshakeIN:                   
+      -> e                              -> e, s                      
+      <- e, dhee                        <- e, dhee, dhes             
+      -> s, dhse                                                     
+                                         
+    HandshakeXK:                      HandshakeIK:                   
+      <- s                              <- s                         
+      ------                            ------                       
+      -> e, dhes                        -> e, dhes, s, dhss          
+      <- e, dhee                        <- e, dhee, dhes             
+      -> s, dhse                                                     
+                                        
+    HandshakeXE:                      HandshakeIE:                   
+      <- s, e                           <- s, e                      
+      ------                            ------                       
+      -> e, dhee, dhes                  -> e, dhee, dhes, s, dhse    
+      <- e, dhee                        <- e, dhee, dhes             
+      -> s, dhse                                                     
+                                       
+    HandshakeXX:                      HandshakeIX:                  
+      -> e                              -> e, s                     
+      <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
 
-    HandshakeIN:
-      -> e, s
-      <- e, dhee, dhes
-    
-    HandshakeIK:
-      <- s
-      ------
-      -> e, dhes, s, dhss
-      <- e, dhee, dhes
-    
-    HandshakeIE:
-      <- s, e
-      ------
-      -> e, dhee, dhes, s, dhse
-      <- e, dhee, dhes
-    
-    HandshakeIX:
-      -> e, s
-      <- e, dhee, dhes, s, dhse
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 10. Ciphersuites
