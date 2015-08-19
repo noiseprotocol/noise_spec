@@ -469,8 +469,43 @@ recommended for most uses.
       <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
+6. Application messages
+========================
 
-9. Conventions
+After the last handshake message, the parties can send application messages in several ways:
+
+ * **One-way stream**: One party can send a stream of messages.
+
+ * **Alternating stream**: Both parties can alternate sending messages, using a
+ single session.
+
+ * **Pair of streams**: Both parties can send a stream of messages, using
+ separate sessions.  In this case, `Split()` is called with the initiator using
+ the original session and the responder using the new session.
+
+A stream of messages may be fixed-length or variable-length, depending on
+whether it's known in advance how many messages will be sent.
+
+Out of order messages can be handled by prepending `n` as an explicit nonce to
+each message.
+
+Key updating techniques can be used within a stream:
+
+ * **Key stepping**: After sending a message, `StepKey()` is called to destroy
+ the old key and replace it with a new one.  This provides security for old
+ messages against future compromises.
+
+ * **Key splitting**: Each message is encrypted by calling `Split()` and then
+ using the new session to encrypt a single message.  This provides security for
+ old keys against future compromises, and also allows cacheing old keys in case
+ of out-of-order messages.
+
+ * **DH ratcheting**: Ephemeral public keys can be exchanged and mixed into a
+ "root" session by alternating `ReadEphemeral()` and `WriteEphemeral()` calls.
+ This allows implementing an Axolotl-like ratchet, where receiving and sending
+ sessions are derived from the root session via `Split()` calls.
+
+7. Conventions
 ===============
 
 The following conventions are recommended but not required:
@@ -489,11 +524,17 @@ The following conventions are recommended but not required:
  Any other value requires the recipient to process the branch as per Section
  4.3.  Payloads are kept small to support streaming APIs where data is
  incrementally authenticated.  Sending more data than fits in one payload
- requires a stream of messages (see next bullet).
- 
- * **Stream termination**: If application messages send a stream of data, branch
- number 0 means more data is following in subsequent messages, and branch number
- 1 means this message contains the end of the stream. 
+ requires a stream of messages (see bullet on "Stream termination").
+
+ * **Explicit nonce fields**: If explicit nonces are being used for out-of-order
+ application messages, then the 64-bit nonce should be encoded in little-endian,
+ and sent after the branch number but before the length field.
+
+ * **Stream termination**: If a protocol supports a variable-length stream of
+ messages, branch number 0 means more data is following in subsequent messages,
+ and branch number 1 means this message contains the end of the stream.
+ Following Section 4.3, branch number 1 should trigger a `MixKey()` call with
+ type 1.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
@@ -510,10 +551,10 @@ The following conventions are recommended but not required:
  (sockets, etc).
 
 
-10. Ciphersuites
+8. Ciphersuites
 ================
 
-10.1. Noise255/ChaChaPoly and Noise448/ChaChaPoly
+8.1. Noise255/ChaChaPoly and Noise448/ChaChaPoly
 --------------------------------------------------
 
 These are the default and recommended ciphersuites.
@@ -543,7 +584,7 @@ These are the default and recommended ciphersuites.
  * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-10.2. Noise255/AES-GCM and Noise448/AES-GCM
+8.2. Noise255/AES-GCM and Noise448/AES-GCM
 --------------------------------------------
 
  * **`klen`** = 32
@@ -572,7 +613,7 @@ These are the default and recommended ciphersuites.
 
  * **`HASH(input)`**: `SHA2-256(intput)` 
 
-11. Security Considerations
+9. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -585,7 +626,7 @@ To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and performs a DH with it prior to sending any
 encrypted data.  All patterns in Section 9 adhere to this rule.  
 
-12. Rationale
+10. Rationale
 =============
 
 This section collects various design rationale:
@@ -613,12 +654,12 @@ Little-endian is preferred because:
  * The standard ciphersuites use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
  * Most modern processors are little-endian.
 
-13. IPR
+11. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-14. Acknowledgements
+12. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
