@@ -78,9 +78,9 @@ or different symmetric-key primitives.
 2.6. Conventions
 -----------------
 
-Noise comes with conventions for type and length fields, streaming encryption,
-padding, and error handling.  These aren't a mandatory part of Noise, but
-adoption is encouraged.
+Noise comes with conventions for things like type and length fields, padding,
+error handling, etc.  These aren't a mandatory part of Noise, but adoption is
+encouraged.
 
 3. Sessions
 ============
@@ -475,20 +475,30 @@ recommended for most uses.
 
 The following conventions are recommended but not required:
 
+ * **Protocol naming**:  The protocol name should consist of three
+ underscore-separated fields that identify the ciphersuite, the handshake
+ pattern, and the application protocol.  For example:
+
+ `"Noise255/ChaChaPoly_HandshakeXX_ExampleProto"`
+
+ `"Noise448/AES-GCM_BoxX_ExampleFileEncryption"`
+
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
  the message.  Branch number zero indicates the default or "no branch" state.
  Any other value requires the recipient to process the branch as per Section
- 4.3).  Sending data too large to fit into a single payload requires sending a
- stream of messages (see next bullet).
-
+ 4.3.  Payloads are kept small to support streaming APIs where data is
+ incrementally authenticated.  Sending more data than fits in one payload
+ requires a stream of messages (see next bullet).
+ 
  * **Stream termination**: If application messages send a stream of data, branch
  number 0 means more data is following in subsequent messages, and branch number
  1 means this message contains the end of the stream. 
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
- bytes.  This provides a consistent way to pad ciphertexts to a fixed length.
+ bytes.  Padding is applied to both handshake messages and application messages.
+ This provides a consistent way to pad ciphertexts to a fixed length.
 
  * **Handshake extensions**:  The payload in any handshake message is parsed as
  a sequence of extensions, where each extension contains a 1-byte type field,
