@@ -54,9 +54,8 @@ send **application messages** which typically consist of encrypted payloads
 without DH public keys.
 
 Several operations can be used to control the encryption, including splitting
-the shared key into separate keys for duplex communications, explicitly
-specifying nonces for out-of-order messages, or "stepping" the key for
-forward-secrecy.
+the shared key into separate keys for duplex communications, explicit nonces for
+out-of-order messages, and "stepping" the key for forward-secrecy.
 
 2.4. Key agreement
 -------------------
@@ -72,9 +71,9 @@ the protocol.
 A Noise protocol can be described abstractly in terms of its handshake pattern
 and handling of application messages.
 
-A **ciphersuite** instantiates the underlying crypto functions to give a
-concrete protocol.  Choosing ciphersuites allows selection of different elliptic
-curves for the DH function, or different symmetric-key primitives.
+A **ciphersuite** instantiates the crypto functions to give a concrete protocol.
+Different ciphersuites could use different elliptic curves for the DH function,
+or different symmetric-key primitives.
 
 2.6. Conventions
 -----------------
@@ -83,8 +82,24 @@ Noise comes with some conventions for handling protocol versions and type
 fields, length fields, and padding fields.  These aren't a mandatory part of
 Noise, but adoption is encouraged.
 
-3. Ciphersuite functions
-=========================
+3. Sessions
+============
+
+A Noise session can be viewed as three layers:
+
+ * A ciphersuite provides low-level crypto functions.
+
+ * A kernel object builds on the symmetric-key ciphersuite functions.  The
+ kernel provides methods for mixing inputs into a secret key and using that key
+ for encryption and decryption.
+
+ * A session object builds on the kernel and provides methods for reading and
+ writing handshake fields and payloads.
+
+The below sections describe each of these layers in turn.
+
+3.1. Ciphersuite functions
+---------------------------
 
 Noise depends on the following constants and functions, which are supplied by a
 **ciphersuite**:
@@ -125,8 +140,8 @@ Noise depends on the following constants and functions, which are supplied by a
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
  hash output of `hlen` bytes. SHA2-256 is an example hash function.
 
-4.  Kernel state and methods
-=============================
+3.2.  Kernel state and methods
+-------------------------------
 
 To simplify the descriptions and improve modularity, a session contains a
 **kernel**.  The kernel can mix inputs into its internal state, and can encrypt
@@ -154,10 +169,13 @@ A kernel responds to the following methods:
 
  * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
- * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Sets `n` to zero.
+ * **`MixKey(type, data)`**:  `Data` is an arbitrary byte sequence, and `type`
+ is a single-byte value to differentiate inputs.  Sets `k` to `KDF(GETKEY(k, n),
+ type || data)`.  In other words, prepends `type` to `data` before sending it
+ through the KDF.  Then sets `n` to zero.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
- replaces `h` by the hash of `h` with with `data` appended.
+ replaces `h` by the hash of `h` with `data` appended.
 
  * **`ClearHash(data)`**: Sets `h` to empty.
 
@@ -174,8 +192,8 @@ A kernel responds to the following methods:
  without decrypting.  Otherwise calls `DECRYPT(k, n, h, ciphertext)` to get a
  plaintext, then increments `n` and returns the plaintext.
 
-5.  Session state and methods
-==============================
+3.3.  Session state and methods
+--------------------------------
 
 Sessions contain a kernel object, plus the following state variables:
 
@@ -216,17 +234,19 @@ A session responds to the following methods for writing and reading messages:
  * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
  `Decrypt()` on the data to get the payload.
 
- * **`DiffieHellmanSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
+ * **`DHSS()`**: Calls `MixKey(0, DH(s, rs))` on the kernel.
 
- * **`DiffieHellmanSE()`**: Calls `MixKey(DH(s, re))` on the kernel.
+ * **`DHEE()`**: Calls `MixKey(0, DS(e, re))` on the kernel.
 
- * **`DiffieHellmanES()`**: Calls `MixKey(DH(e, rs))` on the kernel.
+ * **`DHSE()`**: Calls `MixKey(0, DH(s, re))` on the kernel.
 
- * **`DiffieHellmanEE()`**: Calls `MixKey(DS(e, re))` on the kernel.
+ * **`DHES()`**: Calls `MixKey(0, DH(e, rs))` on the kernel.
 
-6. Descriptors and patterns
-============================
+4. Handshake processing
+========================
 
+4.1. Descriptors
+-----------------
 A descriptor is a comma-separated list containing some of the following tokens.
 The tokens describe the sequential actions taken by the writer or reader of a
 message.
@@ -235,8 +255,8 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Given `dhXY` calls `DiffieHellmanXY()` for the
- writer and `DiffieHellmanYX()` for the reader.
+ * **`dhss, dhee, dhse, dhes`**: Given `dhXY` calls `DHXY()` for the
+ writer and `DHYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
 are for messages created and sent by the protocol initiator; with left-pointing
@@ -259,10 +279,10 @@ responder's static public key as well as the responder's ephemeral:
       -> e, dhes 
       <- e, dhee
 
-7. Message processing 
-======================
+4.1. Message processing 
+-------------------------
 
-Writing a message requires:
+Writing a handshake message requires:
 
  * A session
  
@@ -278,8 +298,8 @@ payload)` is called on the session.
 To read the message the descriptor is processed sequentially.  Then
 `ReadPayload(buffer)` is called to return the payload.
 
-8. Protocol processing
-=======================
+4.2. Handshake processing
+--------------------------
 
 Ever Noise protocol begins by executing a handshake pattern.  This requires:
 
@@ -295,7 +315,11 @@ Ever Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A pattern
 
-First `InitializeSession()` is called.  Then `MixKey(name)` is called.
+First `InitializeSession()` is called.  
+
+Then if no pre-shared key is present, `MixKey(0, name)` is called.  If a
+pre-shared key is present, `MixKey(1, name)` is called, followed by `MixKey(0,
+preshared_key)`.
 
 If the party has a static key pair, then `SetStaticKeyPair()` is called to set
 it into the session.  
@@ -303,30 +327,16 @@ it into the session.
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
 
-If the party has a pre-shared symmetric key then `MixKey()` is called to mix it
-into the kernel.
-
 Following this the parties read and write handshake messages.  After every
 handshake message `MixHash(payload)` is called, except for the last handshake
 message.  After the last handshake message `ClearHash()` is called.
 
-9. Handshake patterns
+5. Handshake patterns
 ======================
 
-The following patterns represent the mainstream use of Noise, and can be used
-to construct a wide range of protocols.  Of course, other patterns can be
-defined in other documents.
-
-Each pattern is given a name, and then described via a sequence of
-descriptors.  Descriptors with right-pointing arrows are for messages created
-and sent by the protocol initiator; with left-pointing arrows are for messages
-sent by the responder.
-
-Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These messages aren't sent as part of the protocol proper, but are only used for
-their side-effect of calling `MixHash()`.
-
-
+The following patterns represent the mainstream use of Noise, and can be used to
+construct a wide range of protocols.  Other patterns can be defined in other
+documents.
 
 9.1. Box patterns
 ------------------
@@ -354,8 +364,8 @@ recipient.  Box naming:
       ------
       -> e, dhes, s, dhss
 
-9.2. Handshake patterns
-------------------------
+9.2. Interactive patterns
+--------------------------
 
 The following 16 "Handshake" patterns represent protocols where the initiator and
 responder exchange messages to agree on a shared key.
