@@ -33,8 +33,9 @@ process messages.
 2.2. The handshake: descriptors and patterns
 -------------------------------------------
 
-A Noise protocol begins with a handshake phase where both parties send messages
-containing DH public keys and perform DH operations to agree on a shared secret.
+A Noise protocol begins with a handshake phase where both parties send
+**handshake messages** containing DH public keys and perform DH operations to
+agree on a shared secret.
 
 A **descriptor** specifies the DH keys and operations that comprise a handshake
 message.
@@ -52,8 +53,10 @@ After the handshake messages each party will share a secret key and can
 send **application messages** which typically consist of encrypted payloads
 without DH public keys.
 
-The application can use several operations to control the encryption, including splitting the shared key into separate keys for duplex communications, explicitly specifying nonces for out-of-order messages, or
-"stepping" the key for forward-secrecy.
+Several operations can be used to control the encryption, including splitting
+the shared key into separate keys for duplex communications, explicitly
+specifying nonces for out-of-order messages, or "stepping" the key for
+forward-secrecy.
 
 2.4. Key agreement
 -------------------
