@@ -33,7 +33,7 @@ process messages.
 2.2. The handshake: descriptors and patterns
 -------------------------------------------
 
-A Noise protocol begins with a handshake phase where both parties send
+A Noise protocol begins with a handshake phase where both parties can send
 **handshake messages** containing DH public keys and perform DH operations to
 agree on a shared secret.
 
@@ -43,8 +43,7 @@ message.
 A **pattern** specifies the sequence of descriptors that comprise a handshake.
 
 A simple pattern might describe a one-shot encrypted message from Alice to Bob.
-A more complex pattern might describe an interactive handshake where Alice and
-Bob mutually authenticate and arrive at a session key with forward secrecy.
+A more complex pattern might describe an interactive handshake.
 
 2.3.  After the handshake: application messages
 ------------------------------------------------
@@ -117,14 +116,15 @@ Noise depends on the following constants and functions, which are supplied by a
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
- * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts data using the cipher key `k` of
+ * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher key `k` of
  `klen` bytes, and a 64-bit unsigned integer nonce `n` which must be unique for
  the key `k`.  Encryption must be done with an "AEAD" encryption mode with the
  associated data `ad`.  This must be a deterministic function (i.e.  it shall
  not add a random IV; this ensures the `GETKEY()` function is deterministic).
 
- * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts data using the cipher key `k`
- of `klen` bytes, a 64-bit unsigned integer nonce `n`, and associated data `ad`.
+ * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using the cipher
+ key `k` of `klen` bytes, a 64-bit unsigned integer nonce `n`, and associated
+ data `ad`.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
  nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
@@ -150,8 +150,8 @@ and decrypt data based on its internal state.
 A kernel object contains the following state variables:
 
  * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
- in the ciphersuite.  This value mixes together the results of all DH
- operations, and is used for encryption.
+ in the ciphersuite.  This mixes together the results of all DH operations, and
+ is used for encryption.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with with `k`
  for encryption.
@@ -236,7 +236,7 @@ A session responds to the following methods for writing and reading messages:
 
  * **`DHSS()`**: Calls `MixKey(0, DH(s, rs))` on the kernel.
 
- * **`DHEE()`**: Calls `MixKey(0, DS(e, re))` on the kernel.
+ * **`DHEE()`**: Calls `MixKey(0, DH(e, re))` on the kernel.
 
  * **`DHSE()`**: Calls `MixKey(0, DH(s, re))` on the kernel.
 
@@ -313,16 +313,15 @@ Ever Noise protocol begins by executing a handshake pattern.  This requires:
 
  * (Optional) Pre-shared symmetric key
 
- * A pattern
+ * A pattern of descriptors
 
 First `InitializeSession()` is called.  
 
-Then if no pre-shared key is present, `MixKey(0, name)` is called.  If a
-pre-shared key is present, `MixKey(1, name)` is called, followed by `MixKey(0,
+If no pre-shared key is present, `MixKey(0, name)` is called.  If a pre-shared
+key is present, `MixKey(1, name)` is called, followed by `MixKey(0,
 preshared_key)`.
 
-If the party has a static key pair, then `SetStaticKeyPair()` is called to set
-it into the session.  
+If the party has a static key pair, then `SetStaticKeyPair(static)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
@@ -334,11 +333,10 @@ message.  After the last handshake message `ClearHash()` is called.
 5. Handshake patterns
 ======================
 
-The following patterns represent the mainstream use of Noise, and can be used to
-construct a wide range of protocols.  Other patterns can be defined in other
-documents.
+The following patterns represent the mainstream use of Noise.  Other patterns
+can be defined in other documents.
 
-9.1. Box patterns
+5.1. Box patterns
 ------------------
 
 The following "Box" patterns represent one-shot messages from a sender to a
@@ -364,7 +362,7 @@ recipient.  Box naming:
       ------
       -> e, dhes, s, dhss
 
-9.2. Interactive patterns
+5.2. Interactive patterns
 --------------------------
 
 The following 16 "Handshake" patterns represent protocols where the initiator and
