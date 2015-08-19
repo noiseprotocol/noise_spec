@@ -333,6 +333,39 @@ message.  After the last handshake message `ClearHash()` is called.
 4.3. Branching
 ---------------
 
+Branching allows parties to alter the protocol that is being executed on the
+fly.  For example: 
+
+ 1. A client could choose whether to authenticate itself based on the server's
+ response.
+
+ 2. A server could choose which ciphersuite to support based on options offered
+ by the client.
+
+ 3. A client could attempt an abbreviated handshake based on cached information,
+ and if this information is stale the server can fall back to a full handshake.
+
+Branching requires:
+
+ * Designating a particular message as a branch point.
+
+ * Assigning branch numbers to the alternatives (where branch number zero is the
+ default, and other branches count up from there).
+
+ * For each alternative, specifying whether it uses previous session state,
+ or re-initializes the session.
+
+ * Having a way for messages to indicate which branch is taken (see the
+ "Conventions" section for a recommendation).
+
+
+If a non-zero branch is taken and session state is re-used, `MixKey()` is
+called, with the branch number as the type, and empty data.
+
+If a non-zero branch is taken and session state is to be re-initialized, then
+the message is treated as a new handshake message, and the steps from 4.2 are
+performed, except `InitializeKernel()` is called in place of
+`InitializeSession()` to allow previously exchanged public keys to be re-used.
 
 
 5. Handshake patterns
@@ -345,7 +378,7 @@ can be defined in other documents.
 ------------------
 
 The following "Box" patterns represent one-shot messages from a sender to a
-recipient.  Box naming:
+recipient.  BoxX is recommended for most uses.
 
      N  = no static key for sender
      K  = static key for sender known to recipient
@@ -370,10 +403,9 @@ recipient.  Box naming:
 5.2. Interactive patterns
 --------------------------
 
-The following 16 "Handshake" patterns represent protocols where the initiator and
-responder exchange messages to agree on a shared key.
-
-    Handshake naming:
+The following 16 "Handshake" patterns represent protocols where the initiator
+and responder exchange messages to agree on a shared key.  HandshakeXX is
+recommended for most uses.
 
      N_ = no static key for initiator
      K_ = static key for initiator known to responder
