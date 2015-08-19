@@ -20,9 +20,9 @@ well as interactive protocols.
 2.1. Messages, protocols, and sessions
 ---------------------------------------
 
-**Messages** are exchanged between parties.  Each message will contain
-zero or more public keys followed by an optional payload.  Either the public
-keys or payload may be encrypted.
+**Messages** are exchanged between parties.  Each message will contain zero or
+more public keys followed by a payload.  Either the public keys or payload may
+be encrypted.
 
 A **protocol** consists of some sequence of messages between a pair of
 parties.
@@ -30,44 +30,50 @@ parties.
 Each party will have a **session** which contains the state used to
 process messages.
 
-2.2. Descriptors, patterns, and ciphersuites
----------------------------------------------
+2.2. The handshake: descriptors and patterns
+-------------------------------------------
 
-A **descriptor** specifies the contents of a message.
+A Noise protocol begins with a handshake phase where both parties send messages
+containing DH public keys and perform DH operations to agree on a shared secret.
 
-A **pattern** specifies the sequence of descriptors that comprise a protocol.
+A **descriptor** specifies the DH keys and operations that comprise a handshake
+message.
 
-A simple pattern might describe a single message that encrypts one
-plaintext from Alice to Bob.  A more complex pattern might describe an
-interactive protocol where Alice and Bob mutually authenticate and
-arrive at a shared session key with forward secrecy.
+A **pattern** specifies the sequence of descriptors that comprise a handshake.
 
-Descriptors and patterns are abstract descriptions of messages and protocols.
-They need to be instantiated with a **ciphersuite** to give concrete messages
-and protocols.
+A simple pattern might describe a one-shot encrypted message from Alice to Bob.
+A more complex pattern might describe an interactive handshake where Alice and
+Bob mutually authenticate and arrive at a session key with forward secrecy.
 
-2.3. Kernels
--------------
+2.3.  After the handshake: application messages
+------------------------------------------------
 
-To simplify the descriptions and improve modularity, a session contains a
-**kernel**.  The kernel handles all symmetric-key cryptography.
+After the handshake messages each party will share a secret key and can
+send **application messages** which typically consist of encrypted payloads
+without DH public keys.
 
-The kernel can mix inputs into its internal state, and can encrypt and decrypt
-data based on its internal state.
+The application can use several operations to control the encryption, including splitting the shared key into separate keys for duplex communications, explicitly specifying nonces for out-of-order messages, or
+"stepping" the key for forward-secrecy.
 
 2.4. Key agreement
 -------------------
 
-Noise can implement protocols where each party has a static and/or ephemeral DH
+Noise can implement handshakes where each party has a static and/or ephemeral DH
 key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that are created during
 the protocol.
 
-The parties may have prior knowledge of each other's public keys, before
-executing a Noise protocol.  This is represented by "pre-messages" that both
-parties use to initialize their session state.
+2.5. Ciphersuites
+------------------
 
-2.7. Conventions
+A Noise protocol can be described abstractly in terms of its handshake pattern
+and handling of application messages.
+
+A **ciphersuite** instantiates the underlying crypto functions to give a
+concrete protocol.  Choosing ciphersuites allows selection of different elliptic
+curves for the DH function, or different symmetric-key primitives.
+
+2.6. Conventions
 -----------------
 
 Noise comes with some conventions for handling protocol versions and type
@@ -118,6 +124,10 @@ Noise depends on the following constants and functions, which are supplied by a
 
 4.  Kernel state and methods
 =============================
+
+To simplify the descriptions and improve modularity, a session contains a
+**kernel**.  The kernel can mix inputs into its internal state, and can encrypt
+and decrypt data based on its internal state.  
 
 A kernel object contains the following state variables:
 
@@ -268,7 +278,7 @@ To read the message the descriptor is processed sequentially.  Then
 8. Protocol processing
 =======================
 
-Executing a protocol requires:
+Ever Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A session
 
