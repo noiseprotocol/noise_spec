@@ -21,8 +21,8 @@ well as interactive protocols.
 ---------------------------------------
 
 **Messages** are exchanged between parties.  Each message will contain zero or
-more public keys followed by a payload.  Either the public keys or payload may
-be encrypted.
+more DH public keys followed by a payload.  Either the public keys or payload
+may be encrypted.
 
 A **protocol** consists of some sequence of messages between a pair of
 parties.
@@ -35,10 +35,11 @@ process messages.
 
 A Noise protocol begins with a handshake phase where both parties can send
 **handshake messages** containing DH public keys and perform DH operations to
-agree on a shared secret.
+agree on a shared secret.  The handshake payloads can contain data relevant to
+handshaking, like certificates, or advertisements of new version support.
 
-A **descriptor** specifies the DH keys and operations that comprise a handshake
-message.
+A **descriptor** specifies the DH keys and DH operations that comprise a
+handshake message.
 
 A **pattern** specifies the sequence of descriptors that comprise a handshake.
 
@@ -61,7 +62,7 @@ out-of-order messages, and "stepping" the key for forward-secrecy.
 
 Noise can implement handshakes where each party has a static and/or ephemeral DH
 key pair.  The static keypair is a longer-term key pair that exists prior to the
-protocol.  Ephemeral key pairs are short-term key pairs that are created during
+protocol.  Ephemeral key pairs are short-term key pairs that exist only during
 the protocol.
 
 2.5. Ciphersuites
@@ -77,9 +78,9 @@ or different symmetric-key primitives.
 2.6. Conventions
 -----------------
 
-Noise comes with some conventions for handling protocol versions and type
-fields, length fields, and padding fields.  These aren't a mandatory part of
-Noise, but adoption is encouraged.
+Noise comes with conventions for type and length fields, streaming encryption,
+padding, and error handling.  These aren't a mandatory part of Noise, but
+adoption is encouraged.
 
 3. Sessions
 ============
@@ -169,10 +170,9 @@ A kernel responds to the following methods:
 
  * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
- * **`MixKey(type, data)`**:  `Data` is an arbitrary byte sequence, and `type`
- is a single-byte value to differentiate inputs.  Sets `k` to `KDF(GETKEY(k, n),
- type || data)`.  In other words, prepends `type` to `data` before sending it
- through the KDF.  Then sets `n` to zero.
+ * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.  In
+ other words, prepends `type` to `data` before sending it through the KDF.  Then
+ sets `n` to zero.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
@@ -255,7 +255,7 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Given `dhXY` calls `DHXY()` for the
+ * **`dhss, dhee, dhse, dhes`**: Given `dhxy` calls `DHXY()` for the
  writer and `DHYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
@@ -279,8 +279,8 @@ responder's static public key as well as the responder's ephemeral:
       -> e, dhes 
       <- e, dhee
 
-4.1. Message processing 
--------------------------
+4.1. Message processing
+------------------------
 
 Writing a handshake message requires:
 
@@ -301,7 +301,7 @@ To read the message the descriptor is processed sequentially.  Then
 4.2. Handshake processing
 --------------------------
 
-Ever Noise protocol begins by executing a handshake pattern.  This requires:
+Every Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A session
 
@@ -329,6 +329,11 @@ performing more `MixHash()` calls based on the party's pre-knowledge.
 Following this the parties read and write handshake messages.  After every
 handshake message `MixHash(payload)` is called, except for the last handshake
 message.  After the last handshake message `ClearHash()` is called.
+
+4.3. Branching
+---------------
+
+
 
 5. Handshake patterns
 ======================
@@ -399,7 +404,7 @@ responder exchange messages to agree on a shared key.
       ------                            -> s                       
       -> e, dhee, dhes                  ------                     
       <- e, dhee                        -> e, dhee, dhes, dhse     
-                                          <- e, dhee, dhes           
+                                        <- e, dhee, dhes           
                                                                      
     HandshakeNX:                      HandshakeKX:                 
       -> e                              -> s                       
@@ -433,25 +438,31 @@ responder exchange messages to agree on a shared key.
       -> s, dhse
 
 
+9. Conventions
+===============
 
+The following conventions are recommended but not required:
 
+ * **Branch and length fields**:  All messages are preceded with a 1-byte branch
+ number, then a 2-byte little endian unsigned integer indicating the length of
+ the message.  
 
+ * **Stream termination**: If application messages are sending a stream of data,
+ branch number 0 means more data is following in subsequent messages, and branch
+ number 1 means this message contains the end of the stream. 
+ 
+ * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
+ unsigned integer specifying the number of preceding bytes that are padding
+ bytes.  This provides a consistent way to pad ciphertexts to a fixed length.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ * **Handshake extensions**:  The payload in any handshake message is parsed as
+ a sequence of extensions, where each extension contains a 1-byte type field,
+ followed by a 2-byte little endian unsigned integer indicating the length of
+ the extension.  Unrecognized extensions are ignored by the recipient. 
+ 
+ * **Error handling**: On any cryptographic or parsing failure, immediately
+ erase all session contents and close any resources associated with the session
+ (sockets, etc).
 
 
 10. Ciphersuites
@@ -464,7 +475,11 @@ These are the default and recommended ciphersuites.
 
  * **`klen`** = 32
 
- * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
+ * **`hlen`** = 32
+
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
+ 
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
  
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
@@ -472,36 +487,45 @@ These are the default and recommended ciphersuites.
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce).
 
- * **`GETKEY(k, n)`**:  The first 32 bytes output from the ChaCha20 block
-   function from RFC 7539 with key `k`, nonce `n` encoded as for `ENCRYPT()`,
-   and the block count set to 1.  This is the same as calling `ENCRYPT()` on a
-   plaintext consisting of 32 bytes of zeros and taking the first 32 bytes. 
+ * **`GETKEY(k, n)`**:  Returns the first 32 bytes output from the ChaCha20
+ block function from RFC 7539 with key `k`, nonce `n` encoded as for
+ `ENCRYPT()`, and the block count set to 1.  This is the same as calling
+ `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
+ 32 bytes. 
 
- * **`KDF(kdf_key, input)`:** `HMAC-SHA2-256(kdf_key, input)`.  
+ * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
+
+ * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-10.2. AES256-GCM ciphersuites
------------------------------
-
-These ciphersuites are named Noise255/AES256-GCM and Noise448/AES256-GCM.  The
-`DH()` and `KDF()` functions are the same as above.
+10.2. Noise255/AES-GCM and Noise448/AES-GCM
+--------------------------------------------
 
  * **`klen`** = 32
 
- * **`DH(privkey, pubkey)`**: Curve25519 (Noise255) or Goldilocks (Noise448).
+ * **`hlen`** = 32 
+ 
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
+ 
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by encoding 32
  bits of zeros followed by little-endian encoding of `n`.
  
- * **`GETKEY(k, n)`**: is defined by encoding the 96-bit nonce from above into the
- first 96 bits of two 16-byte blocks `B1` and `B2`.  The final 4 bytes of `B1`
- are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are set to (0, 0, 0, 3).
- `B1` and `B2` are both encrypted with AES256 and key `k`, and the resulting
- ciphertexts `C1` and `C2` are concatenated into the final 32-byte output.  This is
- the same as calling `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros
- and taking the first 32 bytes.
+ * **`GETKEY(k, n)`**: Returns 32 bytes from concatenating two encryption calls
+ to AES256 using key `k`.  The input is defined by encoding `n` into a 96-bit
+ value as for `ENCRYPT()`, then setting this as the first 96 bits of two 128-bit
+ blocks `B1` and `B2`.  The final 4 bytes of `B1` are set to (0, 0, 0, 2).  The
+ final 4 bytes of `B2` are set to (0, 0, 0, 3).  `B1` and `B2` are both
+ encrypted with AES256 and key `k`, and the resulting ciphertexts `C1` and `C2`
+ are concatenated into the 32-byte output.  This is the same as calling
+ `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
+ 32 bytes.
 
+ * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
+
+ * **`HASH(input)`**: `SHA2-256(intput)` 
 
 11. Security Considerations
 ===========================
@@ -537,6 +561,12 @@ The default ciphersuites use SHA2-256 because:
 The cipher key must be at least 256 bits because:
 
  * The cipher key accumulates the DH output, so collision-resistance is desirable
+
+Little-endian is preferred because:
+
+ * Bignum libraries almost always use little-endian.
+ * The standard ciphersuites use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
+ * Most modern processors are little-endian.
 
 13. IPR
 ========
