@@ -363,7 +363,7 @@ If a non-zero branch is taken and session state is re-used, `MixKey()` is
 called, with the branch number as the type, and empty data.
 
 If a non-zero branch is taken and session state is to be re-initialized, then
-the message is treated as a new handshake message, and the steps from 4.2 are
+the message is treated as starting a new handshake, and the steps from 4.2 are
 performed, except `InitializeKernel()` is called in place of
 `InitializeSession()` to allow previously exchanged public keys to be re-used.
 
@@ -500,8 +500,8 @@ The following conventions are recommended but not required:
 10. Ciphersuites
 ================
 
-10.1. Noise255 and Noise448
----------------------------
+10.1. Noise255/ChaChaPoly and Noise448/ChaChaPoly
+--------------------------------------------------
 
 These are the default and recommended ciphersuites.
 
