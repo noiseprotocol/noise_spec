@@ -242,8 +242,8 @@ A session responds to the following methods for writing and reading messages:
 
  * **`DHES()`**: Calls `MixKey(0, DH(e, rs))` on the kernel.
 
-4. Handshake processing
-========================
+4. Handshake messages
+======================
 
 4.1. Descriptors
 -----------------
