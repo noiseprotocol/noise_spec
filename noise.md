@@ -93,8 +93,8 @@ A Noise session can be viewed as three layers:
  kernel provides methods for mixing inputs into a secret key and using that key
  for encryption and decryption.
 
- * A session object builds on the kernel and provides methods for reading and
- writing handshake fields and payloads.
+ * A session object builds on the kernel and provides methods for handling
+ public keys and payloads.
 
 The below sections describe each of these layers in turn.
 
@@ -336,13 +336,13 @@ message.  After the last handshake message `ClearHash()` is called.
 Branching allows parties to alter the protocol that is being executed on the
 fly.  For example: 
 
- 1. A client could choose whether to authenticate itself based on the server's
+ * A client could choose whether to authenticate itself based on the server's
  response.
 
- 2. A server could choose which ciphersuite to support based on options offered
+ * A server could choose which ciphersuite to support based on options offered
  by the client.
 
- 3. A client could attempt an abbreviated handshake based on cached information,
+ * A client could attempt an abbreviated handshake based on cached information,
  and if this information is stale the server can fall back to a full handshake.
 
 Branching requires:
@@ -479,23 +479,23 @@ After the last handshake message, the parties can send application messages in s
  * **Alternating stream**: Both parties can alternate sending messages, using a
  single session.
 
- * **Pair of streams**: Both parties can send a stream of messages, using
+ * **Two streams**: Both parties can send a stream of messages, using
  separate sessions.  In this case, `Split()` is called with the initiator using
  the original session and the responder using the new session.
 
-A stream of messages may be fixed-length or variable-length, depending on
+A stream of messages may be **fixed-length** or **variable-length**, depending on
 whether it's known in advance how many messages will be sent.
 
-Out of order messages can be handled by prepending `n` as an explicit nonce to
-each message.
+Out of order messages can be handled by prepending `n` as an **explicit nonce**
+to each message.
 
 Key updating techniques can be used within a stream:
 
- * **Key stepping**: After sending a message, `StepKey()` is called to destroy
+ * **Stepping**: After sending a message, `StepKey()` is called to destroy
  the old key and replace it with a new one.  This provides security for old
  messages against future compromises.
 
- * **Key splitting**: Each message is encrypted by calling `Split()` and then
+ * **Splitting**: Each message is encrypted by calling `Split()` and then
  using the new session to encrypt a single message.  This provides security for
  old keys against future compromises, and also allows cacheing old keys in case
  of out-of-order messages.
@@ -510,13 +510,15 @@ Key updating techniques can be used within a stream:
 
 The following conventions are recommended but not required:
 
- * **Protocol naming**:  The protocol name should consist of three
+ * **Protocol naming**:  The protocol name should consist of four
  underscore-separated fields that identify the ciphersuite, the handshake
- pattern, and the application protocol.  For example:
+ pattern, handling of application messages, and conventions.  Each of these name
+ components should be unique within the scope of reuse for any long-term static
+ key or pre-shared key.  Examples:
 
- `"Noise255/ChaChaPoly_HandshakeXX_ExampleProto"`
+ `"Noise255/AES-GCM_BoxX_OneWayStreamVarLen_Conventional"`
 
- `"Noise448/AES-GCM_BoxX_ExampleFileEncryption"`
+ `"Noise448/ChaChaPoly_HandshakeXX_TwoStreamsVarLenStepping_Conventional"`
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -623,7 +625,7 @@ catastrophic.  Implementations must carefully follow the rules for incrementing
 nonces.   `SetNonce()` should only be called with extreme caution.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
-fresh ephemeral public key and performs a DH with it prior to sending any
+fresh ephemeral public key and perform a DH with it prior to sending any
 encrypted data.  All patterns in Section 9 adhere to this rule.  
 
 10. Rationale
