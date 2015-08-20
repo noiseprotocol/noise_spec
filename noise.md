@@ -110,7 +110,7 @@ Noise depends on the following constants and functions, which are supplied by a
  recommended.
 
  * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
- be >= 32 bytes to provide collision resistance.  32 is recommended.
+ be >= 32 to provide collision resistance.  32 is recommended.
 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
@@ -154,7 +154,7 @@ A kernel object contains the following state variables:
  in the ciphersuite.  This mixes together the results of all DH operations, and
  is used for encryption.
 
- * **`n`**: A 64-bit unsigned integer nonce.  This is used along with with `k`
+ * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
 
  * **`h`**: Either empty or `hlen` bytes containtaining a hash output.  This
@@ -260,8 +260,9 @@ message.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
 are for messages created and sent by the protocol initiator; with left-pointing
-arrows are for messages sent by the responder.  The following pattern describes
-an unauthenticated DH handshake:
+arrows are for messages sent by the responder.  All messsages described by the
+pattern must be sent in order.  The following pattern describes an
+unauthenticated DH handshake:
 
       -> e
       <- e, dhee
