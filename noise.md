@@ -487,7 +487,7 @@ A stream of messages may be **fixed-length** or **variable-length**, depending o
 whether it's known in advance how many messages will be sent.
 
 Out of order messages can be handled by prepending `n` as an **explicit nonce**
-to each message.
+to each message.  The recipient will call `SetNonce()` on the explicit nonce.
 
 Key updating techniques can be used within a stream:
 
@@ -533,10 +533,10 @@ The following conventions are recommended but not required:
  and sent after the branch number but before the length field.
 
  * **Stream termination**: If a protocol supports a variable-length stream of
- messages, branch number 0 means more data is following in subsequent messages,
- and branch number 1 means this message contains the end of the stream.
- Following Section 4.3, branch number 1 should trigger a `MixKey()` call with
- type 1.
+ application messages, branch number 0 in an application message means more data
+ is following in subsequent messages, and branch number 1 means this message
+ contains the end of the stream.  Following Section 4.3, branch number 1 should
+ trigger a `MixKey()` call with type 1.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
