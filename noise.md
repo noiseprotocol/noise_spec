@@ -3,7 +3,7 @@ Noise
 ======
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-26
+ * **Date:** 2015-08-21
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -291,7 +291,7 @@ responder's static public key as well as the responder's ephemeral:
       -> e, dhes 
       <- e, dhee
 
-4.1. Message processing
+4.2. Message processing
 ------------------------
 
 Writing a handshake message requires a session, a buffer, a descriptor, and
@@ -301,7 +301,7 @@ sequentially.  Then `WritePayload(buffer, payload)` is called on the session.
 To read the message the descriptor is processed sequentially.  Then
 `ReadPayload(buffer)` is called to return the payload.
 
-4.2. Handshake processing
+4.3. Handshake processing
 --------------------------
 
 Every Noise protocol begins by executing a handshake pattern.  This requires:
@@ -333,7 +333,7 @@ performing more `MixHash()` calls based on the party's pre-knowledge.
 Following this the parties read and write handshake messages.  After every
 handshake message `MixHash(payload)` is called.
 
-4.3. Branching
+4.4. Branching
 ---------------
 
 Branching allows parties to alter the handshake pattern, ciphersets, or other
@@ -357,7 +357,7 @@ Branching requires:
  there).
 
  * Providing some way to indicate the branch number to the recipient (see
- Section 7).
+ Section 8).
 
  * For each alternative, specifying whether it re-uses the session state or
  re-initializes the session.
@@ -534,10 +534,10 @@ The following conventions are recommended but not required:
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
  the message.  Branch number zero indicates the default or "no branch" state.
- Any other value requires the recipient to process the branch as per Section
- 4.3.  Payloads are kept small to support streaming APIs where data is
- incrementally authenticated.  Sending more data than fits in one payload
- requires a stream of messages (see bullet on "Stream termination").
+ Any other value requires the recipient to process the branch.  Payloads are
+ kept small to support streaming APIs where data is incrementally authenticated.
+ Sending more data than fits in one payload requires a stream of messages (see
+ bullet on "Stream termination").
 
  * **Explicit nonce fields**: If explicit nonces are being used for out-of-order
  application messages, then the 64-bit nonce should be encoded in little-endian,
@@ -699,7 +699,7 @@ The responder may continue with the IK handshake by returning branch zero:
 
 Or the responder may switch to branch 1, and return the responder handshake
 message from above.  If the receiver receives a branch 1 message, she
-re-initializes the session with the new name, and then sends the final
+re-initializes the session with the branch name, and then sends the final
 InteractiveXX handshake message. 
 
 
