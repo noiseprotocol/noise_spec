@@ -151,7 +151,7 @@ To simplify the descriptions and improve modularity, a session contains a
 **kernel**.  The kernel can mix inputs into its internal state, and can encrypt
 and decrypt data based on its internal state.  
 
-A kernel object contains the following state variables:
+A kernel contains the following state variables:
 
  * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
  in the cipherset.  This mixes together the results of all DH operations, and
@@ -215,8 +215,8 @@ kernel.  In addition, a session responds to the following methods:
  variables to empty. 
  
  * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
- kernel and copying the returned kernel and all session state variables into a
- new session.
+ kernel and copying the returned kernel and all session state into a new
+ session.
 
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
@@ -280,8 +280,8 @@ DH handshake:
       <- e, dhee
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These messages aren't sent as part of the protocol proper, but are only used for
-their side-effect of calling `MixHash()`.  
+These messages aren't sent but are only used for their side-effect of calling
+`MixHash()`.  
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -473,7 +473,7 @@ uses.
 ========================
 
 After the last handshake message, the parties can send application messages.  On
-first sending or receiving an application message, the party shall call
+first sending or receiving an application message, each party shall call
 `ClearHash()`.
 
 Application messages can be sent in several ways:
@@ -535,7 +535,7 @@ The following conventions are recommended but not required:
  and sent after the branch number but before the length field.
 
  * **Stream termination**: Branch number 255 means an application data message
- which contains the end of the stream.  Following Section 4.3, branch number 1
+ which contains the end of the stream.  Following Section 4.3, branch number 255
  should trigger a `MixKey()` call with type 255 and empty data.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
@@ -633,7 +633,7 @@ Following this are any number of application messages:
  * 2-byte length field for application message
  * Encrypted payload - minimum 18 bytes
 
-The final application message is the same, except with branch number 1 instead of 0.
+The final application message is the same, except with branch number 255 instead of 0.
 
 **`Noise_Curve25519_AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
 
@@ -662,7 +662,7 @@ The initiator's final handshake message is:
 
 Following this `Fission()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
-each send a message with branch number 1.
+each send a message with branch number 255.
 
 10. Security Considerations
 ===========================
