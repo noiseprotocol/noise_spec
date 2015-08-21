@@ -257,7 +257,7 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Given "dh_xy_" calls `DHXY()` for the
+ * **`dhss, dhee, dhse, dhes`**: Given "dh*xy*" calls `DHXY()` for the
  writer and `DHYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
@@ -267,7 +267,7 @@ pattern must be sent in order.
 
 Patterns must follow these security rules:  If a pattern has a single handshake
 message, the first token in that message's descriptor must be "e", and the
-second token must be "dhe_x_", where _x_ is a pre-known public key.  If a
+second token must be "dhe*x*", where _x_ is a pre-known public key.  If a
 pattern has more than one handshake message, then the initiating message must
 begin with "e", and the response message must begin with "e, dhee".
 
