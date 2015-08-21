@@ -510,20 +510,26 @@ Key updating techniques can be used within a stream:
  receiving and sending sessions are derived from the root session via `Fission()`
  calls.
 
-7. Conventions
-===============
+7. Protocol names
+==================
 
-The following conventions are recommended but not required:
+Every protocol and branch requires its own name.  These names must be unique
+within the scope of possible reuse for any long-term static key or pre-shared
+key.
 
- * **Protocol naming**:  The protocol name should consist of six
- underscore-separated fields that identify the DH functions, the cipherset, the
- handshake pattern, handling of application messages, and conventions.  Each of
- these name components should be unique within the scope of reuse for any
- long-term static key or pre-shared key.  Examples:
+A Noise protocol or branch name should consist of seven underscore-separated
+fields that identify the DH functions, the cipherset, the handshake pattern,
+handling of application messages, conventions, and a unique name for the
+application protocol.  Examples:
 
  `"Noise_Curve25519_AES-GCM_OneWayX_OneWayStream_Conventional_SpecExample1"`
 
  `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_Conventional_SpecExample2"`
+
+8. Conventions
+===============
+
+The following conventions are recommended but not required:
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -556,17 +562,17 @@ The following conventions are recommended but not required:
  (sockets, etc).
 
 
-8. DH functions and ciphersets
+9. DH functions and ciphersets
 ===============================
 
-8.1. The Curve25519 and Curve448 DH functions
+9.1. The Curve25519 and Curve448 DH functions
 ----------------------------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
 
-8.2. The ChaChaPoly cipherset
+9.2. The ChaChaPoly cipherset
 ------------------------------
 
  * **`klen`** = 32
@@ -590,7 +596,7 @@ The following conventions are recommended but not required:
  * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-8.2. The AES-GCM cipherset
+9.3. The AES-GCM cipherset
 ---------------------------
 
  * **`klen`** = 32
@@ -615,7 +621,7 @@ The following conventions are recommended but not required:
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
-9. Examples
+10. Examples
 ============
 
 **`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream_Conventional`:**
@@ -697,7 +703,7 @@ re-initializes the session with the new name, and then sends the final
 InteractiveXX handshake message. 
 
 
-10. Security Considerations
+11. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -711,7 +717,7 @@ fresh ephemeral public key and perform a DH with it prior to sending any
 encrypted data.  This is the rationale behind the security rules for patterns in
 Section 4.1.
 
-11. Rationale
+12. Rationale
 =============
 
 This section collects various design rationale:
@@ -739,14 +745,12 @@ Little-endian is preferred because:
  * The standard ciphersets use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
  * Most modern processors are little-endian.
 
-MixHash() ???
-
-12. IPR
+13. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-13. Acknowledgements
+14. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
