@@ -35,8 +35,7 @@ process messages.
 
 A Noise protocol begins with a handshake phase where both parties can send
 **handshake messages** containing DH public keys and perform DH operations to
-agree on a shared secret.  The handshake payloads can contain data relevant to
-handshaking, like certificates, or advertisements of new version support.
+agree on a shared secret.
 
 A **descriptor** specifies the DH keys and DH operations that comprise a
 handshake message.
