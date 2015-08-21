@@ -263,8 +263,11 @@ message.
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
 are for messages created and sent by the protocol initiator; with left-pointing
 arrows are for messages sent by the responder.  All messsages described by the
-pattern must be sent in order.  The following pattern describes an
-unauthenticated DH handshake:
+pattern must be sent in order.  
+
+The first handshake message descriptor in any pattern must begin with "e", and
+the second (if present) must begin with "e, dhee".  The following is the minimal
+2-message pattern that describes an unauthenticated DH handshake:
 
       -> e
       <- e, dhee
