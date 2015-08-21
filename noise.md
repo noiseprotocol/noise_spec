@@ -65,8 +65,8 @@ key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that exist only during
 the protocol.
 
-2.5. DH functions and cipherset
---------------------------------
+2.5. DH functions and ciphersets
+---------------------------------
 
 A Noise protocol can be described abstractly in terms of its handshake pattern
 and handling of application messages.
@@ -247,8 +247,8 @@ A session responds to the following methods for writing and reading messages:
 4. Handshake messages
 ======================
 
-4.1. Descriptors
------------------
+4.1. Descriptors and patterns
+------------------------------
 A descriptor is a comma-separated list containing some of the following tokens.
 The tokens describe the sequential actions taken by the writer or reader of a
 message.
@@ -678,7 +678,8 @@ nonces.   `SetNonce()` should only be called with extreme caution.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  All patterns in Section 9 adhere to this rule.  
+encrypted data.  This is the rationale behind the rules for patterns in Section
+4.1.
 
 11. Rationale
 =============
