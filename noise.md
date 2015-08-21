@@ -306,21 +306,26 @@ To read the message the descriptor is processed sequentially.  Then
 
 Every Noise protocol begins by executing a handshake pattern.  This requires:
 
- * A session
-
- * Protocol name
-
- * (Optional) Pre-knowledge of the remote party's static and/or ephemeral public keys
-
- * (Optional) A static key pair
-
- * (Optional) Pre-shared symmetric key
-
+ * A protocol name
+ 
  * A pattern of descriptors
+
+ * A session 
+ 
+ * Optional, depending on protocol:
+ 
+   * Pre-knowledge of the remote party's static and/or ephemeral public keys
+
+   * A static key pair
+
+   * A pre-shared symmetric key
+
+ * An indication whether this party is the initiator or responder
 
 First `Initialize()` is called, then `MixKey(0, name)` is called.  If the
 protocol uses a pre-shared key, `MixKey(0, preshared_key)` is called.  If the
-party has a static key pair, `SetStaticKeyPair(static)` is called.
+protocol uses this party's static key pair, `SetStaticKeyPair(static)` is
+called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
@@ -338,18 +343,18 @@ protocol characteristics on the fly.  For example:
  by the client.
 
  * A client could choose whether to authenticate itself based on the server's
- response (e.g. switch between InteractiveXX and InteractiveNX).
+ response.
 
  * A client could attempt an abbreviated handshake based on cached information,
- and if this information is stale the server can fall back to a full handshake
- (e.g. switch between InteractiveIK and InteractiveXX).
+ and if this information is stale the server can fall back to a full handshake.
 
 Branching requires:
 
  * Designating a branch message
 
- * Assigning branch numbers to the alternatives for the branch message (where
- branch number zero is the default, and other branches count up from there).
+ * Assigning branch numbers and names to the alternatives for the branch message
+ (where branch number zero is the default, and other branches count up from
+ there).
 
  * Providing some way to indicate the branch number to the recipient (see
  Section 7).
@@ -533,8 +538,8 @@ The following conventions are recommended but not required:
  and sent after the branch number but before the length field.
 
  * **Stream termination**: Branch number 255 means an application data message
- which contains the end of the stream.  Following Section 4.3, branch number 255
- should trigger a call `MixKey(1, "EndOfStream")`.
+ which contains the end of the stream.  Before processing this message the party
+ should perform a call `MixKey(255, "EndOfStream")`.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
@@ -661,6 +666,36 @@ The initiator's final handshake message is:
 Following this `Fission()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
 each send a message with branch number 255.
+
+**`Noise_Curve25519_AES-GCM_InteractiveIK_TwoStreams_Conventional`**
+
+with branch to
+
+**`Noise_Curve25519_AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
+
+This protocol is used when the client wants to run an abbreviated handshake
+(InteractiveIK) and send some encrypted extensions in her first message.  If the
+server has changed its static key and can't decrypt that message, it will branch
+to InteractiveXX.  The initiator's first handshake message is:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
+ * Encrypted payload - minimum 18 bytes 
+
+The responder may continue with the IK handshake by returning branch zero:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * Encrypted payload - minimum 18 bytes 
+
+Or the responder may switch to branch 1, and return the responder handshake
+message from above.  If the receiver receives a branch 1 message, she
+re-initializes the session with the new name, and then sends the final
+InteractiveXX handshake message. 
+
 
 10. Security Considerations
 ===========================
