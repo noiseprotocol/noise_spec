@@ -474,7 +474,8 @@ uses.
 
 After the last handshake message, the parties can send application messages in several ways:
 
- * **One-way stream**: One party sends a stream of messages.
+ * **One-way stream**: One party sends a stream of messages.  This is the only
+ allowed method when using a one-way handshake.  
 
  * **Alternating stream**: Both parties strictly alternate messages, using a
  single session.
@@ -482,9 +483,6 @@ After the last handshake message, the parties can send application messages in s
  * **Two streams**: Both parties send a stream of messages, using separate
  sessions.  In this case, `Split()` is called with the initiator using the
  original session and the responder using the new session.
-
-A stream of messages may be **fixed-length** or **variable-length**, depending on
-whether it's known in advance how many messages will be sent.
 
 Out of order messages can be handled by prepending `n` as an **explicit nonce**
 to each message.  The recipient will call `SetNonce()` on the explicit nonce.
@@ -516,9 +514,9 @@ The following conventions are recommended but not required:
  components should be unique within the scope of reuse for any long-term static
  key or pre-shared key.  Examples:
 
- `"Noise255/AES-GCM_OneWayX_OneWayStreamVarLen_Conventional_SpecExample1"`
+ `"Noise255/AES-GCM_OneWayX_OneWayStream_Conventional_SpecExample1"`
 
- `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsVarLenStepping_Conventional_SpecExample2"`
+ `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsStepping_Conventional_SpecExample2"`
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -532,11 +530,10 @@ The following conventions are recommended but not required:
  application messages, then the 64-bit nonce should be encoded in little-endian,
  and sent after the branch number but before the length field.
 
- * **Stream termination**: If a protocol supports a variable-length stream of
- application messages, branch number 0 in an application message means more data
- is following in subsequent messages, and branch number 1 means this message
- contains the end of the stream.  Following Section 4.3, branch number 1 should
- trigger a `MixKey()` call with type 1.
+ * **Stream termination**: Branch number 0 in an application message means more
+ data is following in subsequent messages, and branch number 1 means this
+ message contains the end of the stream.  Following Section 4.3, branch number 1
+ should trigger a `MixKey()` call with type 1.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
@@ -551,61 +548,6 @@ The following conventions are recommended but not required:
  * **Error handling**: On any cryptographic or parsing failure, immediately
  erase all session contents and close any resources associated with the session
  (sockets, etc).
-
-8. Examples
-============
-
-8.1. Noise448/ChaChaPoly\_OneWayN\_OneWayStreamVarLen\_Conventional
------------------------------------------------------------------
-
-This protocol implements public-key encryption without sender authentication.
-Because it uses a one-way handshake and one-way stream of application messages,
-this represents a single stream of bytes from sender to recipient.  The initial
-bytes encode a handshake message:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 56-byte Curve448 ephemeral public key
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
- * 16-byte ChaChaPoly MAC for payload ciphertext
-
-Following this are any number of application messages:
-
- * 1-byte zero branch number for application message
- * 2-byte length field for application message
- * Payload ciphertext - minimimum 2 bytes for padding length
- * 16-byte ChaChaPoly MAC
-
-The final application message is the same, except with branch number 1 instead of 0.
-
-8.2. Noise255/AES-GCM\_InteractiveXX\_TwoStreamsVarLen\_Conventional
-----------------------------------------------------------------------
-
-This protocol implements a mutual-authenticated interactive handshake, followed
-by interactive data exchange.  The initiator's first handshake message is:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * Optional handshake extensions
-
-The responder's handshake message is:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
-
-The initiator's final handshake message is: 
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
-
-Following this the session is `Split()` so both parties can send messages.  To
-indicate they have finished sending data they each send a message with branch
-number 1.
 
 
 8. Ciphersuites
@@ -670,7 +612,60 @@ These are the default and recommended ciphersuites.
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
-9. Security Considerations
+9. Examples
+============
+
+**`Noise448/ChaChaPoly_OneWayN_OneWayStream_Conventional`:**
+
+This protocol implements public-key encryption without sender authentication.
+Because it uses a one-way handshake and one-way stream of application messages,
+this represents a single stream of bytes from sender to recipient.  The initial
+bytes encode a handshake message:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 56-byte Curve448 ephemeral public key
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
+ * 16-byte ChaChaPoly MAC for payload ciphertext
+
+Following this are any number of application messages:
+
+ * 1-byte zero branch number for application message
+ * 2-byte length field for application message
+ * Payload ciphertext - minimimum 2 bytes for padding length
+ * 16-byte ChaChaPoly MAC
+
+The final application message is the same, except with branch number 1 instead of 0.
+
+**`Noise255/AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
+
+This protocol implements a mutual-authenticated interactive handshake, followed
+by interactive data exchange.  The initiator's first handshake message is:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * Optional handshake extensions
+
+The responder's handshake message is:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
+
+The initiator's final handshake message is: 
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
+
+Following this the session is `Split()` so both parties can send messages.  To
+indicate they have finished sending data they each send a message with branch
+number 1.
+
+10. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -683,7 +678,7 @@ To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
 encrypted data.  All patterns in Section 9 adhere to this rule.  
 
-10. Rationale
+11. Rationale
 =============
 
 This section collects various design rationale:
@@ -711,12 +706,12 @@ Little-endian is preferred because:
  * The standard ciphersuites use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
  * Most modern processors are little-endian.
 
-11. IPR
+12. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-12. Acknowledgements
+13. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
