@@ -516,9 +516,9 @@ The following conventions are recommended but not required:
  components should be unique within the scope of reuse for any long-term static
  key or pre-shared key.  Examples:
 
- `"Noise255/AES-GCM_OneWayX_OneWayStreamVarLen_Conventional"`
+ `"Noise255/AES-GCM_OneWayX_OneWayStreamVarLen_Conventional_SpecExample1"`
 
- `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsVarLenStepping_Conventional"`
+ `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsVarLenStepping_Conventional_SpecExample2"`
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -555,18 +555,18 @@ The following conventions are recommended but not required:
 8. Examples
 ============
 
-8.1. Noise255/ChaChaPoly_BoxN_OneWayStreamVarLen_Conventional
---------------------------------------------------------------
+8.1. Noise448/ChaChaPoly\_OneWayN\_OneWayStreamVarLen\_Conventional
+-----------------------------------------------------------------
 
 This protocol implements public-key encryption without sender authentication.
-Because it uses a one-way handshake and one-way stream, this represents a single
-stream of bytes from sender to recipient.  The initial bytes encode a handshake
-message:
+Because it uses a one-way handshake and one-way stream of application messages,
+this represents a single stream of bytes from sender to recipient.  The initial
+bytes encode a handshake message:
 
  * 1-byte zero branch number of handshake message
  * 2-byte length field for the handshake message
- * 32-byte Curve25519 public key
- * Payload ciphertext - minimum 2 bytes for padding length, more if padding or handshake extensions are sent
+ * 56-byte Curve448 ephemeral public key
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
  * 16-byte ChaChaPoly MAC for payload ciphertext
 
 Following this are any number of application messages:
@@ -577,6 +577,35 @@ Following this are any number of application messages:
  * 16-byte ChaChaPoly MAC
 
 The final application message is the same, except with branch number 1 instead of 0.
+
+8.2. Noise255/AES-GCM\_InteractiveXX\_TwoStreamsVarLen\_Conventional
+----------------------------------------------------------------------
+
+This protocol implements a mutual-authenticated interactive handshake, followed
+by interactive data exchange.  The initiator's first handshake message is:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * Optional handshake extensions
+
+The responder's handshake message is:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 ephemeral public key
+ * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
+
+The initiator's final handshake message is: 
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
+ * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC); more if padding or handshake extensions are sent)
+
+Following this the session is `Split()` so both parties can send messages.  To
+indicate they have finished sending data they each send a message with branch
+number 1.
 
 
 8. Ciphersuites
@@ -624,8 +653,8 @@ These are the default and recommended ciphersuites.
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from NIST SP800-38-D.  The 96-bit nonce is formed by encoding 32
- bits of zeros followed by little-endian encoding of `n`.
+ AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
+ by encoding 32 bits of zeros followed by little-endian encoding of `n`.
  
  * **`GETKEY(k, n)`**: Returns 32 bytes from concatenating two encryption calls
  to AES256 using key `k`.  The input is defined by encoding `n` into a 96-bit
@@ -639,7 +668,7 @@ These are the default and recommended ciphersuites.
 
  * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
- * **`HASH(input)`**: `SHA2-256(intput)` 
+ * **`HASH(input)`**: `SHA2-256(input)` 
 
 9. Security Considerations
 ===========================
