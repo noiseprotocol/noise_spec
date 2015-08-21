@@ -54,9 +54,9 @@ send **application messages** which typically consist of encrypted payloads
 without DH public keys.
 
 Several operations can be used to control the encryption including: explicit
-encryption nonces for out-of-order messages, "fissioning" the shared key into
-separate keys for duplex communications, and "stepping" the key for
-forward-security.
+encryption nonces for out-of-order messages, "stepping" the shared key for
+lightweight forward-security, and "fissioning" the shared key into separate keys
+for duplex communications.
 
 2.4. Key agreement
 -------------------
@@ -209,16 +209,15 @@ Sessions contain a kernel object, plus the following state variables:
  * **`re`**: The remote party's ephemeral public key 
 
 A session responds to all of the kernel methods by forwarding them to the
-kernel.  In addition, a session responds to the following methods for
-initialization:
+kernel.  In addition, a session responds to the following methods:
 
  * **`Initialize()`**:  Calls `InitializeKernel()`.  Sets all other
  variables to empty. 
  
- * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
-
  * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
  kernel and copying all the session state variables into the new kernel.
+
+ * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
  * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer` and calls
  `MixHash(s)`.  
@@ -295,18 +294,9 @@ responder's static public key as well as the responder's ephemeral:
 4.1. Message processing
 ------------------------
 
-Writing a handshake message requires:
-
- * A session
- 
- * A buffer to write the message into
-
- * A descriptor 
-
- * Payload data (may be zero bytes).
-
-First the descriptor is processed sequentially.  Then `WritePayload(buffer,
-payload)` is called on the session.
+Writing a handshake message requires a session, a buffer, a descriptor, and
+payload data (which may be zero bytes).  First the descriptor is processed
+sequentially.  Then `WritePayload(buffer, payload)` is called on the session.
 
 To read the message the descriptor is processed sequentially.  Then
 `ReadPayload(buffer)` is called to return the payload.
@@ -328,11 +318,9 @@ Every Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A pattern of descriptors
 
-First `Initialize()` is called.  
-
-If no pre-shared key is present, `MixKey(0, name)` is called.  If a pre-shared
-key is present, `MixKey(1, name)` is called, followed by `MixKey(0,
-preshared_key)`.
+First `Initialize()` is called.  If no pre-shared key is present, `MixKey(0,
+name)` is then called.  If a pre-shared key is present, `MixKey(1, name)` is
+called, followed by `MixKey(0, preshared_key)`.  
 
 If the party has a static key pair, then `SetStaticKeyPair(static)` is called.
 
@@ -716,6 +704,8 @@ Little-endian is preferred because:
  * Bignum libraries almost always use little-endian.
  * The standard ciphersets use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
  * Most modern processors are little-endian.
+
+MixHash() ???
 
 12. IPR
 ========
