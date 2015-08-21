@@ -625,14 +625,12 @@ bytes encode a handshake message:
  * 2-byte length field for the handshake message
  * 56-byte Curve448 ephemeral public key
  * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
- * 16-byte ChaChaPoly MAC for payload ciphertext
 
 Following this are any number of application messages:
 
  * 1-byte zero branch number for application message
  * 2-byte length field for application message
- * Payload ciphertext - minimimum 2 bytes for padding length
- * 16-byte ChaChaPoly MAC
+ * Encrypted payload - minimum 18 bytes
 
 The final application message is the same, except with branch number 1 instead of 0.
 
@@ -644,7 +642,7 @@ by interactive data exchange.  The initiator's first handshake message is:
  * 1-byte zero branch number of handshake message
  * 2-byte length field for the handshake message
  * 32-byte Curve25519 ephemeral public key
- * Optional handshake extensions
+ * Payload - minimum 0 bytes (more if handshake extensions are sent)
 
 The responder's handshake message is:
 
@@ -655,10 +653,11 @@ The responder's handshake message is:
  * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
 
 The initiator's final handshake message is: 
+
  * 1-byte zero branch number of handshake message
  * 2-byte length field for the handshake message
  * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
+ * Encrypted payload - minimum 18 bytes 
 
 Following this `Fission()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
