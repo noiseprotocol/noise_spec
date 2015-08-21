@@ -257,7 +257,7 @@ message.
 
  * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
 
- * **`dhss, dhee, dhse, dhes`**: Given `dhxy` calls `DHXY()` for the
+ * **`dhss, dhee, dhse, dhes`**: Given "dh_xy_" calls `DHXY()` for the
  writer and `DHYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
@@ -265,9 +265,14 @@ are for messages created and sent by the protocol initiator; with left-pointing
 arrows are for messages sent by the responder.  All messsages described by the
 pattern must be sent in order.  
 
-The first handshake message descriptor in any pattern must begin with "e", and
-the second (if present) must begin with "e, dhee".  The following is the minimal
-2-message pattern that describes an unauthenticated DH handshake:
+Patterns must follow these security rules:  If a pattern has a single handshake
+message, the first token in that message's descriptor must be "e", and the
+second token must be "dhe_x_", where _x_ is a pre-known public key.  If a
+pattern has more than one handshake message, then the initiating message must
+begin with "e", and the response message must begin with "e, dhee".
+
+The following is the minimal 2-message pattern.  It describes an unauthenticated
+DH handshake:
 
       -> e
       <- e, dhee
@@ -678,8 +683,8 @@ nonces.   `SetNonce()` should only be called with extreme caution.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  This is the rationale behind the rules for patterns in Section
-4.1.
+encrypted data.  This is the rationale behind the security rules for patterns in
+Section 4.1.
 
 11. Rationale
 =============
