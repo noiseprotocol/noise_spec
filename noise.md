@@ -49,7 +49,7 @@ A more complex pattern might describe an interactive handshake.
 2.3.  After the handshake: application messages
 ------------------------------------------------
 
-After the handshake messages each party will share a secret key and can
+After the handshake messages each party will possess a shared secret key and can
 send **application messages** which typically consist of encrypted payloads
 without DH public keys.
 
@@ -511,7 +511,7 @@ Key updating techniques can be used within a stream:
 The following conventions are recommended but not required:
 
  * **Protocol naming**:  The protocol name should consist of five
- underscore-separated fields that identify the DH functions, cipherset, the
+ underscore-separated fields that identify the DH functions, the cipherset, the
  handshake pattern, handling of application messages, and conventions.  Each of
  these name components should be unique within the scope of reuse for any
  long-term static key or pre-shared key.  Examples:
@@ -556,6 +556,7 @@ The following conventions are recommended but not required:
 ===============================
 
 8.1. The Curve25519 and Curve448 DH functions
+----------------------------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
  
@@ -592,10 +593,6 @@ The following conventions are recommended but not required:
 
  * **`hlen`** = 32 
  
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
- 
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
-
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by little-endian encoding of `n`.
