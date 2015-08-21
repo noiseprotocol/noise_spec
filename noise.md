@@ -215,7 +215,8 @@ kernel.  In addition, a session responds to the following methods:
  variables to empty. 
  
  * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
- kernel and copying all the session state variables into the new kernel.
+ kernel and copying the returned kernel and all session state variables into a
+ new session.
 
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
