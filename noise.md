@@ -269,7 +269,7 @@ pattern must be sent in order.
 
 Patterns must follow these security rules:  If a pattern has a single handshake
 message, the first token in that message's descriptor must be "e", and the
-second token must be "dhe*x*", where _*_ is a pre-known public key.  If a
+second token must be "dhe*x*", where _x_ is a pre-known public key.  If a
 pattern has more than one handshake message, then the initiating message must
 begin with "e", and the response message must begin with "e, dhee".
 
@@ -329,8 +329,7 @@ Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
 
 Following this the parties read and write handshake messages.  After every
-handshake message `MixHash(payload)` is called, except for the last handshake
-message.  After the last handshake message `ClearHash()` is called.
+handshake message `MixHash(payload)` is called.
 
 4.3. Branching
 ---------------
@@ -473,8 +472,11 @@ uses.
 6. Application messages
 ========================
 
-After the last handshake message, the parties can send application messages in
-several ways:
+After the last handshake message, the parties can send application messages.  On
+first sending or receiving an application message, the party shall call
+`ClearHash()`.
+
+Application messages can be sent in several ways:
 
  * **One-way stream**: One party sends a stream of messages.  For security
  reasons this is the only allowed method when using a one-way handshake.  
