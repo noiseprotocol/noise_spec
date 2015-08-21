@@ -321,9 +321,8 @@ Every Noise protocol begins by executing a handshake pattern.  This requires:
 
 First `Initialize()` is called.  If no pre-shared key is present, `MixKey(0,
 name)` is then called.  If a pre-shared key is present, `MixKey(1, name)` is
-called, followed by `MixKey(0, preshared_key)`.  
-
-If the party has a static key pair, then `SetStaticKeyPair(static)` is called.
+called, followed by `MixKey(0, preshared_key)`.  If the party has a static key
+pair, then `SetStaticKeyPair(static)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
@@ -337,14 +336,15 @@ handshake message `MixHash(payload)` is called.
 Branching allows parties to alter the handshake pattern, ciphersets, or other
 protocol characteristics on the fly.  For example: 
 
- * A client could choose whether to authenticate itself based on the server's
- response.
-
  * A server could choose which cipherset to support based on options offered
  by the client.
 
+ * A client could choose whether to authenticate itself based on the server's
+ response (e.g. switch between InteractiveXX and InteractiveNX).
+
  * A client could attempt an abbreviated handshake based on cached information,
- and if this information is stale the server can fall back to a full handshake.
+ and if this information is stale the server can fall back to a full handshake
+ (e.g. switch between InteractiveIK and InteractiveXX).
 
 Branching requires:
 
@@ -360,7 +360,7 @@ Branching requires:
  re-initializes the session.
 
 If a non-zero branch is taken and session state is re-used, `MixKey()` is
-called, with the branch number as the type, and empty data.
+called, with the branch number as the type, and an optional branch name as data.
 
 If a non-zero branch is taken and session state is re-initialized, then the
 branch message is treated as starting a new handshake, and the steps from 4.2
@@ -534,10 +534,9 @@ The following conventions are recommended but not required:
  application messages, then the 64-bit nonce should be encoded in little-endian,
  and sent after the branch number but before the length field.
 
- * **Stream termination**: Branch number 0 in an application message means more
- data is following in subsequent messages, and branch number 1 means this
- message contains the end of the stream.  Following Section 4.3, branch number 1
- should trigger a `MixKey()` call with type 1.
+ * **Stream termination**: Branch number 255 means an application data message
+ which contains the end of the stream.  Following Section 4.3, branch number 1
+ should trigger a `MixKey()` call with type 255 and empty data.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
