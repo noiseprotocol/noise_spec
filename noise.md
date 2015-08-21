@@ -10,9 +10,9 @@ Noise
 1. Introduction
 ================
 
-Noise is a framework for crypto protocols based on Diffie-Hellman key
-agreement.  Noise can describe protocols that consist of a single message as
-well as interactive protocols.
+Noise is a framework for crypto protocols based on Diffie-Hellman key agreement.
+Noise can describe protocols that consist of a single message as well as
+interactive protocols.
 
 2. Overview
 ============
@@ -65,15 +65,16 @@ key pair.  The static keypair is a longer-term key pair that exists prior to the
 protocol.  Ephemeral key pairs are short-term key pairs that exist only during
 the protocol.
 
-2.5. Ciphersuites
-------------------
+2.5. DH functions and cipherset
+--------------------------------
 
 A Noise protocol can be described abstractly in terms of its handshake pattern
 and handling of application messages.
 
-A **ciphersuite** instantiates the crypto functions to give a concrete protocol.
-Different ciphersuites could use different elliptic curves for the DH function,
-or different symmetric-key primitives.
+A set of **DH functions** and a **cipherset** instantiate the crypto functions
+to give a concrete protocol.  The DH functions could use finite-field or
+elliptic curve DH.  The cipherset specifies the symmetric-key functions
+(including a cipher, key derivation function, and hash).
 
 2.6. Conventions
 -----------------
@@ -87,22 +88,28 @@ encouraged.
 
 A Noise session can be viewed as three layers:
 
- * A ciphersuite provides low-level crypto functions.
+ * DH functions and a cipherset provide low-level crypto functions.
 
- * A kernel object builds on the symmetric-key ciphersuite functions.  The
- kernel provides methods for mixing inputs into a secret key and using that key
- for encryption and decryption.
+ * A kernel object builds on the cipherset.  The kernel provides methods for
+ mixing inputs into a secret key and using that key for encryption and
+ decryption.
 
- * A session object builds on the kernel and provides methods for handling
- public keys and payloads.
+ * A session object builds on the kernel and DH functions and provides methods
+ for handling public keys and payloads.
 
 The below sections describe each of these layers in turn.
 
-3.1. Ciphersuite functions
----------------------------
+3.1. DH algorithm and cipherset functions
+------------------------------------------
 
-Noise depends on the following constants and functions, which are supplied by a
-**ciphersuite**:
+Noise depends on the following **DH functions**:
+
+ * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
+
+ * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
+ sequence of bytes. 
+
+Noise also depends on the following **cipherset** constants and functions:
 
  * **`klen`**: A constant specifying the length in bytes of symmetric keys used
  for encryption.  These keys are used to accumulate the results of DH
@@ -111,11 +118,6 @@ Noise depends on the following constants and functions, which are supplied by a
 
  * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
  be >= 32 to provide collision resistance.  32 is recommended.
-
- * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
-
- * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
- sequence of bytes. 
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher key `k` of
  `klen` bytes, and a 64-bit unsigned integer nonce `n` which must be unique for
@@ -151,7 +153,7 @@ and decrypt data based on its internal state.
 A kernel object contains the following state variables:
 
  * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
- in the ciphersuite.  This mixes together the results of all DH operations, and
+ in the cipherset.  This mixes together the results of all DH operations, and
  is used for encryption.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
@@ -334,13 +336,13 @@ message.  After the last handshake message `ClearHash()` is called.
 4.3. Branching
 ---------------
 
-Branching allows parties to alter the handshake pattern, ciphersuite, or other
+Branching allows parties to alter the handshake pattern, ciphersets, or other
 protocol characteristics on the fly.  For example: 
 
  * A client could choose whether to authenticate itself based on the server's
  response.
 
- * A server could choose which ciphersuite to support based on options offered
+ * A server could choose which cipherset to support based on options offered
  by the client.
 
  * A client could attempt an abbreviated handshake based on cached information,
@@ -508,15 +510,15 @@ Key updating techniques can be used within a stream:
 
 The following conventions are recommended but not required:
 
- * **Protocol naming**:  The protocol name should consist of four
- underscore-separated fields that identify the ciphersuite, the handshake
- pattern, handling of application messages, and conventions.  Each of these name
- components should be unique within the scope of reuse for any long-term static
- key or pre-shared key.  Examples:
+ * **Protocol naming**:  The protocol name should consist of five
+ underscore-separated fields that identify the DH functions, cipherset, the
+ handshake pattern, handling of application messages, and conventions.  Each of
+ these name components should be unique within the scope of reuse for any
+ long-term static key or pre-shared key.  Examples:
 
- `"Noise255/AES-GCM_OneWayX_OneWayStream_Conventional_SpecExample1"`
+ `"Noise_Curve25519_AES-GCM_OneWayX_OneWayStream_Conventional_SpecExample1"`
 
- `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsStepping_Conventional_SpecExample2"`
+ `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_Conventional_SpecExample2"`
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -550,22 +552,22 @@ The following conventions are recommended but not required:
  (sockets, etc).
 
 
-8. Ciphersuites
-================
+8. DH functions and ciphersets
+===============================
 
-8.1. Noise255/ChaChaPoly and Noise448/ChaChaPoly
---------------------------------------------------
-
-These are the default and recommended ciphersuites.
-
- * **`klen`** = 32
-
- * **`hlen`** = 32
+8.1. The Curve25519 and Curve448 DH functions
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
- 
+
+8.2. The ChaChaPoly cipherset
+------------------------------
+
+ * **`klen`** = 32
+
+ * **`hlen`** = 32 
+
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
  32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
@@ -583,8 +585,8 @@ These are the default and recommended ciphersuites.
  * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-8.2. Noise255/AES-GCM and Noise448/AES-GCM
---------------------------------------------
+8.2. The AES-GCM cipherset
+---------------------------
 
  * **`klen`** = 32
 
@@ -615,7 +617,7 @@ These are the default and recommended ciphersuites.
 9. Examples
 ============
 
-**`Noise448/ChaChaPoly_OneWayN_OneWayStream_Conventional`:**
+**`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream_Conventional`:**
 
 This protocol implements public-key encryption without sender authentication.
 Because it uses a one-way handshake and one-way stream of application messages,
@@ -637,7 +639,7 @@ Following this are any number of application messages:
 
 The final application message is the same, except with branch number 1 instead of 0.
 
-**`Noise255/AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
+**`Noise_Curve25519_AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
 
 This protocol implements a mutual-authenticated interactive handshake, followed
 by interactive data exchange.  The initiator's first handshake message is:
@@ -690,7 +692,7 @@ Nonces are 64 bits in length because:
  * 64 bits allows the entire nonce to be treated as an integer and incremented 
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
 
-The default ciphersuites use SHA2-256 because:
+The default ciphersets use SHA2-256 because:
 
  * SHA2 is widely available
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
@@ -703,7 +705,7 @@ The cipher key must be at least 256 bits because:
 Little-endian is preferred because:
 
  * Bignum libraries almost always use little-endian.
- * The standard ciphersuites use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
+ * The standard ciphersets use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
  * Most modern processors are little-endian.
 
 12. IPR
