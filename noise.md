@@ -43,7 +43,7 @@ handshake message.
 
 A **pattern** specifies the sequence of descriptors that comprise a handshake.
 
-A simple pattern might describe a one-shot encrypted message from Alice to Bob.
+A simple pattern might describe a one-way encrypted message from Alice to Bob.
 A more complex pattern might describe an interactive handshake.
 
 2.3.  After the handshake: application messages
@@ -334,8 +334,8 @@ message.  After the last handshake message `ClearHash()` is called.
 4.3. Branching
 ---------------
 
-Branching allows parties to alter the protocol that is being executed on the
-fly.  For example: 
+Branching allows parties to alter the handshake pattern, ciphersuite, or other
+protocol characteristics on the fly.  For example: 
 
  * A client could choose whether to authenticate itself based on the server's
  response.
@@ -348,24 +348,23 @@ fly.  For example:
 
 Branching requires:
 
- * Designating a particular message as a branch point.
+ * Designating a branch message
 
- * Assigning branch numbers to the alternatives (where branch number zero is the
- default, and other branches count up from there).
+ * Assigning branch numbers to the alternatives for the branch message (where
+ branch number zero is the default, and other branches count up from there).
 
- * For each alternative, specifying whether it uses previous session state,
- or re-initializes the session.
+ * Providing some way to indicate the branch number to the recipient (see
+ Section 7).
 
- * Having a way for messages to indicate which branch is taken (see the
- "Conventions" section for a recommendation).
-
+ * For each alternative, specifying whether it re-uses the session state or
+ re-initializes the session.
 
 If a non-zero branch is taken and session state is re-used, `MixKey()` is
 called, with the branch number as the type, and empty data.
 
-If a non-zero branch is taken and session state is to be re-initialized, then
-the message is treated as starting a new handshake, and the steps from 4.2 are
-performed, except `InitializeKernel()` is called in place of
+If a non-zero branch is taken and session state is re-initialized, then the
+branch message is treated as starting a new handshake, and the steps from 4.2
+are performed, except `InitializeKernel()` is called in place of
 `InitializeSession()` to allow previously exchanged public keys to be re-used.
 
 
@@ -375,28 +374,28 @@ performed, except `InitializeKernel()` is called in place of
 The following patterns represent the mainstream use of Noise.  Other patterns
 can be defined in other documents.
 
-5.1. Box patterns
-------------------
+5.1. One-way patterns
+----------------------
 
-The following "Box" patterns represent one-shot messages from a sender to a
-recipient.  BoxX is recommended for most uses.
+The following patterns represent one-way messages from a sender to a recipient.
+OneWayX is recommended for most uses.
 
      N  = no static key for sender
      K  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
-    BoxN:
+    OneWayN:
       <- s
       ------
       -> e, dhes
 
-    BoxK:
+    OneWayK:
       <- s
       -> s
       ------
       -> e, dhes, dhss
 
-    BoxX:
+    OneWayX:
       <- s
       ------
       -> e, dhes, s, dhss
@@ -404,9 +403,9 @@ recipient.  BoxX is recommended for most uses.
 5.2. Interactive patterns
 --------------------------
 
-The following 16 "Handshake" patterns represent protocols where the initiator
-and responder exchange messages to agree on a shared key.  HandshakeXX is
-recommended for most uses.
+The following 16 patterns represent protocols where the initiator and responder
+exchange messages to agree on a shared key.  InteractiveXX is recommended for most
+uses.
 
      N_ = no static key for initiator
      K_ = static key for initiator known to responder
@@ -419,53 +418,53 @@ recommended for most uses.
      _X = static key for responder transmitted to initiator
 
 
-    HandshakeNN:                      HandshakeKN:                 
+    InteractiveNN:                      InteractiveKN:                 
       -> e                              -> s                       
       <- e, dhee                        ------                     
                                         -> e                       
                                         <- e, dhee, dhes           
                                              
-    HandshakeNK:                      HandshakeKK:                 
+    InteractiveNK:                      InteractiveKK:                 
       <- s                              <- s                       
       ------                            -> s                       
       -> e, dhes                        ------                     
       <- e, dhee                        -> e, dhes, dhss           
                                         <- e, dhee, dhes           
                                               
-    HandshakeNE:                      HandshakeKE:                 
+    InteractiveNE:                      InteractiveKE:                 
       <- s, e                           <- s, e                    
       ------                            -> s                       
       -> e, dhee, dhes                  ------                     
       <- e, dhee                        -> e, dhee, dhes, dhse     
                                         <- e, dhee, dhes           
                                                                      
-    HandshakeNX:                      HandshakeKX:                 
+    InteractiveNX:                      InteractiveKX:                 
       -> e                              -> s                       
       <- e, dhee, s, dhse               ------                     
                                         -> e                       
                                         <- e, dhee, dhes, s, dhse  
                             
 
-    HandshakeXN:                      HandshakeIN:                   
+    InteractiveXN:                      InteractiveIN:                   
       -> e                              -> e, s                      
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    HandshakeXK:                      HandshakeIK:                   
+    InteractiveXK:                      InteractiveIK:                   
       <- s                              <- s                         
       ------                            ------                       
       -> e, dhes                        -> e, dhes, s, dhss          
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
-    HandshakeXE:                      HandshakeIE:                   
+    InteractiveXE:                      InteractiveIE:                   
       <- s, e                           <- s, e                      
       ------                            ------                       
       -> e, dhee, dhes                  -> e, dhee, dhes, s, dhse    
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                        
-    HandshakeXX:                      HandshakeIX:                  
+    InteractiveXX:                      InteractiveIX:                  
       -> e                              -> e, s                     
       <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
@@ -475,14 +474,14 @@ recommended for most uses.
 
 After the last handshake message, the parties can send application messages in several ways:
 
- * **One-way stream**: One party can send a stream of messages.
+ * **One-way stream**: One party sends a stream of messages.
 
- * **Alternating stream**: Both parties can alternate sending messages, using a
+ * **Alternating stream**: Both parties strictly alternate messages, using a
  single session.
 
- * **Two streams**: Both parties can send a stream of messages, using
- separate sessions.  In this case, `Split()` is called with the initiator using
- the original session and the responder using the new session.
+ * **Two streams**: Both parties send a stream of messages, using separate
+ sessions.  In this case, `Split()` is called with the initiator using the
+ original session and the responder using the new session.
 
 A stream of messages may be **fixed-length** or **variable-length**, depending on
 whether it's known in advance how many messages will be sent.
@@ -502,9 +501,9 @@ Key updating techniques can be used within a stream:
  of out-of-order messages.
 
  * **DH ratcheting**: Ephemeral public keys can be exchanged and mixed into a
- "root" session by alternating `ReadEphemeral()` and `WriteEphemeral()` calls.
- This allows implementing an Axolotl-like ratchet, where receiving and sending
- sessions are derived from the root session via `Split()` calls.
+ "root" session.  This allows implementing an Axolotl-like ratchet, where
+ receiving and sending sessions are derived from the root session via `Split()`
+ calls.
 
 7. Conventions
 ===============
@@ -517,9 +516,9 @@ The following conventions are recommended but not required:
  components should be unique within the scope of reuse for any long-term static
  key or pre-shared key.  Examples:
 
- `"Noise255/AES-GCM_BoxX_OneWayStreamVarLen_Conventional"`
+ `"Noise255/AES-GCM_OneWayX_OneWayStreamVarLen_Conventional"`
 
- `"Noise448/ChaChaPoly_HandshakeXX_TwoStreamsVarLenStepping_Conventional"`
+ `"Noise448/ChaChaPoly_InteractiveXX_TwoStreamsVarLenStepping_Conventional"`
 
  * **Branch and length fields**:  All messages are preceded with a 1-byte branch
  number, then a 2-byte little endian unsigned integer indicating the length of
@@ -552,6 +551,32 @@ The following conventions are recommended but not required:
  * **Error handling**: On any cryptographic or parsing failure, immediately
  erase all session contents and close any resources associated with the session
  (sockets, etc).
+
+8. Examples
+============
+
+8.1. Noise255/ChaChaPoly_BoxN_OneWayStreamVarLen_Conventional
+--------------------------------------------------------------
+
+This protocol implements public-key encryption without sender authentication.
+Because it uses a one-way handshake and one-way stream, this represents a single
+stream of bytes from sender to recipient.  The initial bytes encode a handshake
+message:
+
+ * 1-byte zero branch number of handshake message
+ * 2-byte length field for the handshake message
+ * 32-byte Curve25519 public key
+ * Payload ciphertext - minimum 2 bytes for padding length, more if padding or handshake extensions are sent
+ * 16-byte ChaChaPoly MAC for payload ciphertext
+
+Following this are any number of application messages:
+
+ * 1-byte zero branch number for application message
+ * 2-byte length field for application message
+ * Payload ciphertext - minimimum 2 bytes for padding length
+ * 16-byte ChaChaPoly MAC
+
+The final application message is the same, except with branch number 1 instead of 0.
 
 
 8. Ciphersuites
