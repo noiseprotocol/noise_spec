@@ -169,8 +169,9 @@ A kernel responds to the following methods:
  * **`InitializeKernel()`**:  Sets `k` to all zero bytes, `n` to zero, and `h`
  to empty.
 
- * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Then sets `n` to
- zero.
+ * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.  In
+ other words, prepends `type` to `data` before applying the KDF. Then sets `n`
+ to zero.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
@@ -237,13 +238,13 @@ kernel.  In addition, a session responds to the following methods:
  * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
  `Decrypt()` on the data to get the payload.
 
- * **`DHSS()`**: Calls `MixKey(DH(s, rs))` on the kernel.
+ * **`DHSS()`**: Calls `MixKey(0, DH(s, rs))` on the kernel.
 
- * **`DHEE()`**: Calls `MixKey(DH(e, re))` on the kernel.
+ * **`DHEE()`**: Calls `MixKey(0, DH(e, re))` on the kernel.
 
- * **`DHSE()`**: Calls `MixKey(DH(s, re))` on the kernel.
+ * **`DHSE()`**: Calls `MixKey(0, DH(s, re))` on the kernel.
 
- * **`DHES()`**: Calls `MixKey(DH(e, rs))` on the kernel.
+ * **`DHES()`**: Calls `MixKey(0, DH(e, rs))` on the kernel.
 
 4. Handshake messages
 ======================
@@ -318,9 +319,9 @@ Every Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A pattern of descriptors
 
-First `Initialize()` is called, then `MixKey(name)` is called.  If the protocol
-uses a pre-shared key, `MixKey(preshared_key)` is called.  If the party has a
-static key pair, `SetStaticKeyPair(static)` is called.
+First `Initialize()` is called, then `MixKey(0, name)` is called.  If the
+protocol uses a pre-shared key, `MixKey(0, preshared_key)` is called.  If the
+party has a static key pair, `SetStaticKeyPair(static)` is called.
 
 Next any pre-messages in the pattern are processed.  This has no effect except
 performing more `MixHash()` calls based on the party's pre-knowledge.
@@ -357,8 +358,8 @@ Branching requires:
  * For each alternative, specifying whether it re-uses the session state or
  re-initializes the session.
 
-If a non-zero branch is taken and session state is re-used, `MixKey()` is called
-on the branch name.
+If a non-zero branch is taken and session state is re-used, `MixKey(1, name)` is
+called on the branch name.
 
 If a non-zero branch is taken and session state is re-initialized, then the
 branch message is treated as starting a new handshake, and the steps from 4.2
@@ -534,7 +535,7 @@ The following conventions are recommended but not required:
 
  * **Stream termination**: Branch number 255 means an application data message
  which contains the end of the stream.  Following Section 4.3, branch number 255
- should trigger a `MixKey()` call with type 255 and empty data.
+ should trigger a call `MixKey(1, "EndOfStream")`.
  
  * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
  unsigned integer specifying the number of preceding bytes that are padding
