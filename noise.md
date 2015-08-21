@@ -53,9 +53,10 @@ After the handshake messages each party will possess a shared secret key and can
 send **application messages** which typically consist of encrypted payloads
 without DH public keys.
 
-Several operations can be used to control the encryption, including splitting
-the shared key into separate keys for duplex communications, explicit nonces for
-out-of-order messages, and "stepping" the key for forward-secrecy.
+Several operations can be used to control the encryption including: explicit
+encryption nonces for out-of-order messages, "fissioning" the shared key into
+separate keys for duplex communications, and "stepping" the key for
+forward-security.
 
 2.4. Key agreement
 -------------------
@@ -168,10 +169,6 @@ A kernel responds to the following methods:
  * **`InitializeKernel()`**:  Sets `k` to all zero bytes, `n` to zero, and `h`
  to empty.
 
- * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
-
- * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
-
  * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.  In
  other words, prepends `type` to `data` before sending it through the KDF.  Then
  sets `n` to zero.
@@ -181,10 +178,14 @@ A kernel responds to the following methods:
 
  * **`ClearHash(data)`**: Sets `h` to empty.
 
- * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h` copied
- from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`, and
- increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and sets
- `n` to zero.  Then returns the child.
+ * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
+
+ * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
+
+ * **`FissionKernel()`**:  Creates a new child kernel, with `n` set to 0 and `h`
+ copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`,
+ and increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and
+ sets `n` to zero.  Then returns the child.
 
  * **`Encrypt(plaintext)`**:  If `k` is all zeros this returns the plaintext
  without encrypting.  Otherwise calls `ENCRYPT(k, n, h, plaintext)` to get a
@@ -211,12 +212,13 @@ A session responds to all of the kernel methods by forwarding them to the
 kernel.  In addition, a session responds to the following methods for
 initialization:
 
- * **`InitializeSession()`**:  Calls `InitializeKernel()`.  Sets all other
+ * **`Initialize()`**:  Calls `InitializeKernel()`.  Sets all other
  variables to empty. 
  
  * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
 
-A session responds to the following methods for writing and reading messages:
+ * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
+ kernel and copying all the session state variables into the new kernel.
 
  * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer` and calls
  `MixHash(s)`.  
@@ -267,7 +269,7 @@ pattern must be sent in order.
 
 Patterns must follow these security rules:  If a pattern has a single handshake
 message, the first token in that message's descriptor must be "e", and the
-second token must be "dhe*x*", where _x_ is a pre-known public key.  If a
+second token must be "dhe*x*", where _*_ is a pre-known public key.  If a
 pattern has more than one handshake message, then the initiating message must
 begin with "e", and the response message must begin with "e, dhee".
 
@@ -326,7 +328,7 @@ Every Noise protocol begins by executing a handshake pattern.  This requires:
 
  * A pattern of descriptors
 
-First `InitializeSession()` is called.  
+First `Initialize()` is called.  
 
 If no pre-shared key is present, `MixKey(0, name)` is called.  If a pre-shared
 key is present, `MixKey(1, name)` is called, followed by `MixKey(0,
@@ -482,16 +484,17 @@ uses.
 6. Application messages
 ========================
 
-After the last handshake message, the parties can send application messages in several ways:
+After the last handshake message, the parties can send application messages in
+several ways:
 
- * **One-way stream**: One party sends a stream of messages.  This is the only
- allowed method when using a one-way handshake.  
+ * **One-way stream**: One party sends a stream of messages.  For security
+ reasons this is the only allowed method when using a one-way handshake.  
 
  * **Alternating stream**: Both parties strictly alternate messages, using a
  single session.
 
  * **Two streams**: Both parties send a stream of messages, using separate
- sessions.  In this case, `Split()` is called with the initiator using the
+ sessions.  In this case, `Fission()` is called with the initiator using the
  original session and the responder using the new session.
 
 Out of order messages can be handled by prepending `n` as an **explicit nonce**
@@ -503,14 +506,14 @@ Key updating techniques can be used within a stream:
  the old key and replace it with a new one.  This provides security for old
  messages against future compromises.
 
- * **Splitting**: Each message is encrypted by calling `Split()` and then
+ * **Message keys**: Each message is encrypted by calling `Fission()` and then
  using the new session to encrypt a single message.  This provides security for
  old keys against future compromises, and also allows cacheing old keys in case
  of out-of-order messages.
 
  * **DH ratcheting**: Ephemeral public keys can be exchanged and mixed into a
  "root" session.  This allows implementing an Axolotl-like ratchet, where
- receiving and sending sessions are derived from the root session via `Split()`
+ receiving and sending sessions are derived from the root session via `Fission()`
  calls.
 
 7. Conventions
@@ -668,9 +671,9 @@ The initiator's final handshake message is:
  * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
  * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
 
-Following this the session is `Split()` so both parties can send messages.  To
-indicate they have finished sending data they each send a message with branch
-number 1.
+Following this `Fission()` splits off a separate session so both parties can
+send a stream of messages.  To indicate they have finished sending data they
+each send a message with branch number 1.
 
 10. Security Considerations
 ===========================
