@@ -76,12 +76,48 @@ to give a concrete protocol.  The DH functions could use finite-field or
 elliptic curve DH.  The cipherset specifies the symmetric-key functions
 (including a cipher, key derivation function, and hash).
 
-2.6. Conventions
------------------
+3. Message format
+==================
 
-Noise comes with conventions for things like type and length fields, padding,
-error handling, etc.  These aren't a mandatory part of Noise, but adoption is
-encouraged.
+Every message begins with a single `type` byte, then a big-endian `uint16`
+length field describing the number of following bytes.  Following this the
+format differs between handshake and application messages.
+
+
+3.1. Handshake messages
+------------------------
+
+The `type` byte will be zero unless handshake branching is supported, see !!!.
+
+Following the `length` field will be one or more public keys.  Ephemeral public
+keys are in the clear.  Static public keys will be encrypted if a secret key
+has been negotiated.
+
+Following the public keys is a `payload` field, which will be encrypted if a
+secret key has been negotiated.  If the `payload` is encrypted it's also
+padded: the encrypted plaintext will end with a big-endian `uint16` padding
+length field, which describes the number of preceding bytes that are padding
+bytes.
+
+Whether padded and encrypted or just plaintext, the `payload` will be composed
+of zero or more extensions.  Each extension begins with a single `extension
+type` byte, then a big-endian `uint16` length field describing the number of
+following bytes.  The meaning of different extension types is left to the
+application, but could be used for certificates, advertising supported
+versions, routing information, etc.
+
+3.2. Application messages
+--------------------------
+
+The `type` byte will be zero unless this is the last application message in the
+session, in which case `type` is set to 255.
+
+Following the `length` field is a `payload` field, which will be encrypted if a
+secret key has been negotiated.  If the `payload` is encrypted it's also
+padded, as described in preceding section.
+
+The contents of application message are handled by the application.
+
 
 3. Sessions
 ============
@@ -95,7 +131,7 @@ A Noise session can be viewed as three layers:
  decryption.
 
  * A session object builds on the kernel and DH functions and provides methods
- for handling public keys and payloads.
+ for handling messages.
 
 The below sections describe each of these layers in turn.
 
@@ -109,40 +145,34 @@ Noise depends on the following **DH functions**:
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
-Noise also depends on the following **cipherset** constants and functions:
+Noise also depends on the following **cipherset** functions:
 
- * **`klen`**: A constant specifying the length in bytes of symmetric keys used
- for encryption.  These keys are used to accumulate the results of DH
- operations, so `klen` must be >= 32 to provide collision resistance.  32 is
- recommended.
+ * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
+ key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
+ unique for the key `k`.  Encryption must be done with an "AEAD" encryption
+ mode with the associated data `ad` and must add a 128-bit authentication tag
+ to the end of the message.  This must be a deterministic function (i.e.  it
+ shall not add a random IV; this ensures the `GETKEY()` function is
+ deterministic).
 
- * **`hlen`**: A constant specifying the length in bytes of hash outputs.  Must
- be >= 32 to provide collision resistance.  32 is recommended.
-
- * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher key `k` of
- `klen` bytes, and a 64-bit unsigned integer nonce `n` which must be unique for
- the key `k`.  Encryption must be done with an "AEAD" encryption mode with the
- associated data `ad`.  This must be a deterministic function (i.e.  it shall
- not add a random IV; this ensures the `GETKEY()` function is deterministic).
-
- * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using the cipher
- key `k` of `klen` bytes, a 64-bit unsigned integer nonce `n`, and associated
+ * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
+ key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
  data `ad`.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
- nonce `n`, and empty `ad` to encrypt a block of `klen` zero bytes.  Returns the
- first `klen` bytes from the encrypted output.  This function can usually be
+ nonce `n`, and empty `ad` to encrypt a block of 256 zero bits.  Returns the
+ first 256 bits from the encrypted output.  This function can usually be
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
  MAC calculation).
 
- * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of `klen` bytes and some
+ * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of 256 bits and some
  input data and returns a new value for the cipher key `k`.  The `kdf_key` will
  be a random secret key and the KDF should implement a "PRF" based on the
  `kdf_key`.  The KDF should also be a collision-resistant hash function given a
  known `kdf_key`.  `HMAC-SHA2-256` is an example KDF.
 
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
- hash output of `hlen` bytes. SHA2-256 is an example hash function.
+ hash output of 256 bits. SHA2-256 is an example hash function.
 
 3.2.  Kernel state and methods
 -------------------------------
@@ -153,14 +183,14 @@ and decrypt data based on its internal state.
 
 A kernel contains the following state variables:
 
- * **`k`**: A symmetric key of `klen` bytes for the cipher algorithm specified
+ * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified
  in the cipherset.  This mixes together the results of all DH operations, and
  is used for encryption.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
 
- * **`h`**: Either empty or `hlen` bytes containtaining a hash output.  This
+ * **`h`**: Either empty or 256 bits containtaining a hash output.  This
  value mixes together relevant handshake data, and is then authenticated by
  encryption.
  
@@ -187,12 +217,10 @@ A kernel responds to the following methods:
  and increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and
  sets `n` to zero.  Then returns the child.
 
- * **`Encrypt(plaintext)`**:  If `k` is all zeros this returns the plaintext
- without encrypting.  Otherwise calls `ENCRYPT(k, n, h, plaintext)` to get a
+ * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
 
- * **`Decrypt(ciphertext)`**:  If `k` is all zeros this returns the ciphertext
- without decrypting.  Otherwise calls `DECRYPT(k, n, h, ciphertext)` to get a
+ * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
  plaintext, then increments `n` and returns the plaintext.
 
 3.3.  Session state and methods
@@ -209,58 +237,78 @@ Sessions contain a kernel object, plus the following state variables:
  * **`re`**: The remote party's ephemeral public key 
 
 A session responds to all of the kernel methods by forwarding them to the
-kernel.  In addition, a session responds to the following methods:
+kernel.  In addition, a session responds to the following initialization methods:
 
- * **`Initialize()`**:  Calls `InitializeKernel()`.  Sets all other
- variables to empty. 
+ * **`Initialize(name, static_keypair, preshared_key, premessages)`**:  
  
+   * Calls `InitializeKernel()`.
+   
+   * Calls `MixKey(0, name)`.  
+   
+   * If `preshared_key` isn't empty then `MixKey(0, preshared_key)` is called.
+   
+   * If `static_keypair` isn't empty then `SetStaticKeyPair(preshared_key)` is
+   called.  
+   
+   * All other variables are set to empty.
+
  * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
  kernel and copying the returned kernel and all session state into a new
  session.
 
- * **`SetStaticKeyPair(keypair)`**:  Sets `s` to `keypair`.
+For reading or writing messages, the following methods are used.  These methods
+take a `buffer` of bytes that they either append to or read from.  They also
+take a **descriptor**, which is a comma-separated string containing tokens from
+the following list: "e, s, dhee, dhes, dhse, dhss".
 
- * **`WriteStatic(buffer)`**:  Writes `Encrypt(s)` to `buffer` and calls
- `MixHash(s)`.  
+ * **`WriteHandshakeMessage(buffer, descriptor, payload, padded_len)`**: Takes
+ a byte buffer, a descriptor, and a payload which is an encoded set of zero or
+ more extensions.
+ 
+    * Processes each token in the descriptor sequentially.  For "e" sets `e =
+    GENERATE_KEYPAIR()` and appends the public key to the buffer.  For "s" if
+    `HasKey() == True` appends `Encrypt(s)` to the buffer, otherwise appends
+    `s`; in either case then calls `MixHash(s)`.  For "dh*xy*" calls `MixKey(0,
+    DH(x, ry))`.
 
- * **`ReadStatic(buffer)`**:  Reads the correct amount of data from `buffer`
- corresponding to the remote party's `Encrypt(s)` call.  Then calls `Decrypt()`
- on the read data and stores the result in `rs`.  Calls `MixHash(rs)`.
+    * If `HasKey() == True` sets `padding_len = MAX(0, padded_len -
+    (len(payload) + 18))` and appends `padding_len` arbitrary bytes to
+    `payload`, followed by a `uint16` encoding of `padding_len`. 
+    
+    * If `HasKey() == True` appends `Encrypt(payload)` to the buffer, otherwise
+    appends `payload`; in either case then calls `MixHash(payload)`.  
 
- * **`WriteEphemeral(buffer)`**:  Sets `e` to `GENERATE_KEYPAIR()`.  Appends the
- public key from `e` to `buffer`.
+    * Sets `buffer_len = len(buffer)`.  Prepends the `type` byte, then `uint16`
+    encoding of `buffer_len`, to the buffer.
 
- * **`ReadEphemeral(buffer)`**:  Reads `re` from `buffer`.
+ * **`WriteApplicationMessage(buffer, payload, final)`**:  
 
- * **`WritePayload(buffer, payload)`**:  Writes `Encrypt(payload)` into
- `buffer`.
+   * Calls `ClearHash()`.
 
- * **`ReadPayload(buffer)`**: Reads all remaining data in buffer, calls
- `Decrypt()` on the data to get the payload.
+   * Sets `padding_len = MAX(0, padded_len - (len(payload) + 18))` and appends
+   `padding_len` arbitrary bytes to `payload`, followed by a `uint16` encoding
+   of `padding_len`.  
+   
+   * Appends `Encrypt(payload)` to the buffer.
 
- * **`DHSS()`**: Calls `MixKey(0, DH(s, rs))` on the kernel.
+   * Sets `buffer_len = len(buffer)`.  If `final == True` sets `type` byte to
+   255, otherwise sets it to zero.  Prepends the `type` byte, then `uint16`
+   encoding of `buffer_len`, to the buffer.
 
- * **`DHEE()`**: Calls `MixKey(0, DH(e, re))` on the kernel.
+ * **`ReadHandshakeMessage(buffer, descriptor, handshake)`**:  Reads the
+ `branch` byte and returns if not expected.  Processes each token in the
+ descriptor sequentially.  For "e" sets `re` to the next `dhlen` bytes from the
+ buffer.  For "s" reads the next `dhlen + 16` bytes from the buffer into `data`
+ and sets `rs = Decrypt(data)` if `HasKey() == True`; otherwise reads the next
+ `dhlen` bytes from the buffer into `rs`.  In either case, after setting `rs`
+ calls `MixHash(rs)`.   For "dh*xy*" calls `MixKey(0, DH(y, rx))`.  After the
+ descriptor is processed sets `payload = Decrypt(buffer)` if `HasKey() ==
+ True`, otherwise sets `payload == buffer`.  Calls `MixHash(payload).`
 
- * **`DHSE()`**: Calls `MixKey(0, DH(s, re))` on the kernel.
 
- * **`DHES()`**: Calls `MixKey(0, DH(e, rs))` on the kernel.
 
-4. Handshake messages
+4. Handshake patterns
 ======================
-
-4.1. Descriptors and patterns
-------------------------------
-A descriptor is a comma-separated list containing some of the following tokens.
-The tokens describe the sequential actions taken by the writer or reader of a
-message.
-
- * **`s`**: Calls the session's `WriteStatic()` or `ReadStatic()` method. 
-
- * **`e`**: Calls the session's `WriteEphemeral()` or `ReadEphemeral()` method.
-
- * **`dhss, dhee, dhse, dhes`**: Given "dh*xy*" calls `DHXY()` for the
- writer and `DHYX()` for the reader.
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
 are for messages created and sent by the protocol initiator; with left-pointing
@@ -291,89 +339,6 @@ responder's static public key as well as the responder's ephemeral:
       ------
       -> e, dhes 
       <- e, dhee
-
-4.2. Message processing
-------------------------
-
-Writing a handshake message requires a session, a buffer, a descriptor, and
-payload data (which may be zero bytes).  First the descriptor is processed
-sequentially.  Then `WritePayload(buffer, payload)` is called on the session.
-
-To read the message the descriptor is processed sequentially.  Then
-`ReadPayload(buffer)` is called to return the payload.
-
-4.3. Handshake processing
---------------------------
-
-Every Noise protocol begins by executing a handshake pattern.  This requires:
-
- * A protocol name
- 
- * A pattern of descriptors
-
- * A session 
- 
- * Optional, depending on protocol:
- 
-   * Pre-knowledge of the remote party's static and/or ephemeral public keys
-
-   * A static key pair
-
-   * A pre-shared symmetric key
-
- * An indication whether this party is the initiator or responder
-
-First `Initialize()` is called, then `MixKey(0, name)` is called.  If the
-protocol uses a pre-shared key, `MixKey(0, preshared_key)` is called.  If the
-protocol uses this party's static key pair, `SetStaticKeyPair(static)` is
-called.
-
-Next any pre-messages in the pattern are processed.  This has no effect except
-performing more `MixHash()` calls based on the party's pre-knowledge.
-
-Following this the parties read and write handshake messages.  After every
-handshake message `MixHash(payload)` is called.
-
-4.4. Branching
----------------
-
-Branching allows parties to alter the handshake pattern, ciphersets, or other
-protocol characteristics on the fly.  For example: 
-
- * A server could choose which cipherset to support based on options offered
- by the client.
-
- * A client could choose whether to authenticate itself based on the server's
- response.
-
- * A client could attempt an abbreviated handshake based on cached information,
- and if this information is stale the server can fall back to a full handshake.
-
-Branching requires:
-
- * Designating a particular handshake message as a branch message
-
- * Assigning branch numbers and names to the alternatives for the branch message
- (where branch number zero is the default, and other branches count up from
- there).
-
- * Providing some way to indicate the branch number to the recipient (see
- Section 8).
-
- * For each alternative, specifying whether it re-uses the session state or
- re-initializes the session.
-
-If a non-zero branch is taken and session state is re-used, `MixKey(1, name)` is
-called on the branch name.
-
-If a non-zero branch is taken and session state is re-initialized, then the
-branch message is treated as starting a new handshake, and the steps from 4.2
-are performed, except `InitializeKernel()` is called in place of
-`InitializeSession()` to allow previously exchanged public keys to be re-used.
-
-
-5. Handshake patterns
-======================
 
 The following patterns represent the mainstream use of Noise.  Other patterns
 can be defined in other documents.
@@ -473,12 +438,46 @@ uses.
       <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
+5.3. Branching
+---------------
+
+Branching allows parties to alter the handshake pattern, ciphersets, or other
+protocol characteristics on the fly.  For example: 
+
+ * A server could choose which cipherset to support based on options offered
+ by the client.
+
+ * A client could choose whether to authenticate itself based on the server's
+ response.
+
+ * A client could attempt an abbreviated handshake based on cached information,
+ and if this information is stale the server can fall back to a full handshake.
+
+Branching requires:
+
+ * Designating a particular handshake message as a branch message
+
+ * Assigning branch numbers and names to the alternatives for the branch message
+ (where branch number zero is the default, and other branches count up from
+ there).
+
+ * Providing some way to indicate the branch number to the recipient (see
+ Section 8).
+
+ * For each alternative, specifying whether it re-uses the session state or
+ re-initializes the session.
+
+If a non-zero branch is taken and session state is re-used, `MixKey(1, name)` is
+called on the branch name.
+
+If a non-zero branch is taken and session state is re-initialized, then the
+branch message is treated as starting a new handshake, and the steps from 4.2
+are performed, except `InitializeKernel()` is called in place of
+`InitializeSession()` to allow previously exchanged public keys to be re-used.
+
+
 6. Application messages
 ========================
-
-After the last handshake message, the parties can send application messages.  On
-first sending or receiving an application message, each party shall call
-`ClearHash()`.
 
 Application messages can be sent in several ways:
 
@@ -532,14 +531,6 @@ application protocol.  Examples:
 
 The following conventions are recommended but not required:
 
- * **Branch and length fields**:  All messages are preceded with a 1-byte branch
- number, then a 2-byte little endian unsigned integer indicating the length of
- the message.  Branch number zero indicates the default or "no branch" state.
- Any other value requires the recipient to process the branch.  Payloads are
- kept small to support streaming APIs where data is incrementally authenticated.
- Sending more data than fits in one payload requires a stream of messages (see
- bullet on "Stream termination").
-
  * **Explicit nonce fields**: If explicit nonces are being used for out-of-order
  application messages, then the 64-bit nonce should be encoded in little-endian,
  and sent after the branch number but before the length field.
@@ -576,10 +567,6 @@ The following conventions are recommended but not required:
 9.2. The ChaChaPoly cipherset
 ------------------------------
 
- * **`klen`** = 32
-
- * **`hlen`** = 32 
-
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
  32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
@@ -600,10 +587,6 @@ The following conventions are recommended but not required:
 9.3. The AES-GCM cipherset
 ---------------------------
 
- * **`klen`** = 32
-
- * **`hlen`** = 32 
- 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by little-endian encoding of `n`.
