@@ -129,10 +129,11 @@ Noise also depends on the following **cipherset** constants and functions:
  key `k` of `klen` bytes, a 64-bit unsigned integer nonce `n`, and associated
  data `ad`.
 
- * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k` and
- nonce `n` to encrypt a block of `klen` zero bytes.  Returns the first `klen`
- bytes from the encrypted output.  This function can usually be implemented more
- efficiently than by calling `ENCRYPT` (e.g.  by skipping the MAC calculation).
+ * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
+ nonce `n`, and empty `ad` to encrypt a block of `klen` zero bytes.  Returns the
+ first `klen` bytes from the encrypted output.  This function can usually be
+ implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
+ MAC calculation).
 
  * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of `klen` bytes and some
  input data and returns a new value for the cipher key `k`.  The `kdf_key` will
@@ -350,7 +351,7 @@ protocol characteristics on the fly.  For example:
 
 Branching requires:
 
- * Designating a branch message
+ * Designating a particular handshake message as a branch message
 
  * Assigning branch numbers and names to the alternatives for the branch message
  (where branch number zero is the default, and other branches count up from
