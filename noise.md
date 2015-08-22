@@ -73,50 +73,53 @@ and handling of application messages.
 
 A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
-elliptic curve DH.  The cipherset specifies the symmetric-key functions
-(including a cipher, key derivation function, and hash).
+elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 
 3. Message format
 ==================
 
-Every message begins with a single `type` byte, then a big-endian `uint16`
-length field describing the number of following bytes.  Following this the
-format differs between handshake and application messages.
-
-
 3.1. Handshake messages
 ------------------------
 
-The `type` byte will be zero unless handshake branching is supported, see !!!.
+Every handshake message begins with a single `type` byte, which will be zero
+unless a handshake branch is being taken, see !!!.
+
+Following the `type` byte is a big-endian `uint16` `length` field describing
+the number of following bytes in the message.
 
 Following the `length` field will be one or more public keys.  Ephemeral public
 keys are in the clear.  Static public keys will be encrypted if a secret key
 has been negotiated.
 
 Following the public keys is a `payload` field, which will be encrypted if a
-secret key has been negotiated.  If the `payload` is encrypted it's also
-padded: the encrypted plaintext will end with a big-endian `uint16` padding
-length field, which describes the number of preceding bytes that are padding
-bytes.
+secret key has been negotiated.
 
-Whether padded and encrypted or just plaintext, the `payload` will be composed
-of zero or more extensions.  Each extension begins with a single `extension
-type` byte, then a big-endian `uint16` length field describing the number of
-following bytes.  The meaning of different extension types is left to the
-application, but could be used for certificates, advertising supported
-versions, routing information, etc.
+The `payload` will be composed of zero or more sections.  Each section begins
+with a 1-byte `section type` and the sections appear in the payload in order,
+with smallest types first.  Following the `section type` is a big-endian
+`uint16` length field describing the number of following bytes in the section.
+The meaning of different section types is left to the application, but could be
+used for certificates, advertising supported versions, routing information,
+etc.  Section 255 should be unused except for padding.  Unrecognized sections
+should be ignored by the recipient.
 
 3.2. Application messages
 --------------------------
 
-The `type` byte will be zero unless this is the last application message in the
-session, in which case `type` is set to 255.
+Every application message begins with a single `type` byte, which will be zero
+unless this is the last application message in a session, in which case it's
+set to 255.
 
-Following the `length` field is a `payload` field, which will be encrypted if a
-secret key has been negotiated.  If the `payload` is encrypted it's also
-padded, as described in preceding section.
+If the protocol uses explicit nonces, then the `type` will followed by a 64-bit
+nonce.
 
-The contents of application message are handled by the application.
+Following the `type` or `nonce` field is a big-endian `uint16` length field
+describing the number of following bytes in the message.
+
+Following the `length` field is an encrypted `payload` field, which contains
+sections as described for handshake messages.  Section 0 should be used for the
+primary stream of application data, and section 255 is only used for padding.
+Unrecognized sections should be ignored by the recipient.
 
 
 3. Sessions
@@ -263,7 +266,7 @@ the following list: "e, s, dhee, dhes, dhse, dhss".
 
  * **`WriteHandshakeMessage(buffer, descriptor, payload, padded_len)`**: Takes
  a byte buffer, a descriptor, and a payload which is an encoded set of zero or
- more extensions.
+ more sections.
  
     * Processes each token in the descriptor sequentially.  For "e" sets `e =
     GENERATE_KEYPAIR()` and appends the public key to the buffer.  For "s" if
@@ -271,10 +274,6 @@ the following list: "e, s, dhee, dhes, dhse, dhss".
     `s`; in either case then calls `MixHash(s)`.  For "dh*xy*" calls `MixKey(0,
     DH(x, ry))`.
 
-    * If `HasKey() == True` sets `padding_len = MAX(0, padded_len -
-    (len(payload) + 18))` and appends `padding_len` arbitrary bytes to
-    `payload`, followed by a `uint16` encoding of `padding_len`. 
-    
     * If `HasKey() == True` appends `Encrypt(payload)` to the buffer, otherwise
     appends `payload`; in either case then calls `MixHash(payload)`.  
 
@@ -285,10 +284,6 @@ the following list: "e, s, dhee, dhes, dhse, dhss".
 
    * Calls `ClearHash()`.
 
-   * Sets `padding_len = MAX(0, padded_len - (len(payload) + 18))` and appends
-   `padding_len` arbitrary bytes to `payload`, followed by a `uint16` encoding
-   of `padding_len`.  
-   
    * Appends `Encrypt(payload)` to the buffer.
 
    * Sets `buffer_len = len(buffer)`.  If `final == True` sets `type` byte to
@@ -535,20 +530,6 @@ The following conventions are recommended but not required:
  application messages, then the 64-bit nonce should be encoded in little-endian,
  and sent after the branch number but before the length field.
 
- * **Stream termination**: Branch number 255 means an application data message
- which contains the end of the stream.  Before processing this message the party
- should perform a call `MixKey(255, "EndOfStream")`.
- 
- * **Padding**: All encrypted payload plaintexts end with a 2-byte little endian
- unsigned integer specifying the number of preceding bytes that are padding
- bytes.  Padding is applied to both handshake messages and application messages.
- This provides a consistent way to pad ciphertexts to a fixed length.
-
- * **Handshake extensions**:  The payload in any handshake message is parsed as
- a sequence of extensions, where each extension contains a 1-byte type field,
- followed by a 2-byte little endian unsigned integer indicating the length of
- the extension.  Unrecognized extensions are ignored by the recipient. 
- 
  * **Error handling**: On any cryptographic or parsing failure, immediately
  erase all session contents and close any resources associated with the session
  (sockets, etc).
