@@ -96,7 +96,7 @@ secret key has been negotiated.
 
 The `payload` will be composed of zero or more sections.  Each section begins
 with a 1-byte `section type` and the sections appear in the payload in order,
-with smallest types first.  Following the `section type` is a big-endian
+with smallest types first.  Following each `section type` is a big-endian
 `uint16` length field describing the number of following bytes in the section.
 The meaning of different section types is left to the application, but could be
 used for certificates, advertising supported versions, routing information,
@@ -110,8 +110,8 @@ Every application message begins with a single `type` byte, which will be zero
 unless this is the last application message in a session, in which case it's
 set to 255.
 
-If the protocol uses explicit nonces, then the `type` will followed by a 64-bit
-nonce.
+If the protocol uses explicit nonces, then the `type` will be followed by a
+64-bit big-endian `uint64` nonce.
 
 Following the `type` or `nonce` field is a big-endian `uint16` length field
 describing the number of following bytes in the message.
@@ -141,8 +141,10 @@ The below sections describe each of these layers in turn.
 3.1. DH algorithm and cipherset functions
 ------------------------------------------
 
-Noise depends on the following **DH functions**:
+Noise depends on the following **DH functions** and constants:
 
+ * **`dhlen`** = A constant specifying the size of public keys in bytes.
+ 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
@@ -199,8 +201,8 @@ A kernel contains the following state variables:
  
 A kernel responds to the following methods:
 
- * **`InitializeKernel()`**:  Sets `k` to all zero bytes, `n` to zero, and `h`
- to empty.
+ * **`Initialize()`**:  Sets `k` to all zero bytes, `n` to zero, and `h` to
+ empty.
 
  * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.  In
  other words, prepends `type` to `data` before applying the KDF. Then sets `n`
@@ -211,14 +213,16 @@ A kernel responds to the following methods:
 
  * **`ClearHash()`**: Sets `h` to empty.
 
+ * **`GetNonce(nonce)`**: Returns `n`.
+ 
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
  * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
- * **`FissionKernel()`**:  Creates a new child kernel, with `n` set to 0 and `h`
- copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k, n)`,
- and increments `n`.  Then sets its own `k` to the output of `GETKEY(k, n)` and
- sets `n` to zero.  Then returns the child.
+ * **`Fission()`**:  Creates a new child kernel, with `n` set to 0 and `h`
+ copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k,
+ n)`, and increments `n`.  Then sets its own `k` to the output of `GETKEY(k,
+ n)` and sets `n` to zero.  Then returns the child.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -239,70 +243,109 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
-A session responds to all of the kernel methods by forwarding them to the
-kernel.  In addition, a session responds to the following initialization methods:
+A session responds to the following initialization methods:
 
  * **`Initialize(name, static_keypair, preshared_key, premessages)`**:  
  
-   * Calls `InitializeKernel()`.
+   * Calls `kernel.Initialize()`.
    
-   * Calls `MixKey(0, name)`.  
+   * Calls `kernel.MixKey(0, name)`.  
    
-   * If `preshared_key` isn't empty then `MixKey(0, preshared_key)` is called.
+   * If `preshared_key` isn't empty then calls `kernel.MixKey(0,
+   preshared_key)`.
    
-   * If `static_keypair` isn't empty then `SetStaticKeyPair(preshared_key)` is
-   called.  
+   * If `static_keypair` isn't empty then calls
+   `SetStaticKeyPair(preshared_key)`.
    
    * All other variables are set to empty.
 
- * **`Fission()`**: Returns a new session by calling `FissionKernel()` on the
- kernel and copying the returned kernel and all session state into a new
- session.
+ * **`Fission()`**: Returns a new session by calling `kernel.Fission()` and
+ copying the returned kernel and all session state into a new session.
 
-For reading or writing messages, the following methods are used.  These methods
-take a `buffer` of bytes that they either append to or read from.  They also
-take a **descriptor**, which is a comma-separated string containing tokens from
-the following list: "e, s, dhee, dhes, dhse, dhss".
+For reading or writing messages, the following methods are used:
 
- * **`WriteHandshakeMessage(buffer, descriptor, payload, padded_len)`**: Takes
- a byte buffer, a descriptor, and a payload which is an encoded set of zero or
- more sections.
+ * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty
+ byte buffer, a descriptor which is some sequence of the tokens from "e, s,
+ dhee, dhes, dhse, dhss", and a payload which is an encoded set of zero or more
+ sections.
  
     * Processes each token in the descriptor sequentially.  For "e" sets `e =
     GENERATE_KEYPAIR()` and appends the public key to the buffer.  For "s" if
-    `HasKey() == True` appends `Encrypt(s)` to the buffer, otherwise appends
-    `s`; in either case then calls `MixHash(s)`.  For "dh*xy*" calls `MixKey(0,
-    DH(x, ry))`.
+    `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
+    otherwise appends `s`; in either case then calls `kernel.MixHash(s)`.  For
+    "dh*xy*" calls `kernel.MixKey(0, DH(x, ry))`.
 
-    * If `HasKey() == True` appends `Encrypt(payload)` to the buffer, otherwise
-    appends `payload`; in either case then calls `MixHash(payload)`.  
+    * If `kernel.HasKey() == True` appends `kernel.Encrypt(payload)` to the
+    buffer, otherwise appends `payload`; in either case then calls
+    `kernel.MixHash(payload)`.  
 
-    * Sets `buffer_len = len(buffer)`.  Prepends the `type` byte, then `uint16`
-    encoding of `buffer_len`, to the buffer.
+    * Sets `buffer_len = len(buffer)`.  Prepends the `type` and `uint16`
+    encoding of `buffer_len` to the buffer.
 
- * **`WriteApplicationMessage(buffer, payload, final)`**:  
+ * **`ReadHandshakeMessage(buffer, descriptor, payload)`**: Takes a byte buffer
+ containing a message, and a descriptor, and returns a payload which is an
+ encoded set of zero or more sections.
 
-   * Calls `ClearHash()`.
+    * Reads the first byte into `type`.  Checks that `type` equals
+    `expected_type`.
 
-   * Appends `Encrypt(payload)` to the buffer.
+    * Checks that the next 16 bits of length field are consistent with the size
+    of the buffer.
 
-   * Sets `buffer_len = len(buffer)`.  If `final == True` sets `type` byte to
-   255, otherwise sets it to zero.  Prepends the `type` byte, then `uint16`
-   encoding of `buffer_len`, to the buffer.
+    * Processes each token in the descriptor sequentially.  For "e" sets `re`
+    to the next `dhlen` bytes from `buffer`.  For "s" if `kernel.HasKey() ==
+    True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
+    `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
+    bytes from `buffer`; in either case then calls `kernel.MixHash(s)`.  For
+    "dh*xy*" calls `kernel.MixKey(0, DH(y, rx))`.
+   
 
- * **`ReadHandshakeMessage(buffer, descriptor, handshake)`**:  Reads the
- `branch` byte and returns if not expected.  Processes each token in the
- descriptor sequentially.  For "e" sets `re` to the next `dhlen` bytes from the
- buffer.  For "s" reads the next `dhlen + 16` bytes from the buffer into `data`
- and sets `rs = Decrypt(data)` if `HasKey() == True`; otherwise reads the next
- `dhlen` bytes from the buffer into `rs`.  In either case, after setting `rs`
- calls `MixHash(rs)`.   For "dh*xy*" calls `MixKey(0, DH(y, rx))`.  After the
- descriptor is processed sets `payload = Decrypt(buffer)` if `HasKey() ==
- True`, otherwise sets `payload == buffer`.  Calls `MixHash(payload).`
+    * If `kernel.HasKey() == True` sets `payload` to the output from calling
+    `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
+    the remainder of the buffer.  In either case then calls
+    `kernel.MixHash(payload)`.  
+
+ * **`WriteApplicationMessage(buffer, final, nonce, payload)`**:  Takes an
+ empty byte buffer, a `final` boolean indicating whether this is the final
+ application message in the session, an `explicit_nonce` boolean indicating
+ whether to encode the nonce, and a payload which is an encoded set of zero or
+ more sections.
+
+   * Calls `kernel.ClearHash()`.
+
+   * If `final == True` sets `type` byte to 255 and calls
+   `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
+   buffer.
+
+   * If `explicit_nonce == True`, writes `kernel.GetNonce()` to buffer as a
+   big-endian `uint64`.
+
+   * Writes a big-endian `uint16` encoding of payload length + 16 to buffer.
+
+   * Writes `kernel.Encrypt(payload)` to the buffer.
+
+ * **`ReadApplicationMessage(buffer, final, nonce, payload)`**:  Takes a byte
+ buffer containing a message, an `explicit_nonce` boolean indicating whether to
+ encode the nonce.  Returns a payload and `final` boolean indicating whether
+ this is the final application message in the session.
+
+   * Calls `kernel.ClearHash()`.
+
+   * Reads the first byte into `type`.  If `type` is 255 calls
+   `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
+   `False`.
+
+   * If `explicit_nonce == True`, reads the next 64 bits from the buffer as a
+   big-endian `uint64` `nonce`, then calls `kernel.SetNonce(nonce)`.
+
+   * Checks that the next 16 bits of length field are consistent with the size
+   of the buffer.
+
+   * Sets `payload` to `kernel.Decrypt()` on the rest of the buffer.  Returns
+   `payload` and `final`.
 
 
-
-4. Handshake patterns
+4. Handshake patterns 
 ======================
 
 A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
@@ -512,14 +555,14 @@ Every protocol and branch requires its own name.  These names must be unique
 within the scope of possible reuse for any long-term static key or pre-shared
 key.
 
-A Noise protocol or branch name should consist of seven underscore-separated
+A Noise protocol or branch name should consist of six underscore-separated
 fields that identify the DH functions, the cipherset, the handshake pattern,
-handling of application messages, conventions, and a unique name for the
+handling of application messages, and a unique name for the
 application protocol.  Examples:
 
- `"Noise_Curve25519_AES-GCM_OneWayX_OneWayStream_Conventional_SpecExample1"`
+ `"Noise_Curve25519_AESGCM_OneWayX_OneWayStream_SpecExample1"`
 
- `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_Conventional_SpecExample2"`
+ `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_SpecExample2"`
 
 8. Conventions
 ===============
@@ -541,6 +584,8 @@ The following conventions are recommended but not required:
 9.1. The Curve25519 and Curve448 DH functions
 ----------------------------------------------
 
+ * **`dhlen`** = 32 for Curve25519, 56 for Curve448.
+ 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
@@ -565,7 +610,7 @@ The following conventions are recommended but not required:
  * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-9.3. The AES-GCM cipherset
+9.3. The AESGCM cipherset
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -609,7 +654,7 @@ Following this are any number of application messages:
 
 The final application message is the same, except with branch number 255 instead of 0.
 
-**`Noise_Curve25519_AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
+**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams_Conventional`:**
 
 This protocol implements a mutual-authenticated interactive handshake, followed
 by interactive data exchange.  The initiator's first handshake message is:
@@ -638,11 +683,11 @@ Following this `Fission()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
 each send a message with branch number 255.
 
-**`Noise_Curve25519_AES-GCM_InteractiveIK_TwoStreams_Conventional`**
+**`Noise_Curve25519_AESGCM_InteractiveIK_TwoStreams_Conventional`**
 
 with branch to
 
-**`Noise_Curve25519_AES-GCM_InteractiveXX_TwoStreams_Conventional`:**
+**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams_Conventional`:**
 
 This protocol is used when the client wants to run an abbreviated handshake
 (InteractiveIK) and send some encrypted extensions in her first message.  If the
