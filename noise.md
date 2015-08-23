@@ -82,7 +82,7 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
     (
       ( byte pubkey[dhlen]; )
       ( byte encrypted_pubkey[dhlen + 16]; )
-    )? 
+    )+ 
     byte payload[length - pubkeys_length];
 
 Every handshake message begins with a single `type` byte, which will be zero
@@ -126,13 +126,13 @@ used to transport application data.
 
 A Noise session can be viewed as three layers:
 
- * DH functions and a cipherset provide low-level crypto functions.
+ * **DH functions** and a **cipherset** provide low-level crypto functions.
 
- * A kernel object builds on the cipherset.  The kernel provides methods for
+ * A **kernel object** builds on the cipherset.  The kernel provides methods for
  mixing inputs into a secret key and using that key for encryption and
  decryption.
 
- * A session object builds on the kernel and DH functions and provides methods
+ * A **session object** builds on the kernel and DH functions and provides methods
  for handling messages.
 
 The below sections describe each of these layers in turn.
