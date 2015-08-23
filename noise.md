@@ -17,15 +17,12 @@ interactive protocols.
 2. Overview
 ============
 
-2.1. Messages, protocols, and sessions
----------------------------------------
+2.1. Messages and sessions
+---------------------------
 
 **Messages** are exchanged between parties.  Each message will contain zero or
 more DH public keys followed by a payload.  Either the public keys or payload
 may be encrypted.
-
-A **protocol** consists of some sequence of messages between a pair of
-parties.
 
 Each party will have a **session** which contains the state used to
 process messages.
@@ -33,14 +30,13 @@ process messages.
 2.2. The handshake: descriptors and patterns
 -------------------------------------------
 
-A Noise protocol begins with a handshake phase where both parties can send
+A Noise protocol begins with a handshake phase where both parties send
 **handshake messages** containing DH public keys and perform DH operations to
 agree on a shared secret.
 
 A **descriptor** specifies the DH keys and DH operations that comprise a
-handshake message.
-
-A **pattern** specifies the sequence of descriptors that comprise a handshake.
+handshake message.  A **pattern** specifies the sequence of descriptors that
+comprise a handshake.
 
 A simple pattern might describe a one-way encrypted message from Alice to Bob.
 A more complex pattern might describe an interactive handshake.
@@ -48,22 +44,21 @@ A more complex pattern might describe an interactive handshake.
 2.3.  After the handshake: application messages
 ------------------------------------------------
 
-After the handshake messages each party will possess a shared secret key and can
-send **application messages** which typically consist of encrypted payloads
-without DH public keys.
+After the handshake messages each party will possess a shared secret key and
+can send **application messages** which consist of encrypted payloads without
+DH public keys.
 
 Several operations can be used to control the encryption including: explicit
-encryption nonces for out-of-order messages, "stepping" the shared key for
-lightweight forward-security, and "fissioning" the shared key into separate keys
-for duplex communications.
+nonces for out-of-order messages, "stepping" the shared key for
+forward security, and "splitting" the shared key for duplex communications.
 
 2.4. Key agreement
 -------------------
 
-Noise can implement handshakes where each party has a static and/or ephemeral DH
-key pair.  The static keypair is a longer-term key pair that exists prior to the
-protocol.  Ephemeral key pairs are short-term key pairs that exist only during
-the protocol.
+Noise can implement handshakes where each party has a static and/or ephemeral
+DH key pair.  The static keypair is a long-term key pair that exists prior to
+the protocol.  Ephemeral key pairs are short-term key pairs that exist only
+during the handshake.
 
 2.5. DH functions and ciphersets
 ---------------------------------
@@ -81,6 +76,15 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 3.1. Handshake messages
 ------------------------
 
+    uint8 type;
+    uint16 length;
+    // One or more public keys or encrypted public keys
+    (
+      ( byte pubkey[dhlen]; )
+      ( byte encrypted_pubkey[dhlen + 16]; )
+    )? 
+    byte payload[length - pubkeys_length];
+
 Every handshake message begins with a single `type` byte, which will be zero
 unless a handshake branch is being taken, see !!!.
 
@@ -92,19 +96,16 @@ keys are in the clear.  Static public keys will be encrypted if a secret key
 has been negotiated.
 
 Following the public keys is a `payload` field, which will be encrypted if a
-secret key has been negotiated.
-
-The `payload` will be composed of zero or more sections.  Each section begins
-with a 1-byte `section type` and the sections appear in the payload in order,
-with smallest types first.  Following each `section type` is a big-endian
-`uint16` length field describing the number of following bytes in the section.
-The meaning of different section types is left to the application, but could be
-used for certificates, advertising supported versions, routing information,
-etc.  Section 255 should be unused except for padding.  Unrecognized sections
-should be ignored by the recipient.
+secret key has been negotiated.  The payload may contain certificates, routing
+information, advertisements for supported features, or anything else.
 
 3.2. Application messages
 --------------------------
+
+    uint8 type;
+    ( uint64 nonce; )  // optional depending on protocol
+    uint16 length;
+    byte payload[length];
 
 Every application message begins with a single `type` byte, which will be zero
 unless this is the last application message in a session, in which case it's
@@ -116,10 +117,8 @@ If the protocol uses explicit nonces, then the `type` will be followed by a
 Following the `type` or `nonce` field is a big-endian `uint16` length field
 describing the number of following bytes in the message.
 
-Following the `length` field is an encrypted `payload` field, which contains
-sections as described for handshake messages.  Section 0 should be used for the
-primary stream of application data, and section 255 is only used for padding.
-Unrecognized sections should be ignored by the recipient.
+Following the `length` field is an encrypted `payload` field.  The payloads are
+used to transport application data.
 
 
 3. Sessions
@@ -219,7 +218,7 @@ A kernel responds to the following methods:
 
  * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
- * **`Fission()`**:  Creates a new child kernel, with `n` set to 0 and `h`
+ * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h`
  copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k,
  n)`, and increments `n`.  Then sets its own `k` to the output of `GETKEY(k,
  n)` and sets `n` to zero.  Then returns the child.
@@ -259,15 +258,14 @@ A session responds to the following initialization methods:
    
    * All other variables are set to empty.
 
- * **`Fission()`**: Returns a new session by calling `kernel.Fission()` and
+ * **`Split()`**: Returns a new session by calling `kernel.Split()` and
  copying the returned kernel and all session state into a new session.
 
 For reading or writing messages, the following methods are used:
 
  * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
- dhee, dhes, dhse, dhss", and a payload which is an encoded set of zero or more
- sections.
+ dhee, dhes, dhse, dhss", and a payload.
  
     * Processes each token in the descriptor sequentially.  For "e" sets `e =
     GENERATE_KEYPAIR()` and appends the public key to the buffer.  For "s" if
@@ -283,8 +281,7 @@ For reading or writing messages, the following methods are used:
     encoding of `buffer_len` to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor, payload)`**: Takes a byte buffer
- containing a message, and a descriptor, and returns a payload which is an
- encoded set of zero or more sections.
+ containing a message, and a descriptor, and returns a payload.
 
     * Reads the first byte into `type`.  Checks that `type` equals
     `expected_type`.
@@ -308,8 +305,7 @@ For reading or writing messages, the following methods are used:
  * **`WriteApplicationMessage(buffer, final, nonce, payload)`**:  Takes an
  empty byte buffer, a `final` boolean indicating whether this is the final
  application message in the session, an `explicit_nonce` boolean indicating
- whether to encode the nonce, and a payload which is an encoded set of zero or
- more sections.
+ whether to encode the nonce, and a payload.
 
    * Calls `kernel.ClearHash()`.
 
@@ -348,16 +344,17 @@ For reading or writing messages, the following methods are used:
 4. Handshake patterns 
 ======================
 
-A pattern is a sequence of descriptors. Descriptors with right-pointing arrows
-are for messages created and sent by the protocol initiator; with left-pointing
-arrows are for messages sent by the responder.  All messsages described by the
+A descriptor is some sequence of the tokens from "e, s, dhee, dhes, dhse,
+dhss".  A pattern is a sequence of descriptors. The first descriptor describes
+the first message sent from the initiator to the responder; the next descriptor
+describes the response message, and so on.  All messsages described by the
 pattern must be sent in order.  
 
 Patterns must follow these security rules:  If a pattern has a single handshake
-message, the first token in that message's descriptor must be "e", and the
-second token must be "dhe*x*", where _x_ is a pre-known public key.  If a
-pattern has more than one handshake message, then the initiating message must
-begin with "e", and the response message must begin with "e, dhee".
+message, the first token in that descriptor must be "e", and the second token
+must be "dhe*x*", where _x_ is a pre-known public key.  If a pattern has more
+than one handshake message, then the initiating message must begin with "e",
+and the response message must begin with "e, dhee".
 
 The following is the minimal 2-message pattern.  It describes an unauthenticated
 DH handshake:
@@ -526,7 +523,7 @@ Application messages can be sent in several ways:
  single session.
 
  * **Two streams**: Both parties send a stream of messages, using separate
- sessions.  In this case, `Fission()` is called with the initiator using the
+ sessions.  In this case, `Split()` is called with the initiator using the
  original session and the responder using the new session.
 
 Out of order messages can be handled by prepending `n` as an **explicit nonce**
@@ -538,14 +535,14 @@ Key updating techniques can be used within a stream:
  the old key and replace it with a new one.  This provides security for old
  messages against future compromises.
 
- * **Message keys**: Each message is encrypted by calling `Fission()` and then
+ * **Message keys**: Each message is encrypted by calling `Split()` and then
  using the new session to encrypt a single message.  This provides security for
  old keys against future compromises, and also allows cacheing old keys in case
  of out-of-order messages.
 
  * **DH ratcheting**: Ephemeral public keys can be exchanged and mixed into a
  "root" session.  This allows implementing an Axolotl-like ratchet, where
- receiving and sending sessions are derived from the root session via `Fission()`
+ receiving and sending sessions are derived from the root session via `Split()`
  calls.
 
 7. Protocol names
@@ -563,20 +560,6 @@ application protocol.  Examples:
  `"Noise_Curve25519_AESGCM_OneWayX_OneWayStream_SpecExample1"`
 
  `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_SpecExample2"`
-
-8. Conventions
-===============
-
-The following conventions are recommended but not required:
-
- * **Explicit nonce fields**: If explicit nonces are being used for out-of-order
- application messages, then the 64-bit nonce should be encoded in little-endian,
- and sent after the branch number but before the length field.
-
- * **Error handling**: On any cryptographic or parsing failure, immediately
- erase all session contents and close any resources associated with the session
- (sockets, etc).
-
 
 9. DH functions and ciphersets
 ===============================
@@ -615,7 +598,7 @@ The following conventions are recommended but not required:
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
- by encoding 32 bits of zeros followed by little-endian encoding of `n`.
+ by encoding 32 bits of zeros followed by big-endian encoding of `n`.
  
  * **`GETKEY(k, n)`**: Returns 32 bytes from concatenating two encryption calls
  to AES256 using key `k`.  The input is defined by encoding `n` into a 96-bit
@@ -634,7 +617,7 @@ The following conventions are recommended but not required:
 10. Examples
 ============
 
-**`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream_Conventional`:**
+**`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream`:**
 
 This protocol implements public-key encryption without sender authentication.
 Because it uses a one-way handshake and one-way stream of application messages,
@@ -654,7 +637,7 @@ Following this are any number of application messages:
 
 The final application message is the same, except with branch number 255 instead of 0.
 
-**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams_Conventional`:**
+**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams`:**
 
 This protocol implements a mutual-authenticated interactive handshake, followed
 by interactive data exchange.  The initiator's first handshake message is:
@@ -679,15 +662,15 @@ The initiator's final handshake message is:
  * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
  * Encrypted payload - minimum 18 bytes 
 
-Following this `Fission()` splits off a separate session so both parties can
+Following this `Split()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
 each send a message with branch number 255.
 
-**`Noise_Curve25519_AESGCM_InteractiveIK_TwoStreams_Conventional`**
+**`Noise_Curve25519_AESGCM_InteractiveIK_TwoStreams`**
 
 with branch to
 
-**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams_Conventional`:**
+**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams`:**
 
 This protocol is used when the client wants to run an abbreviated handshake
 (InteractiveIK) and send some encrypted extensions in her first message.  If the
