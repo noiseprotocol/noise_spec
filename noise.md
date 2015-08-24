@@ -210,9 +210,8 @@ A kernel responds to the following methods:
  
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
- * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.
- In other words, prepends `type` to `data` before applying the KDF. Then sets
- `n` to zero.
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Then sets `n`
+ to zero.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
@@ -237,7 +236,7 @@ A session object encapsulates the state variables and methods for executing a
 Noise protocol.
 
 To execute a Noise protocol you `Initialize()` a session, then call
-`WriteHandshakeMessage()` and `ReadHandshakeMessage()` on successive
+`WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
 descriptors from the protocol's handshake pattern until the handshake is
 complete.
 
@@ -271,10 +270,7 @@ A session responds to the following methods:
  
    * Calls `kernel.Initialize()`.
    
-   * Calls `kernel.MixKey(0, name)`.  
-   
-   * If `preshared_key` isn't empty then calls `kernel.MixKey(0,
-   preshared_key)`.
+   * Calls `kernel.MixKey(0x00 || name || 0x00 || preshared_key)`.  
    
    * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
 
@@ -288,18 +284,18 @@ A session responds to the following methods:
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
  dhee, dhes, dhse, dhss", and a payload.
  
-    * Processes each token in the descriptor sequentially.  For "e" sets `e =
-    GENERATE_KEYPAIR()` and appends the public key to the buffer.  For "s" if
-    `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
-    otherwise appends `s`; in either case then calls `kernel.MixHash(s)`.  For
-    "dh*xy*" calls `kernel.MixKey(0, DH(x, ry))`.
+    * Processes each token in the descriptor sequential:
+      * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
+      * For "s" if `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
+    otherwise appends `s`.  In either case then calls `kernel.MixHash(s)`.  
+      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))`.
 
     * If `kernel.HasKey() == True` appends `kernel.Encrypt(payload)` to the
-    buffer, otherwise appends `payload`; in either case then calls
+    buffer, otherwise appends `payload`.  In either case then calls
     `kernel.MixHash(payload)`.  
 
-    * Sets `buffer_len = len(buffer)`.  Prepends the `type` and `uint16`
-    encoding of `buffer_len` to the buffer.
+    * Sets `buffer_len` to the length in bytes of `buffer`.  Prepends the
+    `type` and `uint16` encoding of `buffer_len` to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.
@@ -310,13 +306,12 @@ A session responds to the following methods:
     * Checks that the next 16 bits of length field are consistent with the size
     of the buffer.
 
-    * Processes each token in the descriptor sequentially.  For "e" sets `re`
-    to the next `dhlen` bytes from `buffer`.  For "s" if `kernel.HasKey() ==
-    True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
+    * Processes each token in the descriptor sequentially:
+      * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
+      * For "s" if `kernel.HasKey() == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
     `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
-    bytes from `buffer`; in either case then calls `kernel.MixHash(s)`.  For
-    "dh*xy*" calls `kernel.MixKey(0, DH(y, rx))`.
-   
+    bytes from `buffer`. In either case then calls `kernel.MixHash(s)`.  
+      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))`.
 
     * If `kernel.HasKey() == True` sets `payload` to the output from calling
     `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
@@ -325,7 +320,7 @@ A session responds to the following methods:
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
  `kernel.ClearHash()`.  If `flags.split == True` then returns a new session by
- calling kernel.Split() and copying the returned kernel and all session state
+ calling `kernel.Split()` and copying the returned kernel and all session state
  into the new session.
 
  * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
@@ -336,7 +331,7 @@ A session responds to the following methods:
    `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
    buffer.
 
-   * If `flag.nonce == True`, writes `kernel.GetNonce()` to buffer as a
+   * If `flag.nonce == True` then writes `kernel.GetNonce()` to buffer as a
    big-endian `uint64`.
 
    * Writes a big-endian `uint16` encoding of payload length + 16 to buffer.
@@ -353,8 +348,8 @@ A session responds to the following methods:
    `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
    `False`.
 
-   * If `flag.nonce == True`, reads the next 64 bits from the buffer as a
-   big-endian `uint64` `nonce`, then calls `kernel.SetNonce(nonce)`.
+   * If `flag.nonce == True` then reads the next 64 bits from the buffer as a
+   big-endian `uint64` `nonce` and calls `kernel.SetNonce(nonce)`.
 
    * Checks that the next 16 bits of length field are consistent with the size
    of the buffer.
@@ -406,34 +401,34 @@ can be defined in other documents.
 4.1. One-way patterns
 ----------------------
 
-The following patterns represent one-way messages from a sender to a recipient.
-1X is recommended for most uses.
+The following patterns represent "one-way" messages from a sender to a
+recipient.  1X is recommended for most uses.
 
      N  = no static key for sender
      S  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
-    1N:
+    N:
       <- s
       ------
       -> e, dhes
 
-    1S:
+    S:
       <- s
       -> s
       ------
       -> e, dhes, dhss
 
-    1X:
+    X:
       <- s
       ------
       -> e, dhes, s, dhss
 
-4.2. Interactive patterns
+4.2. Interactive patterns 
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
-exchange messages to agree on a shared key.  2XX is recommended for most
+exchange messages to agree on a shared key.  XX is recommended for most
 uses.
 
      N_ = no static key for initiator
@@ -447,55 +442,55 @@ uses.
      _X = static key for responder transmitted to initiator
 
 
-    2NN:                              2SN:                 
-      -> e                              -> s                       
-      <- e, dhee                        ------                     
-                                        -> e                       
-                                        <- e, dhee, dhes           
+    NN:                              SN:                 
+      -> e                             -> s                       
+      <- e, dhee                       ------                     
+                                       -> e                       
+                                       <- e, dhee, dhes           
                                              
-    2NS:                              2SS:                 
-      <- s                              <- s                       
-      ------                            -> s                       
-      -> e, dhes                        ------                     
-      <- e, dhee                        -> e, dhes, dhss           
-                                        <- e, dhee, dhes           
+    NS:                              SS:                 
+      <- s                             <- s                       
+      ------                           -> s                       
+      -> e, dhes                       ------                     
+      <- e, dhee                       -> e, dhes, dhss           
+                                       <- e, dhee, dhes           
                                               
-    2NE:                              2SE:                 
-      <- s, e                           <- s, e                    
-      ------                            -> s                       
-      -> e, dhee, dhes                  ------                     
-      <- e, dhee                        -> e, dhee, dhes, dhse     
-                                        <- e, dhee, dhes           
+    NE:                              SE:                 
+      <- s, e                          <- s, e                    
+      ------                           -> s                       
+      -> e, dhee, dhes                 ------                     
+      <- e, dhee                       -> e, dhee, dhes, dhse     
+                                       <- e, dhee, dhes           
                                                                      
-    2NX:                              2SX:                 
-      -> e                              -> s                       
-      <- e, dhee, s, dhse               ------                     
-                                        -> e                       
-                                        <- e, dhee, dhes, s, dhse  
+    NX:                              SX:                 
+      -> e                             -> s                       
+      <- e, dhee, s, dhse              ------                     
+                                       -> e                       
+                                       <- e, dhee, dhes, s, dhse  
                             
 
-    2XN:                              2IN:                   
-      -> e                              -> e, s                      
-      <- e, dhee                        <- e, dhee, dhes             
+    XN:                              IN:                   
+      -> e                             -> e, s                      
+      <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    2XS:                              2IS:                   
-      <- s                              <- s                         
-      ------                            ------                       
-      -> e, dhes                        -> e, dhes, s, dhss          
-      <- e, dhee                        <- e, dhee, dhes             
+    XS:                              IS:                   
+      <- s                             <- s                         
+      ------                           ------                       
+      -> e, dhes                       -> e, dhes, s, dhss          
+      <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
-    2XE:                              2IE:                   
-      <- s, e                           <- s, e                      
-      ------                            ------                       
-      -> e, dhee, dhes                  -> e, dhee, dhes, s, dhse    
-      <- e, dhee                        <- e, dhee, dhes             
+    XE:                              IE:                   
+      <- s, e                          <- s, e                      
+      ------                           ------                       
+      -> e, dhee, dhes                 -> e, dhee, dhes, s, dhse    
+      <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                        
-    2XX:                              2IX:                  
-      -> e                              -> e, s                     
-      <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
+    XX:                              IX:                  
+      -> e                             -> e, s                     
+      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
 4.3. Branching
@@ -527,8 +522,8 @@ Branching requires:
  * For each alternative, specifying whether it re-uses the session state or
  re-initializes the session.
 
-If a non-zero branch is taken and session state is re-used, `MixKey(1, name)` is
-called on the branch name.
+If a non-zero branch is taken and session state is re-used, `MixKey(0x01 ||
+name)` is called on the branch name.
 
 If a non-zero branch is taken and session state is re-initialized, then the
 branch message is treated as starting a new handshake, and the steps from 4.2
@@ -541,10 +536,10 @@ are performed, except `InitializeKernel()` is called in place of
 
 Transport encryption is controlled by several flags:
 
- * **`split`**:  A one-way handshake must be followed by a one-way
- stream of transport messages.  But an interactive handshake has the option of
- "splitting" the session into two (via `session.Split()`), so that the
- initiator and responder can both send streams of messages.  
+ * **`split`**:  A one-way handshake must be followed by a one-way stream of
+ transport messages.  But an interactive handshake is allowed to "split" the session
+ into two (via `session.Split()`), so that the initiator and responder can both
+ send streams of messages.  
 
  * **`step`**: After sending or receiving a message, `kernel.Step()` may be
  called to destroy the old key and replace it with a new one.  This provides
@@ -561,13 +556,13 @@ Transport encryption is controlled by several flags:
 An **abstract protocol name** specifies a handshake pattern and any transport
 flags ("None, "Split", "Step", "Nonce", "SplitStep", "SplitNonce"): 
 
- * `Noise_1X_None
+ * `Noise_X_None`
    
- * `Noise_2NX_Split`
+ * `Noise_NX_Split`
    
- * `Noise_2XX_SplitStep`
+ * `Noise_XX_SplitStep`
    
- * `Noise_2IS_SplitNonce`
+ * `Noise_IS_SplitNonce`
 
 An abstract protocol name can be replaced with a **short name** for easier
 reference.  The following short names are defined:
@@ -582,9 +577,9 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
 
  * `Noise_Pipe_448_AESGCM`
 
- * `Noise_2IS_SplitNonce_25519_AESGCM`
+ * `Noise_IS_SplitNonce_25519_AESGCM`
 
- * `Noise_1N_None_25519_ChaChaPoly`
+ * `Noise_N_None_25519_ChaChaPoly`
 
 9. DH functions and ciphersets
 ===============================
