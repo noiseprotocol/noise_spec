@@ -80,15 +80,14 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 
     uint8 type;
     uint16 length;
-    // One or more public keys or encrypted public keys
     (
-      ( byte pubkey[dhlen]; )
-      ( byte encrypted_pubkey[dhlen + 16]; )
+      ( byte pubkey[dhlen]; )?
+      ( byte encrypted_pubkey[dhlen + 16]; )?
     )+ 
     byte payload[length - pubkeys_length];
 
 Every handshake message begins with a single `type` byte, which will be zero
-unless a handshake branch is being taken, see !!!.
+unless a handshake branch is being taken.
 
 Following the `type` byte is a big-endian `uint16` `length` field describing
 the number of following bytes in the message.
@@ -105,7 +104,7 @@ information, advertisements for supported features, or anything else.
 --------------------------
 
     uint8 type;
-    ( uint64 nonce; )  // optional depending on protocol
+    ( uint64 nonce; )?
     uint16 length;
     byte payload[length];
 
