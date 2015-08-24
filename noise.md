@@ -1,6 +1,6 @@
 
-Noise version 1 (Draft)
-========================
+Noise v1 (draft)
+=================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-08-23
@@ -27,8 +27,8 @@ may be encrypted.
 Each party will have a **session** which contains the state used to
 process messages.
 
-2.2. The handshake: descriptors and patterns
--------------------------------------------
+2.2. Handshake messages: descriptors and patterns
+--------------------------------------------------
 
 A Noise protocol begins with a handshake phase where both parties send
 **handshake messages** containing DH public keys and perform DH operations to
@@ -48,9 +48,10 @@ After the handshake messages each party will possess a shared secret key and
 can send **transport messages** which consist of encrypted payloads without
 DH public keys.
 
-Several operations can be used to control the encryption including: explicit
-nonces for out-of-order messages, "stepping" the shared key for
-forward security, and "splitting" the shared key for duplex communications.
+The transport phase is described by several flags associated with a Noise
+protocol that specify whether to use explicit nonces for out-of-order messages,
+"stepping" the shared key for forward security, and "splitting" the shared key
+for duplex communications.
 
 2.4. Key agreement
 -------------------
@@ -243,7 +244,7 @@ Sessions contain a kernel object, plus the following state variables:
  * **`re`**: The remote party's ephemeral public key 
 
  * **`flags`**: Boolean variables that control transport messages:
- `split_sessions`, `step_key`, `explicit_nonces`.
+ `split_session`, `step_key`, `explicit_nonces`.
 
 A session responds to the following initialization methods:
 
@@ -310,7 +311,7 @@ For reading or writing messages, the following methods are used:
     `kernel.MixHash(payload)`.  
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
- `kernel.ClearHash()`.  If `session.split_sessions == True` calls `Split()` and
+ `kernel.ClearHash()`.  If `session.split_session == True` calls `Split()` and
  returns the new session.
 
  * **`WriteTransport(buffer, final, payload)`**:  Takes an
@@ -388,7 +389,7 @@ responder's static public key as well as the responder's ephemeral:
 The following patterns represent the mainstream use of Noise.  Other patterns
 can be defined in other documents.
 
-5.1. One-way patterns
+4.1. One-way patterns
 ----------------------
 
 The following patterns represent one-way messages from a sender to a recipient.
@@ -414,7 +415,7 @@ OneWayX is recommended for most uses.
       ------
       -> e, dhes, s, dhss
 
-5.2. Interactive patterns
+4.2. Interactive patterns
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
@@ -483,7 +484,7 @@ uses.
       <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-5.3. Branching
+4.3. Branching
 ---------------
 
 Branching allows parties to alter the handshake pattern, ciphersets, or other
@@ -521,34 +522,24 @@ are performed, except `InitializeKernel()` is called in place of
 `InitializeSession()` to allow previously exchanged public keys to be re-used.
 
 
-6. Transport messages
+5. Transport flags
 ========================
 
-Transport messages can be sent in several ways:
+Transport encryption is controlled by several flags:
 
- * **One-way stream**: One party sends a stream of messages.  For security
- reasons this is the only allowed method when using a one-way handshake.  
+ * **`split_session`**:  A one-way handshake must be followed by a one-way
+ stream of transport messages.  But an interactive handshake has the option of
+ "splitting" the session into two (via `session.Split()`), so that the
+ initiator and responder can both send streams of messages.  
 
- * **Alternating stream**: Both parties strictly alternate messages, using a
- single session.
+ * **`step_key`**: After sending or receiving a message, `StepKey()` may be
+ called to destroy the old key and replace it with a new one.  This provides
+ security for old messages against future compromises.  This is incompatible
+ with `explicit_nonces`.
 
- * **Two streams**: Both parties send a stream of messages, using separate
- sessions.  In this case, `Split()` is called with the initiator using the
- original session and the responder using the new session.
-
-Out of order messages can be handled by prepending `n` as an **explicit nonce**
-to each message.  The recipient will call `SetNonce()` on the explicit nonce.
-
-Key updating techniques can be used within a stream:
-
- * **Stepping**: After sending a message, `StepKey()` is called to destroy
- the old key and replace it with a new one.  This provides security for old
- messages against future compromises.
-
- * **Message keys**: Each message is encrypted by calling `Split()` and then
- using the new session to encrypt a single message.  This provides security for
- old keys against future compromises, and also allows cacheing old keys in case
- of out-of-order messages.
+ * **`explicit_nonces`**: Out of order messages can be handled by prepending
+ `n` as an **explicit nonce** to each message.  The recipient will call
+ `SetNonce()` on the explicit nonce.  This is incompatible with `step_key`.
 
 7. Protocol names
 ==================
