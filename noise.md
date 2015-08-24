@@ -392,24 +392,24 @@ can be defined in other documents.
 ----------------------
 
 The following patterns represent one-way messages from a sender to a recipient.
-OneWayX is recommended for most uses.
+1X is recommended for most uses.
 
      N  = no static key for sender
-     K  = static key for sender known to recipient
+     S  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
-    OneWayN:
+    1N:
       <- s
       ------
       -> e, dhes
 
-    OneWayK:
+    1S:
       <- s
       -> s
       ------
       -> e, dhes, dhss
 
-    OneWayX:
+    1X:
       <- s
       ------
       -> e, dhes, s, dhss
@@ -418,7 +418,7 @@ OneWayX is recommended for most uses.
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
-exchange messages to agree on a shared key.  InteractiveXX is recommended for most
+exchange messages to agree on a shared key.  2XX is recommended for most
 uses.
 
      N_ = no static key for initiator
@@ -432,53 +432,53 @@ uses.
      _X = static key for responder transmitted to initiator
 
 
-    InteractiveNN:                      InteractiveSN:                 
+    2NN:                              2SN:                 
       -> e                              -> s                       
       <- e, dhee                        ------                     
                                         -> e                       
                                         <- e, dhee, dhes           
                                              
-    InteractiveNS:                      InteractiveSS:                 
+    2NS:                              2SS:                 
       <- s                              <- s                       
       ------                            -> s                       
       -> e, dhes                        ------                     
       <- e, dhee                        -> e, dhes, dhss           
                                         <- e, dhee, dhes           
                                               
-    InteractiveNE:                      InteractiveSE:                 
+    2NE:                              2SE:                 
       <- s, e                           <- s, e                    
       ------                            -> s                       
       -> e, dhee, dhes                  ------                     
       <- e, dhee                        -> e, dhee, dhes, dhse     
                                         <- e, dhee, dhes           
                                                                      
-    InteractiveNX:                      InteractiveSX:                 
+    2NX:                              2SX:                 
       -> e                              -> s                       
       <- e, dhee, s, dhse               ------                     
                                         -> e                       
                                         <- e, dhee, dhes, s, dhse  
                             
 
-    InteractiveXN:                      InteractiveIN:                   
+    2XN:                              2IN:                   
       -> e                              -> e, s                      
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    InteractiveXS:                      InteractiveIS:                   
+    2XS:                              2IS:                   
       <- s                              <- s                         
       ------                            ------                       
       -> e, dhes                        -> e, dhes, s, dhss          
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
-    InteractiveXE:                      InteractiveIE:                   
+    2XE:                              2IE:                   
       <- s, e                           <- s, e                      
       ------                            ------                       
       -> e, dhee, dhes                  -> e, dhee, dhes, s, dhse    
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                        
-    InteractiveXX:                      InteractiveIX:                  
+    2XX:                              2IX:                  
       -> e                              -> e, s                     
       <- e, dhee, s, dhse               <- e, dhee, dhes, s, dhse                                
       -> s, dhse
@@ -546,20 +546,20 @@ Transport encryption is controlled by several flags:
 An **abstract protocol name** specifies a handshake pattern and any transport
 flags: 
 
- * `Noise_OneWayX_NoFlags`
+ * `Noise_1X_NoFlags`
    
- * `Noise_InteractiveNX_SplitSession`
+ * `Noise_2NX_SplitSession`
    
- * `Noise_InteractiveXX_SplitSession_StepKey`
+ * `Noise_2XX_SplitSession_StepKey`
    
- * `Noise_InteractiveIS_SplitSession_ExplicitNonces`
+ * `Noise_2IS_SplitSession_ExplicitNonces`
 
 An abstract protocol name can be replaced with a **short name** for easier
 reference.  The following short names are defined:
 
- * `Noise_Box = Noise_OneWayX_NoFlags`
+ * `Noise_Box = Noise_1X_NoFlags`
 
- * `Noise_Pipe = Noise_InteractiveXX_SplitSession`
+ * `Noise_Pipe = Noise_2XX_SplitSession`
 
 A **concrete protocol name** also specifies the DH functions and cipherset:
 
@@ -567,7 +567,7 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
 
  * `Noise_Pipe_448_AESGCM`
 
- * `Noise_InteractiveIS_SplitSession_ExplicitNonces_25519_AESGCM`
+ * `Noise_2IS_SplitSession_ExplicitNonces_25519_AESGCM`
 
 
 9. DH functions and ciphersets
@@ -635,7 +635,7 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
 10. Examples
 ============
 
-**`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream`:**
+**`Noise_Curve448_ChaChaPoly_1N_OneWayStream`:**
 
 This protocol implements public-key encryption without sender authentication.
 Because it uses a one-way handshake and one-way stream of transport messages,
@@ -655,7 +655,7 @@ Following this are any number of transport messages:
 
 The final transport message is the same, except with branch number 255 instead of 0.
 
-**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams`:**
+**`Noise_Curve25519_AESGCM_2XX_TwoStreams`:**
 
 This protocol implements a mutual-authenticated interactive handshake, followed
 by interactive data exchange.  The initiator's first handshake message is:
@@ -684,16 +684,16 @@ Following this `Split()` splits off a separate session so both parties can
 send a stream of messages.  To indicate they have finished sending data they
 each send a message with branch number 255.
 
-**`Noise_Curve25519_AESGCM_InteractiveIK_TwoStreams`**
+**`Noise_Curve25519_AESGCM_2IK_TwoStreams`**
 
 with branch to
 
-**`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams`:**
+**`Noise_Curve25519_AESGCM_2XX_TwoStreams`:**
 
 This protocol is used when the client wants to run an abbreviated handshake
-(InteractiveIK) and send some encrypted extensions in her first message.  If the
+(2IK) and send some encrypted extensions in her first message.  If the
 server has changed its static key and can't decrypt that message, it will branch
-to InteractiveXX.  The initiator's first handshake message is:
+to 2XX.  The initiator's first handshake message is:
 
  * 1-byte zero branch number of handshake message
  * 2-byte length field for the handshake message
@@ -711,7 +711,7 @@ The responder may continue with the IK handshake by returning branch zero:
 Or the responder may switch to branch 1, and return the responder handshake
 message from above.  If the receiver receives a branch 1 message, she
 re-initializes the session with the branch name, and then sends the final
-InteractiveXX handshake message. 
+2XX handshake message. 
 
 
 11. Security Considerations
