@@ -200,21 +200,22 @@ A kernel contains the following state variables:
  
 A kernel responds to the following methods:
 
- * **`Initialize()`**:  Sets `k` to all zero bytes, `n` to zero, and `h` to
- empty.
+ * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to empty.
 
- * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.  In
- other words, prepends `type` to `data` before applying the KDF. Then sets `n`
- to zero.
-
- * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
- replaces `h` by the hash of `h` with `data` appended.
-
+ * **`HasKey()`**: Returns `True` if `k` is all zeros, `False` otherwise.
+ 
  * **`ClearHash()`**: Sets `h` to empty.
 
  * **`GetNonce(nonce)`**: Returns `n`.
  
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
+
+ * **`MixKey(type, data)`**:  Sets `k` to `KDF(GETKEY(k, n), type || data)`.
+ In other words, prepends `type` to `data` before applying the KDF. Then sets
+ `n` to zero.
+
+ * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
+ replaces `h` by the hash of `h` with `data` appended.
 
  * **`Step()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
