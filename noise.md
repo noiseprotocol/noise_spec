@@ -48,10 +48,10 @@ After the handshake messages each party will possess a shared secret key and
 can send **transport messages** which consist of encrypted payloads without
 DH public keys.
 
-The transport phase is described by several flags associated with a Noise
-protocol that specify whether to use explicit nonces for out-of-order messages,
-"stepping" the shared key for forward security, and "splitting" the shared key
-for duplex communications.
+The transport phase is described by **transport flags** that specify whether to
+use features like explicit nonces for out-of-order messages, "stepping" the
+shared key for forward security, and "splitting" the shared key for duplex
+communications.
 
 2.4. Key agreement
 -------------------
@@ -64,8 +64,8 @@ during the handshake.
 2.5. DH functions and ciphersets
 ---------------------------------
 
-A Noise protocol can be described abstractly in terms of its handshake pattern
-and handling of transport messages.
+A Noise protocol can be specified abstractly by its handshake pattern and
+transport flags.
 
 A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
@@ -119,7 +119,7 @@ Following the `type` or `nonce` field is a big-endian `uint16` length field
 describing the number of following bytes in the message.
 
 Following the `length` field is an encrypted `payload` field.  The payloads are
-used to transport transport data.
+used to carry application data.
 
 
 3. Sessions
@@ -150,7 +150,7 @@ Noise depends on the following **DH functions** and constants:
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
-Noise also depends on the following **cipherset** functions:
+Noise depends on the following **cipherset** functions:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
  key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
@@ -195,9 +195,8 @@ A kernel contains the following state variables:
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
 
- * **`h`**: Either empty or 256 bits containtaining a hash output.  This
- value mixes together relevant handshake data, and is then authenticated by
- encryption.
+ * **`h`**: Either empty or 256 bits containing a hash output.  This is used as
+ "associated data" for encryption.
  
 A kernel responds to the following methods:
 
@@ -243,8 +242,8 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`flags`**: Boolean variables that control transport messages:
- `split_session`, `step_key`, `explicit_nonces`.
+ * **`flags`**: Booleans that control transport messages: `split_session`,
+ `step_key`, `explicit_nonces`.
 
 A session responds to the following initialization methods:
 
@@ -544,30 +543,53 @@ Transport encryption is controlled by several flags:
 7. Protocol names
 ==================
 
-Every protocol and branch requires its own name.  These names must be unique
-within the scope of possible reuse for any long-term static key or pre-shared
-key.
+An **abstract protocol name** specifies a handshake pattern and any transport
+flags: 
 
-A Noise protocol or branch name should consist of six underscore-separated
-fields that identify the DH functions, the cipherset, the handshake pattern,
-handling of transport messages, and a unique name for the
-transport protocol.  Examples:
+ * `Noise_OneWayX_NoFlags`
+   
+ * `Noise_InteractiveNX_SplitSession`
+   
+ * `Noise_InteractiveXX_SplitSession_StepKey`
+   
+ * `Noise_InteractiveIK_SplitSession_ExplicitNonces`
 
- `"Noise_Curve25519_AESGCM_OneWayX_OneWayStream_SpecExample1"`
+An abstract protocol name can be replaced with a **short name** for easier
+reference.  The following short names are defined:
 
- `"Noise_Curve448_ChaChaPoly_InteractiveXX_TwoStreamsStepping_SpecExample2"`
+ * `Noise_Box = Noise_OneWayX_NoFlags`
+
+ * `Noise_Pipe = Noise_InteractiveXX_SplitSession`
+
+A **concrete protocol name** also specifies the DH functions and cipherset:
+
+ * `Noise_Box_25519_ChaChaPoly`
+
+ * `Noise_Pipe_448_AESGCM`
+
+ * `Noise_InteractiveIK_SplitSession_ExplicitNonces_25519_AESGCM`
+
 
 9. DH functions and ciphersets
 ===============================
 
-9.1. The Curve25519 and Curve448 DH functions
-----------------------------------------------
+9.1. The 25519 DH functions
+----------------------------
 
- * **`dhlen`** = 32 for Curve25519, 56 for Curve448.
+ * **`dhlen`** = 32
  
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 or Curve448 keypair.
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 or Curve448 function.
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.
+
+9.2. The 448 DH functions
+--------------------------
+
+ * **`dhlen`** = 56
+ 
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
+ 
+ * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
 
 9.2. The ChaChaPoly cipherset
 ------------------------------
