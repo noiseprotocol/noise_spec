@@ -34,7 +34,7 @@ A Noise protocol begins with a handshake phase where both parties send
 **handshake messages** containing DH public keys and perform DH operations to
 agree on a shared secret.
 
-A **descriptor** specifies the DH keys and DH operations that comprise a
+A **descriptor** specifies the DH public keys and DH operations that comprise a
 handshake message.  A **pattern** specifies the sequence of descriptors that
 comprise a handshake.
 
@@ -64,8 +64,8 @@ during the handshake.
 2.5. DH functions and ciphersets
 ---------------------------------
 
-A Noise protocol can be specified abstractly by its handshake pattern and
-transport flags.
+A Noise protocol is specified abstractly by its handshake pattern and transport
+flags.
 
 A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
@@ -216,7 +216,7 @@ A kernel responds to the following methods:
  
  * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
 
- * **`StepKey()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
+ * **`Step()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
  * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h`
  copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k,
@@ -229,8 +229,26 @@ A kernel responds to the following methods:
  * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
  plaintext, then increments `n` and returns the plaintext.
 
-3.3.  Session state and methods
+3.3.  Session object usage
 --------------------------------
+
+A session object encapsulates the state variables and methods for executing a
+Noise protocol.
+
+To execute a Noise protocol you `Initialize()` a session, then call
+`WriteHandshakeMessage()` and `ReadHandshakeMessage()` on successive
+descriptors from the protocol's handshake pattern until the handshake is
+complete.
+
+After the handshake is complete you call `EndHandshake()`, which for some
+protocols will return a second session for transport messages from responder to
+initiator.
+
+Then you call `WriteTransportMessage()` and/or `ReadTransportMessage()` on the
+session(s) until you are finished communicating.
+
+3.4. Session state and methods 
+------------------------------
 
 Sessions contain a kernel object, plus the following state variables:
 
@@ -242,12 +260,13 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`flags`**: Booleans that control transport messages: `split_session`,
- `step_key`, `explicit_nonces`.
+ * **`flags`**: Booleans that control transport messages: `split`, `step`,
+ `nonce`.
 
-A session responds to the following initialization methods:
+A session responds to the following methods:
 
- * **`Initialize(name, preshared_key, static_keypair, pre_messages, new_flags)`**:  
+ * **`Initialize(name, preshared_key, static_keypair, ephemeral_keypair,
+ new_flags)`**:  
  
    * Calls `kernel.Initialize()`.
    
@@ -256,19 +275,13 @@ A session responds to the following initialization methods:
    * If `preshared_key` isn't empty then calls `kernel.MixKey(0,
    preshared_key)`.
    
-   * If `static_keypair` isn't empty then calls
-   `SetStaticKeyPair(preshared_key)`.
+   * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
 
-   * pre_messages!!!
+   * If `ephemeral_keypair` isn't empty then sets `e` to `ephemeral_keypair`.
 
    * Sets `flags` to `new_flags`.
 
    * All other variables are set to empty.
-
- * **`Split()`**: Returns a new session by calling `kernel.Split()` and
- copying the returned kernel and all session state into a new session.
-
-For reading or writing messages, the following methods are used:
 
  * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
@@ -310,27 +323,28 @@ For reading or writing messages, the following methods are used:
     `kernel.MixHash(payload)`.  
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
- `kernel.ClearHash()`.  If `session.split_session == True` calls `Split()` and
- returns the new session.
+ `kernel.ClearHash()`.  If `flags.split == True` then returns a new session by
+ calling kernel.Split() and copying the returned kernel and all session state
+ into the new session.
 
- * **`WriteTransport(buffer, final, payload)`**:  Takes an
- empty byte buffer, a `final` boolean indicating whether this is the final
- transport message in the session, and a payload.
+ * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
+ buffer, a `final` boolean indicating whether this is the final transport
+ message in the session, and a payload.
 
    * If `final == True` sets `type` byte to 255 and calls
    `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
    buffer.
 
-   * If `session.explicit_nonces == True`, writes `kernel.GetNonce()` to buffer as a
+   * If `flag.nonce == True`, writes `kernel.GetNonce()` to buffer as a
    big-endian `uint64`.
 
    * Writes a big-endian `uint16` encoding of payload length + 16 to buffer.
 
    * Writes `kernel.Encrypt(payload)` to the buffer.
 
-   * If `session.step_key == True` then calls `kernel.StepKey()`.
+   * If `flags.step == True` then calls `kernel.Step()`.
  
- * **`ReadTransport(buffer)`**:  Takes a byte buffer containing a
+ * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
  message.  Returns a payload and `final` boolean indicating whether this is the
  final transport message in the session.
 
@@ -338,7 +352,7 @@ For reading or writing messages, the following methods are used:
    `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
    `False`.
 
-   * If `session.explicit_nonces == True`, reads the next 64 bits from the buffer as a
+   * If `flag.nonce == True`, reads the next 64 bits from the buffer as a
    big-endian `uint64` `nonce`, then calls `kernel.SetNonce(nonce)`.
 
    * Checks that the next 16 bits of length field are consistent with the size
@@ -346,7 +360,7 @@ For reading or writing messages, the following methods are used:
 
    * Sets `payload` to `kernel.Decrypt()` on the rest of the buffer.  
 
-   * If `session.step_key == True` then calls `kernel.StepKey()`.
+   * If `flags.step == True` then calls `kernel.Step()`.
    
    * Returns `payload` and `final`.
 
@@ -526,40 +540,40 @@ are performed, except `InitializeKernel()` is called in place of
 
 Transport encryption is controlled by several flags:
 
- * **`split_session`**:  A one-way handshake must be followed by a one-way
+ * **`split`**:  A one-way handshake must be followed by a one-way
  stream of transport messages.  But an interactive handshake has the option of
  "splitting" the session into two (via `session.Split()`), so that the
  initiator and responder can both send streams of messages.  
 
- * **`step_key`**: After sending or receiving a message, `StepKey()` may be
+ * **`step`**: After sending or receiving a message, `kernel.Step()` may be
  called to destroy the old key and replace it with a new one.  This provides
  security for old messages against future compromises.  This is incompatible
- with `explicit_nonces`.
+ with `nonce`.
 
- * **`explicit_nonces`**: Out of order messages can be handled by prepending
+ * **`nonce`**: Out of order messages can be handled by prepending
  `n` as an **explicit nonce** to each message.  The recipient will call
- `SetNonce()` on the explicit nonce.  This is incompatible with `step_key`.
+ `kernel.SetNonce()` on the explicit nonce.  This is incompatible with `step`.
 
 7. Protocol names
 ==================
 
 An **abstract protocol name** specifies a handshake pattern and any transport
-flags: 
+flags ("None, "Split", "Step", "Nonce", "SplitStep", "SplitNonce"): 
 
- * `Noise_1X_NoFlags`
+ * `Noise_1X_None
    
- * `Noise_2NX_SplitSession`
+ * `Noise_2NX_Split`
    
- * `Noise_2XX_SplitSession_StepKey`
+ * `Noise_2XX_SplitStep`
    
- * `Noise_2IS_SplitSession_ExplicitNonces`
+ * `Noise_2IS_SplitNonce`
 
 An abstract protocol name can be replaced with a **short name** for easier
 reference.  The following short names are defined:
 
- * `Noise_Box = Noise_1X_NoFlags`
+ * `Noise_Box = Noise_1X_None`
 
- * `Noise_Pipe = Noise_2XX_SplitSession`
+ * `Noise_Pipe = Noise_2XX_Split`
 
 A **concrete protocol name** also specifies the DH functions and cipherset:
 
@@ -567,8 +581,9 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
 
  * `Noise_Pipe_448_AESGCM`
 
- * `Noise_2IS_SplitSession_ExplicitNonces_25519_AESGCM`
+ * `Noise_2IS_SplitNonce_25519_AESGCM`
 
+ * `Noise_1N_None_25519_ChaChaPoly`
 
 9. DH functions and ciphersets
 ===============================
@@ -631,87 +646,6 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
  * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
  * **`HASH(input)`**: `SHA2-256(input)` 
-
-10. Examples
-============
-
-**`Noise_Curve448_ChaChaPoly_1N_OneWayStream`:**
-
-This protocol implements public-key encryption without sender authentication.
-Because it uses a one-way handshake and one-way stream of transport messages,
-this represents a single stream of bytes from sender to recipient.  The initial
-bytes encode a handshake message:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 56-byte Curve448 ephemeral public key
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
-
-Following this are any number of transport messages:
-
- * 1-byte zero branch number for transport message
- * 2-byte length field for transport message
- * Encrypted payload - minimum 18 bytes
-
-The final transport message is the same, except with branch number 255 instead of 0.
-
-**`Noise_Curve25519_AESGCM_2XX_TwoStreams`:**
-
-This protocol implements a mutual-authenticated interactive handshake, followed
-by interactive data exchange.  The initiator's first handshake message is:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * Payload - minimum 0 bytes (more if handshake extensions are sent)
-
-The responder's handshake message is:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
-
-The initiator's final handshake message is: 
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes 
-
-Following this `Split()` splits off a separate session so both parties can
-send a stream of messages.  To indicate they have finished sending data they
-each send a message with branch number 255.
-
-**`Noise_Curve25519_AESGCM_2IK_TwoStreams`**
-
-with branch to
-
-**`Noise_Curve25519_AESGCM_2XX_TwoStreams`:**
-
-This protocol is used when the client wants to run an abbreviated handshake
-(2IK) and send some encrypted extensions in her first message.  If the
-server has changed its static key and can't decrypt that message, it will branch
-to 2XX.  The initiator's first handshake message is:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * 48-byte encrypted Curve25519 static public key (+16 bytes for GCM MAC) 
- * Encrypted payload - minimum 18 bytes 
-
-The responder may continue with the IK handshake by returning branch zero:
-
- * 1-byte zero branch number of handshake message
- * 2-byte length field for the handshake message
- * 32-byte Curve25519 ephemeral public key
- * Encrypted payload - minimum 18 bytes 
-
-Or the responder may switch to branch 1, and return the responder handshake
-message from above.  If the receiver receives a branch 1 message, she
-re-initializes the session with the branch name, and then sends the final
-2XX handshake message. 
 
 
 11. Security Considerations
