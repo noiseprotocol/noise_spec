@@ -422,37 +422,37 @@ exchange messages to agree on a shared key.  InteractiveXX is recommended for mo
 uses.
 
      N_ = no static key for initiator
-     K_ = static key for initiator known to responder
+     S_ = static key for initiator known to responder
      X_ = static key for initiator transmitted to responder
      I_ = static key for inititiator immediately transmitted to responder
  
      _N = no static key for responder
-     _K = static key for responder known to initiator
+     _S = static key for responder known to initiator
      _E = static key plus a semi-ephemeral key for responder known to initiator
      _X = static key for responder transmitted to initiator
 
 
-    InteractiveNN:                      InteractiveKN:                 
+    InteractiveNN:                      InteractiveSN:                 
       -> e                              -> s                       
       <- e, dhee                        ------                     
                                         -> e                       
                                         <- e, dhee, dhes           
                                              
-    InteractiveNK:                      InteractiveKK:                 
+    InteractiveNS:                      InteractiveSS:                 
       <- s                              <- s                       
       ------                            -> s                       
       -> e, dhes                        ------                     
       <- e, dhee                        -> e, dhes, dhss           
                                         <- e, dhee, dhes           
                                               
-    InteractiveNE:                      InteractiveKE:                 
+    InteractiveNE:                      InteractiveSE:                 
       <- s, e                           <- s, e                    
       ------                            -> s                       
       -> e, dhee, dhes                  ------                     
       <- e, dhee                        -> e, dhee, dhes, dhse     
                                         <- e, dhee, dhes           
                                                                      
-    InteractiveNX:                      InteractiveKX:                 
+    InteractiveNX:                      InteractiveSX:                 
       -> e                              -> s                       
       <- e, dhee, s, dhse               ------                     
                                         -> e                       
@@ -464,7 +464,7 @@ uses.
       <- e, dhee                        <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    InteractiveXK:                      InteractiveIK:                   
+    InteractiveXS:                      InteractiveIS:                   
       <- s                              <- s                         
       ------                            ------                       
       -> e, dhes                        -> e, dhes, s, dhss          
@@ -552,7 +552,7 @@ flags:
    
  * `Noise_InteractiveXX_SplitSession_StepKey`
    
- * `Noise_InteractiveIK_SplitSession_ExplicitNonces`
+ * `Noise_InteractiveIS_SplitSession_ExplicitNonces`
 
 An abstract protocol name can be replaced with a **short name** for easier
 reference.  The following short names are defined:
@@ -567,7 +567,7 @@ A **concrete protocol name** also specifies the DH functions and cipherset:
 
  * `Noise_Pipe_448_AESGCM`
 
- * `Noise_InteractiveIK_SplitSession_ExplicitNonces_25519_AESGCM`
+ * `Noise_InteractiveIS_SplitSession_ExplicitNonces_25519_AESGCM`
 
 
 9. DH functions and ciphersets
