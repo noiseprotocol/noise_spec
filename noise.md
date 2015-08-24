@@ -1,9 +1,9 @@
 
-Noise
-======
+Noise version 1 (Draft)
+========================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-21
+ * **Date:** 2015-08-23
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -242,9 +242,12 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
+ * **`flags`**: Boolean variables that control transport messages:
+ `split_sessions`, `step_key`, `explicit_nonces`.
+
 A session responds to the following initialization methods:
 
- * **`Initialize(name, static_keypair, preshared_key, premessages)`**:  
+ * **`Initialize(name, preshared_key, static_keypair, pre_messages, new_flags)`**:  
  
    * Calls `kernel.Initialize()`.
    
@@ -255,7 +258,11 @@ A session responds to the following initialization methods:
    
    * If `static_keypair` isn't empty then calls
    `SetStaticKeyPair(preshared_key)`.
-   
+
+   * pre_messages!!!
+
+   * Sets `flags` to `new_flags`.
+
    * All other variables are set to empty.
 
  * **`Split()`**: Returns a new session by calling `kernel.Split()` and
@@ -280,7 +287,7 @@ For reading or writing messages, the following methods are used:
     * Sets `buffer_len = len(buffer)`.  Prepends the `type` and `uint16`
     encoding of `buffer_len` to the buffer.
 
- * **`ReadHandshakeMessage(buffer, descriptor, payload)`**: Takes a byte buffer
+ * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.
 
     * Reads the first byte into `type`.  Checks that `type` equals
@@ -302,43 +309,46 @@ For reading or writing messages, the following methods are used:
     the remainder of the buffer.  In either case then calls
     `kernel.MixHash(payload)`.  
 
- * **`WriteApplicationMessage(buffer, final, nonce, payload)`**:  Takes an
- empty byte buffer, a `final` boolean indicating whether this is the final
- application message in the session, an `explicit_nonce` boolean indicating
- whether to encode the nonce, and a payload.
+ * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
+ `kernel.ClearHash()`.  If `session.split_sessions == True` calls `Split()` and
+ returns the new session.
 
-   * Calls `kernel.ClearHash()`.
+ * **`WriteApplicationMessage(buffer, final, payload)`**:  Takes an
+ empty byte buffer, a `final` boolean indicating whether this is the final
+ application message in the session, and a payload.
 
    * If `final == True` sets `type` byte to 255 and calls
    `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
    buffer.
 
-   * If `explicit_nonce == True`, writes `kernel.GetNonce()` to buffer as a
+   * If `session.explicit_nonces == True`, writes `kernel.GetNonce()` to buffer as a
    big-endian `uint64`.
 
    * Writes a big-endian `uint16` encoding of payload length + 16 to buffer.
 
    * Writes `kernel.Encrypt(payload)` to the buffer.
 
- * **`ReadApplicationMessage(buffer, final, nonce, payload)`**:  Takes a byte
- buffer containing a message, an `explicit_nonce` boolean indicating whether to
- encode the nonce.  Returns a payload and `final` boolean indicating whether
- this is the final application message in the session.
-
-   * Calls `kernel.ClearHash()`.
+   * If `session.step_key == True` then calls `kernel.StepKey()`.
+ 
+ * **`ReadApplicationMessage(buffer)`**:  Takes a byte buffer containing a
+ message.  Returns a payload and `final` boolean indicating whether this is the
+ final application message in the session.
 
    * Reads the first byte into `type`.  If `type` is 255 calls
    `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
    `False`.
 
-   * If `explicit_nonce == True`, reads the next 64 bits from the buffer as a
+   * If `session.explicit_nonces == True`, reads the next 64 bits from the buffer as a
    big-endian `uint64` `nonce`, then calls `kernel.SetNonce(nonce)`.
 
    * Checks that the next 16 bits of length field are consistent with the size
    of the buffer.
 
-   * Sets `payload` to `kernel.Decrypt()` on the rest of the buffer.  Returns
-   `payload` and `final`.
+   * Sets `payload` to `kernel.Decrypt()` on the rest of the buffer.  
+
+   * If `session.step_key == True` then calls `kernel.StepKey()`.
+   
+   * Returns `payload` and `final`.
 
 
 4. Handshake patterns 
@@ -540,11 +550,6 @@ Key updating techniques can be used within a stream:
  old keys against future compromises, and also allows cacheing old keys in case
  of out-of-order messages.
 
- * **DH ratcheting**: Ephemeral public keys can be exchanged and mixed into a
- "root" session.  This allows implementing an Axolotl-like ratchet, where
- receiving and sending sessions are derived from the root session via `Split()`
- calls.
-
 7. Protocol names
 ==================
 
@@ -728,15 +733,19 @@ The default ciphersets use SHA2-256 because:
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
  * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128 bytes), avoiding unnecessary calculation when processing smaller inputs
 
-The cipher key must be at least 256 bits because:
+The cipher key must be 256 bits because:
 
  * The cipher key accumulates the DH output, so collision-resistance is desirable
 
-Little-endian is preferred because:
+Big-endian is preferred because:
 
- * Bignum libraries almost always use little-endian.
- * The standard ciphersets use Curve25519, Curve448, and ChaCha20/Poly1305, which are little-endian.
- * Most modern processors are little-endian.
+ * While it's true that bignum libraries, Curve25519, Curve448, and
+ ChaCha20/Poly1305 use little-endian, these will likely be handled by
+ specialized libraries.
+ * The Noise length fields, on the other hand, are more likely to be handled by
+ network parsing code where big-endian "network byte order" is more
+ traditional.
+
 
 13. IPR
 ========
