@@ -270,8 +270,10 @@ A session responds to the following methods:
  
    * Calls `kernel.Initialize()`.
    
-   * Calls `kernel.MixKey(0x00 || name || 0x00 || preshared_key)`.  
-   
+   * Calls `kernel.MixHash(name)`. 
+ 
+   * Calls `kernel.MixKey(preshared_key)`.
+  
    * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
 
    * If `ephemeral_keypair` isn't empty then sets `e` to `ephemeral_keypair`.
