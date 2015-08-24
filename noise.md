@@ -58,8 +58,9 @@ communications.
 
 Noise can implement handshakes where each party has a static and/or ephemeral
 DH key pair.  The static keypair is a long-term key pair that exists prior to
-the protocol.  Ephemeral key pairs are short-term key pairs that exist only
-during the handshake.
+the protocol.  Ephemeral key pairs are short-term key pairs that are typically
+used for a single handshake.  Noise also allows pre-shared ephemeral
+key pairs that may be used for multiple handshakes.
 
 2.5. DH functions and ciphersets
 ---------------------------------
