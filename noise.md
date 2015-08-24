@@ -311,8 +311,8 @@ A session responds to the following methods:
     * Processes each token in the descriptor sequentially:
       * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
       * For "s" if `kernel.HasKey() == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
-    `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
-    bytes from `buffer`. In either case then calls `kernel.MixHash(s)`.  
+        `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
+        bytes from `buffer`. In either case then calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))`.
 
     * If `kernel.HasKey() == True` sets `payload` to the output from calling
