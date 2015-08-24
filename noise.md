@@ -265,18 +265,19 @@ Sessions contain a kernel object, plus the following state variables:
 
 A session responds to the following methods:
 
- * **`Initialize(name, preshared_key, static_keypair, ephemeral_keypair,
- new_flags)`**:  
+ * **`Initialize(name, preshared_key, static_keypair,
+ preshared_ephemeral_keypair, new_flags)`**: Takes a protocol `name` and
+ `preshared_key` which are both variable-length byte sequences (the
+ `preshared_key` may be empty).  Also takes optional static and "pre-shared"
+ ephemeral keypairs).
  
    * Calls `kernel.Initialize()`.
    
-   * Calls `kernel.MixHash(name)`. 
- 
-   * Calls `kernel.MixKey(preshared_key)`.
+   * Calls `kernel.MixKey(0x00 || name || 0x00 || preshared_key)`.
   
    * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
 
-   * If `ephemeral_keypair` isn't empty then sets `e` to `ephemeral_keypair`.
+   * If `preshared_ephemeral_keypair` isn't empty then sets `e` to `preshared_ephemeral_keypair`.
 
    * Sets `flags` to `new_flags`.
 
@@ -289,12 +290,11 @@ A session responds to the following methods:
     * Processes each token in the descriptor sequential:
       * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
       * For "s" if `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
-        otherwise appends `s`.  In either case then calls `kernel.MixHash(s)`.  
+        otherwise appends `s`.  Then calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))`.
 
     * If `kernel.HasKey() == True` appends `kernel.Encrypt(payload)` to the
-    buffer, otherwise appends `payload`.  In either case then calls
-    `kernel.MixHash(payload)`.  
+    buffer, otherwise appends `payload`.  Then calls `kernel.MixHash(payload)`.  
 
     * Sets `buffer_len` to the length in bytes of `buffer`.  Prepends the
     `type` and `uint16` encoding of `buffer_len` to the buffer.
@@ -312,13 +312,12 @@ A session responds to the following methods:
       * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
       * For "s" if `kernel.HasKey() == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
         `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
-        bytes from `buffer`. In either case then calls `kernel.MixHash(s)`.  
+        bytes from `buffer`. Then calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))`.
 
     * If `kernel.HasKey() == True` sets `payload` to the output from calling
     `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
-    the remainder of the buffer.  In either case then calls
-    `kernel.MixHash(payload)`.  
+    the remainder of the buffer.  Then calls `kernel.MixHash(payload)`.  
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
  `kernel.ClearHash()`.  If `flags.split == True` then returns a new session by
