@@ -41,11 +41,11 @@ comprise a handshake.
 A simple pattern might describe a one-way encrypted message from Alice to Bob.
 A more complex pattern might describe an interactive handshake.
 
-2.3.  After the handshake: application messages
-------------------------------------------------
+2.3.  After the handshake: transport messages
+----------------------------------------------
 
 After the handshake messages each party will possess a shared secret key and
-can send **application messages** which consist of encrypted payloads without
+can send **transport messages** which consist of encrypted payloads without
 DH public keys.
 
 Several operations can be used to control the encryption including: explicit
@@ -64,7 +64,7 @@ during the handshake.
 ---------------------------------
 
 A Noise protocol can be described abstractly in terms of its handshake pattern
-and handling of application messages.
+and handling of transport messages.
 
 A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
@@ -99,7 +99,7 @@ Following the public keys is a `payload` field, which will be encrypted if a
 secret key has been negotiated.  The payload may contain certificates, routing
 information, advertisements for supported features, or anything else.
 
-3.2. Application messages
+3.2. Transport messages
 --------------------------
 
     uint8 type;
@@ -107,8 +107,8 @@ information, advertisements for supported features, or anything else.
     uint16 length;
     byte payload[length];
 
-Every application message begins with a single `type` byte, which will be zero
-unless this is the last application message in a session, in which case it's
+Every transport message begins with a single `type` byte, which will be zero
+unless this is the last transport message in a session, in which case it's
 set to 255.
 
 If the protocol uses explicit nonces, then the `type` will be followed by a
@@ -118,7 +118,7 @@ Following the `type` or `nonce` field is a big-endian `uint16` length field
 describing the number of following bytes in the message.
 
 Following the `length` field is an encrypted `payload` field.  The payloads are
-used to transport application data.
+used to transport transport data.
 
 
 3. Sessions
@@ -313,9 +313,9 @@ For reading or writing messages, the following methods are used:
  `kernel.ClearHash()`.  If `session.split_sessions == True` calls `Split()` and
  returns the new session.
 
- * **`WriteApplicationMessage(buffer, final, payload)`**:  Takes an
+ * **`WriteTransport(buffer, final, payload)`**:  Takes an
  empty byte buffer, a `final` boolean indicating whether this is the final
- application message in the session, and a payload.
+ transport message in the session, and a payload.
 
    * If `final == True` sets `type` byte to 255 and calls
    `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
@@ -330,9 +330,9 @@ For reading or writing messages, the following methods are used:
 
    * If `session.step_key == True` then calls `kernel.StepKey()`.
  
- * **`ReadApplicationMessage(buffer)`**:  Takes a byte buffer containing a
+ * **`ReadTransport(buffer)`**:  Takes a byte buffer containing a
  message.  Returns a payload and `final` boolean indicating whether this is the
- final application message in the session.
+ final transport message in the session.
 
    * Reads the first byte into `type`.  If `type` is 255 calls
    `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
@@ -521,10 +521,10 @@ are performed, except `InitializeKernel()` is called in place of
 `InitializeSession()` to allow previously exchanged public keys to be re-used.
 
 
-6. Application messages
+6. Transport messages
 ========================
 
-Application messages can be sent in several ways:
+Transport messages can be sent in several ways:
 
  * **One-way stream**: One party sends a stream of messages.  For security
  reasons this is the only allowed method when using a one-way handshake.  
@@ -559,8 +559,8 @@ key.
 
 A Noise protocol or branch name should consist of six underscore-separated
 fields that identify the DH functions, the cipherset, the handshake pattern,
-handling of application messages, and a unique name for the
-application protocol.  Examples:
+handling of transport messages, and a unique name for the
+transport protocol.  Examples:
 
  `"Noise_Curve25519_AESGCM_OneWayX_OneWayStream_SpecExample1"`
 
@@ -625,7 +625,7 @@ application protocol.  Examples:
 **`Noise_Curve448_ChaChaPoly_OneWayN_OneWayStream`:**
 
 This protocol implements public-key encryption without sender authentication.
-Because it uses a one-way handshake and one-way stream of application messages,
+Because it uses a one-way handshake and one-way stream of transport messages,
 this represents a single stream of bytes from sender to recipient.  The initial
 bytes encode a handshake message:
 
@@ -634,13 +634,13 @@ bytes encode a handshake message:
  * 56-byte Curve448 ephemeral public key
  * Encrypted payload - minimum 18 bytes (2 for padding length, 16 for MAC; more if padding or handshake extensions are sent)
 
-Following this are any number of application messages:
+Following this are any number of transport messages:
 
- * 1-byte zero branch number for application message
- * 2-byte length field for application message
+ * 1-byte zero branch number for transport message
+ * 2-byte length field for transport message
  * Encrypted payload - minimum 18 bytes
 
-The final application message is the same, except with branch number 255 instead of 0.
+The final transport message is the same, except with branch number 255 instead of 0.
 
 **`Noise_Curve25519_AESGCM_InteractiveXX_TwoStreams`:**
 
