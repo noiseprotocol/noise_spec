@@ -289,7 +289,7 @@ A session responds to the following methods:
     * Processes each token in the descriptor sequential:
       * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
       * For "s" if `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
-    otherwise appends `s`.  In either case then calls `kernel.MixHash(s)`.  
+        otherwise appends `s`.  In either case then calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))`.
 
     * If `kernel.HasKey() == True` appends `kernel.Encrypt(payload)` to the
