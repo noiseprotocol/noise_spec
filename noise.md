@@ -201,8 +201,6 @@ A kernel contains the following state variables:
 A kernel responds to the following methods:
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to empty.
-
- * **`HasKey()`**: Returns `True` if `k` is all zeros, `False` otherwise.
  
  * **`ClearHash()`**: Sets `h` to empty.
 
@@ -260,6 +258,8 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
+ * **`has_key`**: Boolean that records whether the kernel has a secret key.
+
  * **`flags`**: Booleans that control transport messages: `split`, `step`,
  `nonce`.
 
@@ -268,12 +268,15 @@ A session responds to the following methods:
  * **`Initialize(name, preshared_key, static_keypair,
  preshared_ephemeral_keypair, new_flags)`**: Takes a protocol `name` and
  `preshared_key` which are both variable-length byte sequences (the
- `preshared_key` may be empty).  Also takes optional static and "pre-shared"
- ephemeral keypairs).
+ `preshared_key` may be empty).  Also takes optional static and "pre-shared
+ ephemeral" keypairs).
  
    * Calls `kernel.Initialize()`.
    
    * Calls `kernel.MixKey(0x00 || name || 0x00 || preshared_key)`.
+
+   * If `preshared_key` isn't empty then sets `has_key` to `True`, otherwise
+   sets it to `False`.
   
    * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
 
@@ -281,19 +284,19 @@ A session responds to the following methods:
 
    * Sets `flags` to `new_flags`.
 
-   * All other variables are set to empty.
+   * Sets all other variables to empty.
 
- * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty
+ * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
- dhee, dhes, dhse, dhss", and a payload.
+ dhee, dhes, dhse, dhss", a `type` byte, and a `payload`.
  
-    * Processes each token in the descriptor sequential:
+    * Processes each token in the descriptor sequentially:
       * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s" if `kernel.HasKey() == True` appends `kernel.Encrypt(s)` to the buffer,
+      * For "s" if `has_key == True` appends `kernel.Encrypt(s)` to the buffer,
         otherwise appends `s`.  Then calls `kernel.MixHash(s)`.  
-      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))`.
+      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))` and sets `has_key` to True.
 
-    * If `kernel.HasKey() == True` appends `kernel.Encrypt(payload)` to the
+    * If `has_key == True` appends `kernel.Encrypt(payload)` to the
     buffer, otherwise appends `payload`.  Then calls `kernel.MixHash(payload)`.  
 
     * Sets `buffer_len` to the length in bytes of `buffer`.  Prepends the
@@ -302,20 +305,20 @@ A session responds to the following methods:
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.
 
-    * Reads the first byte into `type`.  Checks that `type` equals
-    `expected_type`.
+    * Skips the first byte (which may be used by the caller to select the right
+    descriptor).
 
     * Checks that the next 16 bits of length field are consistent with the size
     of the buffer.
 
     * Processes each token in the descriptor sequentially:
       * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
-      * For "s" if `kernel.HasKey() == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
+      * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
         `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
         bytes from `buffer`. Then calls `kernel.MixHash(s)`.  
-      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))`.
+      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))` and sets `has_key` to True.
 
-    * If `kernel.HasKey() == True` sets `payload` to the output from calling
+    * If `has_key == True` sets `payload` to the output from calling
     `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
     the remainder of the buffer.  Then calls `kernel.MixHash(payload)`.  
 
