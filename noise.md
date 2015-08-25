@@ -313,9 +313,10 @@ A session responds to the following methods:
     * Processes each token in the descriptor sequentially:
       * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
       * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
-        `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next `dhlen`
-        bytes from `buffer`. Then calls `kernel.MixHash(s)`.  
-      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))` and sets `has_key` to True.
+        `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next
+        `dhlen` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  
+      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))` and sets `has_key` to
+        True.
 
     * If `has_key == True` sets `payload` to the output from calling
     `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
@@ -332,14 +333,14 @@ A session responds to the following methods:
 
    * If `final == True` sets `type` byte to 255 and calls
    `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
-   buffer.
+   `buffer`.
 
-   * If `flag.nonce == True` then writes `kernel.GetNonce()` to buffer as a
+   * If `flag.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
    big-endian `uint64`.
 
-   * Writes a big-endian `uint16` encoding of payload length + 16 to buffer.
+   * Writes a big-endian `uint16` encoding of payload length + 16 to `buffer`.
 
-   * Writes `kernel.Encrypt(payload)` to the buffer.
+   * Writes `kernel.Encrypt(payload)` to `buffer`.
 
    * If `flags.step == True` then calls `kernel.Step()`.
  
