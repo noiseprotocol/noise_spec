@@ -530,8 +530,8 @@ key does not exist.
 
 The recipient could detect this and skip redundant DH calculations.  This
 allows `X` and `XX` to support authentication options with minimal efficiency
-loss or added complexity.  For this reason, `X` and `XX` are recommended for
-most cases.
+loss, added complexity, or information leakage.  For this reason, `X` and `XX`
+are recommended for most cases.
 
 4.3. Re-initialization
 ------------------------
