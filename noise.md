@@ -249,7 +249,7 @@ session(s) until you are finished communicating.
 
 Sessions contain the following state variables:
 
- * **`kernel``**: Kernel object that provides symmetric crypto.
+ * **`kernel`**: Kernel object that provides symmetric crypto.
 
  * **`s`**: The local static key pair 
 
