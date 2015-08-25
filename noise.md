@@ -258,7 +258,9 @@ Sessions contain a kernel object, plus the following state variables:
  * **`re`**: The remote party's ephemeral public key 
 
  * **`has_key`**: Boolean that records whether the kernel has a secret key.
-
+ 
+ * **`kernel``**: Kernel object that provides symmetric crypto.
+ 
  * **`flags`**: Booleans that control transport messages: `split`, `step`,
  `nonce`.
 
@@ -285,14 +287,20 @@ A session responds to the following methods:
 
    * Sets all other variables to empty.
 
+ * **`Reinitialize(name, preshared_key, new_kernel, new_flags)`**:
+
+   * Calls `Initialize(name, preshared_key, s, e, new_flags)`.
+
+
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
  dhee, dhes, dhse, dhss", a `type` byte, and a `payload`.
  
     * Processes each token in the descriptor sequentially:
-      * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s" if `has_key == True` appends `kernel.Encrypt(s)` to the buffer,
-        otherwise appends `s`.  Then calls `kernel.MixHash(s)`.  
+      * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
+      * For "s":  If `s` is empty copies `e` to `s`. If `has_key == True`
+      appends `kernel.Encrypt(s)` to the buffer, otherwise appends `s`.  Then
+      calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
 
     * If `has_key == True` appends `kernel.Encrypt(payload)` to the
@@ -335,7 +343,7 @@ A session responds to the following methods:
    `kernel.MixHash(type)`, otherwise sets `type` to 254.  Writes `type` to
    `buffer`.
 
-   * If `flag.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
+   * If `flags.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
    big-endian `uint64`.
 
    * Writes a big-endian `uint16` encoding of payload length + 16 to `buffer`.
@@ -497,20 +505,39 @@ uses.
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-4.3. Branching
+4.3. Static nullification
+--------------------------
+
+Some patterns can be viewed as subsets of a larger pattern with the static
+key operations from one or both parties removed.  
+
+For example, `N` can be viewed as a subset of `X`.  Similarly, `NN`, `NX`, and
+`XN` can be viewed as subsets of `XX`.  `XX` provides mutual authentication,
+`NN` provides no authentication, `XN` authenticates the initiator, and `NX`
+authenticates the responder.
+
+A party can simulate a subset pattern by copying their ephemeral public as the
+static public key.  This signals to the recipient that a distinct static public
+key does not exist.
+
+The recipient could detect this and skip redundant DH calculations.  This
+allows `X` and `XX` to implement various authentication options with minimal
+efficiency loss or added complexity.  For this reason, `X` and `XX` are
+recommended for most cases.
+
+4.3. Re-initialization
+
 ---------------
 
-Branching allows parties to alter the handshake pattern, ciphersets, or other
-protocol characteristics on the fly.  For example: 
+The `type` field in handshake messages can be used to trigger **session
+re-initialization**.  This allows parties to alter handshake patterns,
+ciphersets, and transport flags on the fly. 
 
- * A server could choose which cipherset to support based on options offered
- by the client.
 
- * A client could choose whether to authenticate itself based on the server's
- response.
-
- * A client could attempt an abbreviated handshake based on cached information,
- and if this information is stale the server can fall back to a full handshake.
+Branching allows parties to alter the handshake pattern on the fly.  For
+example, a client could attempt an abbreviated handshake like `IS` or `IE`
+based on cached information.  If this information is stale the server could
+fall back to a full handshake, like `XX`.
 
 Branching requires:
 
