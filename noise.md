@@ -1,5 +1,6 @@
 
-Noise v1 (draft) =================
+Noise v1 (draft) 
+=================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-08-23
