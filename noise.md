@@ -332,7 +332,7 @@ A session responds to the following methods:
  message in the session, and a payload.
 
    * If `final == True` sets `type` byte to 255 and calls
-   `kernel.MixHash(type)`, otherwise sets `type` to zero.  Writes `type` to
+   `kernel.MixHash(type)`, otherwise sets `type` to 254.  Writes `type` to
    `buffer`.
 
    * If `flag.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
@@ -349,16 +349,16 @@ A session responds to the following methods:
  final transport message in the session.
 
    * Reads the first byte into `type`.  If `type` is 255 calls
-   `kernel.MixHash(type)` and sets `final` to `True`, otherwise sets `final` to
-   `False`.
+   `kernel.MixHash(type)` and sets `final` to `True`, otherwise checks that
+   type is 254 and sets `final` to `False`.
 
-   * If `flag.nonce == True` then reads the next 64 bits from the buffer as a
+   * If `flag.nonce == True` then reads the next 64 bits from `buffer` as a
    big-endian `uint64` `nonce` and calls `kernel.SetNonce(nonce)`.
 
    * Checks that the next 16 bits of length field are consistent with the size
-   of the buffer.
+   of `buffer`.
 
-   * Sets `payload` to `kernel.Decrypt()` on the rest of the buffer.  
+   * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
 
    * If `flags.step == True` then calls `kernel.Step()`.
    
@@ -406,7 +406,7 @@ can be defined in other documents.
 ----------------------
 
 The following patterns represent "one-way" messages from a sender to a
-recipient.  1X is recommended for most uses.
+recipient.  `X` is recommended for most uses.
 
      N  = no static key for sender
      S  = static key for sender known to recipient
@@ -432,7 +432,7 @@ recipient.  1X is recommended for most uses.
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
-exchange messages to agree on a shared key.  XX is recommended for most
+exchange messages to agree on a shared key.  `XX` is recommended for most
 uses.
 
      N_ = no static key for initiator
@@ -541,18 +541,18 @@ are performed, except `InitializeKernel()` is called in place of
 Transport encryption is controlled by several flags:
 
  * **`split`**:  A one-way handshake must be followed by a one-way stream of
- transport messages.  But an interactive handshake is allowed to "split" the session
- into two (via `session.Split()`), so that the initiator and responder can both
- send streams of messages.  
+ transport messages.  But an interactive handshake is allowed to "split" the
+ session into two sessions (via `session.Split()`), so that the initiator and
+ responder can both send streams of messages.  
 
  * **`step`**: After sending or receiving a message, `kernel.Step()` may be
  called to destroy the old key and replace it with a new one.  This provides
  security for old messages against future compromises.  This is incompatible
  with `nonce`.
 
- * **`nonce`**: Out of order messages can be handled by prepending
- `n` as an **explicit nonce** to each message.  The recipient will call
- `kernel.SetNonce()` on the explicit nonce.  This is incompatible with `step`.
+ * **`nonce`**: Out of order messages can be handled by prepending `n` as an
+ explicit nonce to each message.  The recipient will call `kernel.SetNonce()`
+ on the explicit nonce.  This is incompatible with `step`.
 
 7. Protocol names
 ==================
