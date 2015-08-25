@@ -272,7 +272,7 @@ A session responds to the following methods:
  
    * Calls `kernel.Initialize()`.
    
-   * Calls `kernel.MixKey(0x00 || name || 0x00 || preshared_key)`.
+   * Calls `kernel.MixKey(name || 0x00 || preshared_key)`.
 
    * If `preshared_key` isn't empty then sets `has_key` to `True`, otherwise
    sets it to `False`.
@@ -293,7 +293,7 @@ A session responds to the following methods:
       * For "e" sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
       * For "s" if `has_key == True` appends `kernel.Encrypt(s)` to the buffer,
         otherwise appends `s`.  Then calls `kernel.MixHash(s)`.  
-      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(x, ry))` and sets `has_key` to True.
+      * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
 
     * If `has_key == True` appends `kernel.Encrypt(payload)` to the
     buffer, otherwise appends `payload`.  Then calls `kernel.MixHash(payload)`.  
@@ -315,7 +315,7 @@ A session responds to the following methods:
       * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
         `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next
         `dhlen` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  
-      * For "dh*xy*" calls `kernel.MixKey(0x00 || DH(y, rx))` and sets `has_key` to
+      * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to
         True.
 
     * If `has_key == True` sets `payload` to the output from calling
@@ -526,8 +526,8 @@ Branching requires:
  * For each alternative, specifying whether it re-uses the session state or
  re-initializes the session.
 
-If a non-zero branch is taken and session state is re-used, `MixKey(0x01 ||
-name)` is called on the branch name.
+If a non-zero branch is taken and session state is re-used, `MixKey(name)` is
+called on the branch name.
 
 If a non-zero branch is taken and session state is re-initialized, then the
 branch message is treated as starting a new handshake, and the steps from 4.2
