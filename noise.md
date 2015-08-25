@@ -294,10 +294,10 @@ A session responds to the following methods:
 
    * Sets all other variables to empty.
 
- * **`Reinitialize(name, preshared_key, new_kernel, new_flags)`**:
-
-   * Calls `Initialize(name, preshared_key, s, e, new_flags)`.
-
+ * **`Reinitialize(name, preshared_key, new_kernel, new_flags)`**:  This
+   re-initializes a session while preserving its existing key pairs.  It can be
+   used to support complex handshakes where behavior is altered by the `type`
+   field.  Calls `Initialize(name, preshared_key, s, e, new_flags)`.
 
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
@@ -524,18 +524,17 @@ For example, `N` can be viewed as a subset of `X`.  Similarly, `NN`, `NX`, and
 `NN` provides no authentication, `XN` authenticates the initiator, and `NX`
 authenticates the responder.
 
-A party can simulate a subset pattern by copying their ephemeral public as the
+A party can simulate a subset pattern by copying her ephemeral public as the
 static public key.  This signals to the recipient that a distinct static public
 key does not exist.
 
 The recipient could detect this and skip redundant DH calculations.  This
-allows `X` and `XX` to implement various authentication options with minimal
-efficiency loss or added complexity.  For this reason, `X` and `XX` are
-recommended for most cases.
+allows `X` and `XX` to support authentication options with minimal efficiency
+loss or added complexity.  For this reason, `X` and `XX` are recommended for
+most cases.
 
 4.3. Re-initialization
-
----------------
+------------------------
 
 The `type` field in handshake messages can be used to trigger **session
 re-initialization**.  This allows parties to alter handshake patterns,
