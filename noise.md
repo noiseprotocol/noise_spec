@@ -379,21 +379,15 @@ the first message sent from the initiator to the responder; the next descriptor
 describes the response message, and so on.  All messsages described by the
 pattern must be sent in order.  
 
-Patterns must follow these security rules:  If a pattern has a single handshake
-message, the first token in that descriptor must be "e", and the second token
-must be "dhe*x*", where _x_ is a pre-known public key.  If a pattern has more
-than one handshake message, then the initiating message must begin with "e",
-and the response message must begin with "e, dhee".
-
-The following is the minimal 2-message pattern.  It describes an unauthenticated
-DH handshake:
+The following pattern describes an unauthenticated DH handshake:
 
       -> e
       <- e, dhee
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These messages aren't sent but are only used for their side-effect of calling
-`MixHash()`.  
+These messages are used with `WriteHandshakeMessage()` and
+`ReadHandshakeMessage()` but aren't actually sent.  They're only used for their
+side-effect of calling `MixHash()` and initializing `rs` and `re`.  
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
