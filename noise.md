@@ -3,7 +3,7 @@ Noise v1 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-23
+ * **Date:** 2015-08-25
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -577,11 +577,11 @@ An abbreviated or "zero-round-trip" handshake is also supported via handshake
 re-initialization:
 
  * Type 1 on the initiator's first handshake message indicates the message is
-   an abbreviated `IS` handshake instead of `XX`, using name "Noise_PipeIS".
+   an abbreviated `IS` handshake instead of `XX`, using name `Noise_PipeIS`.
 
  * Type 1 on the responder's first `IS` response indicates the responder failed
  to authenticate the `IS` message and is falling back to `XX`, using abstract
- name "Noise_PipeISfallbackXX".  The sender and responder will re-initialize, the
+ name `Noise_PipeISfallbackXX`.  The sender and responder will re-initialize, the
  responder using the first message's ephemeral ("e") turned into a pre-message.
 
 Encrypted data sent in the first `IS` message is susceptible to replay attacks,
@@ -623,7 +623,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
 
     Noise_Pipe_25519_AESGCM
 
-    Noise_PipeISfallbackXX_AESGCM_25519_AESGCM
+    Noise_PipeISfallbackXX_25519_AESGCM
 
     Noise_IE_Split_448_ChaChaPoly
 
