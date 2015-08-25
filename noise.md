@@ -584,6 +584,11 @@ re-initialization:
  name "Noise_PipeISfallbackXX".  The sender and responder will re-initialize, the
  responder using the first message's ephemeral ("e") turned into a pre-message.
 
+Encrypted data sent in the first `IS` message is susceptible to replay attacks,
+and also loses forward security and authentication if the responder's static
+private key is compromised.  The abbreviated handshake's payload should only be
+used for data where this reduction in security is acceptable.
+
 The below patterns are annotated to show the message types for the regular,
 abbreviated, and fallback cases:
 
@@ -603,7 +608,7 @@ abbreviated, and fallback cases:
       ------
       1 -> e, dhes, s, dhss          
 
-      (re-initialize, responder handles "e" as pre-message)
+      (re-initialize, responder handles initiator's "e" as pre-message)
 
       1 <- e, dhee, s, dhse
       0 -> s, dhse
@@ -694,7 +699,7 @@ This section collects various security considerations:
 
 Reusing a nonce value for `n` with the same key `k` for encryption would be
 catastrophic.  Implementations must carefully follow the rules for incrementing
-nonces.   `SetNonce()` should only be called with extreme caution.
+nonces.   
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
