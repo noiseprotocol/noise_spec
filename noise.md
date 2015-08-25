@@ -60,7 +60,7 @@ Noise can implement handshakes where each party has a static and/or ephemeral
 DH key pair.  The static keypair is a long-term key pair that exists prior to
 the protocol.  Ephemeral key pairs are short-term key pairs that are typically
 used for a single handshake.  Noise also allows pre-shared ephemeral
-key pairs that may be used for multiple handshakes.
+key pairs that may be used across multiple handshakes.
 
 2.5. DH functions and ciphersets
 ---------------------------------
@@ -82,7 +82,7 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
     uint16 length;
     (
       ( byte pubkey[dhlen]; )?
-      ( byte encrypted_pubkey[dhlen + 16]; )?
+      ( byte encrypted_static_pubkey[dhlen + 16]; )?
     )+ 
     byte payload[length - pubkeys_length];
 
@@ -129,9 +129,8 @@ A Noise session can be viewed as three layers:
 
  * **DH functions** and a **cipherset** provide low-level crypto functions.
 
- * A **kernel object** builds on the cipherset.  The kernel provides methods for
- mixing inputs into a secret key and using that key for encryption and
- decryption.
+ * A **kernel object** builds on the cipherset.  The kernel mixes inputs into a
+ secret key and uses that key for encryption and decryption.
 
  * A **session object** builds on the kernel and DH functions and provides methods
  for handling messages.
@@ -269,7 +268,7 @@ A session responds to the following methods:
  preshared_ephemeral_keypair, new_flags)`**: Takes a protocol `name` and
  `preshared_key` which are both variable-length byte sequences (the
  `preshared_key` may be empty).  Also takes optional static and "pre-shared
- ephemeral" keypairs).
+ ephemeral" keypairs.
  
    * Calls `kernel.Initialize()`.
    
