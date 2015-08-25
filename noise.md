@@ -1,6 +1,5 @@
 
-Noise v1 (draft)
-=================
+Noise v1 (draft) =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-08-23
@@ -103,24 +102,15 @@ information, advertisements for supported features, or anything else.
 3.2. Transport messages
 --------------------------
 
-    uint8 type;
     ( uint64 nonce; )?
     uint16 length;
     byte payload[length];
 
-Every transport message begins with a single `type` byte, which will be 254
-unless this is the last transport message in a session, in which case it's
-255.
-
-If the protocol uses explicit nonces, then the `type` will be followed by a
+If the protocol uses explicit nonces, transport messages will begin with a
 64-bit big-endian `uint64` nonce.
 
-Following the `type` or `nonce` field is a big-endian `uint16` length field
-describing the number of following bytes in the message.
-
-Following the `length` field is an encrypted `payload` field.  The payloads are
-used to carry application data.
-
+Following this (or at the beginning) is a big-endian `uint16` length field
+describing the number of following bytes in the encrypted payload.
 
 3. Sessions
 ============
@@ -347,9 +337,8 @@ A session responds to the following methods:
  buffer, a `final` boolean indicating whether this is the final transport
  message in the session, and a payload.
 
-   * If `final == True` sets `type` byte to 255 and calls
-   `kernel.MixHash(type)`, otherwise sets `type` to 254.  Writes `type` to
-   `buffer`.
+   * If `final == True` sets `type` byte to 1, otherwise sets `type` to 0.
+     Prepends `type` to payload.
 
    * If `flags.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
    big-endian `uint64`.
@@ -364,10 +353,6 @@ A session responds to the following methods:
  message.  Returns a payload and `final` boolean indicating whether this is the
  final transport message in the session.
 
-   * Reads the first byte into `type`.  If `type` is 255 calls
-   `kernel.MixHash(type)` and sets `final` to `True`, otherwise checks that
-   type is 254 and sets `final` to `False`.
-
    * If `flag.nonce == True` then reads the next 64 bits from `buffer` as a
    big-endian `uint64` `nonce` and calls `kernel.SetNonce(nonce)`.
 
@@ -375,6 +360,9 @@ A session responds to the following methods:
    of `buffer`.
 
    * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
+
+   * If the first byte of `payload` is 1 then set `final = True`, otherwise set
+     `final = `False`.  Remove the first byte from `payload`.
 
    * If `flags.step == True` then calls `kernel.Step()`.
    
