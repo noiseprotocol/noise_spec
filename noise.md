@@ -17,17 +17,7 @@ interactive protocols.
 2. Overview
 ============
 
-2.1. Messages and sessions
----------------------------
-
-**Messages** are exchanged between parties.  Each message will contain zero or
-more DH public keys followed by a payload.  Either the public keys or payload
-may be encrypted.
-
-Each party will have a **session** which contains the state used to
-process messages.
-
-2.2. Handshake messages: descriptors and patterns
+2.1. Handshake messages: descriptors and patterns
 --------------------------------------------------
 
 A Noise protocol begins with a handshake phase where both parties send
@@ -41,28 +31,26 @@ comprise a handshake.
 A pattern might describe a one-way encrypted message from Alice to Bob or an
 interactive handshake.
 
-2.3.  After the handshake: transport messages
+2.2.  After the handshake: transport messages
 ----------------------------------------------
 
 After the handshake messages each party will possess a shared secret key and
-can send **transport messages** which consist of encrypted payloads without
-DH public keys.
+can send **transport messages** which consist of encrypted payloads.
 
 The transport phase is described by **transport flags** that specify whether to
 use features like explicit nonces for out-of-order messages, "stepping" the
 shared key for forward security, and "splitting" the shared key for duplex
 communications.
 
-2.4. Key agreement
+2.3. Key agreement
 -------------------
 
 Noise can implement handshakes where each party has a static and/or ephemeral
 DH key pair.  The static keypair is a long-term key pair that exists prior to
 the protocol.  Ephemeral key pairs are short-term key pairs that are typically
-used for a single handshake.  Noise also allows pre-shared ephemeral
-key pairs that may be used across multiple handshakes.
+used for a single handshake.
 
-2.5. DH functions and ciphersets
+2.4. DH functions and ciphersets
 ---------------------------------
 
 A Noise protocol is specified abstractly by its handshake pattern and transport
@@ -125,8 +113,7 @@ A Noise session can be viewed as three layers:
  * A **kernel object** builds on the cipherset.  The kernel mixes inputs into a
  secret key and uses that key for encryption and decryption.
 
- * A **session object** builds on the kernel and DH functions and provides methods
- for handling messages.
+ * A **session object** builds on the kernel and DH functions.
 
 The below sections describe each of these layers in turn.
 
@@ -174,15 +161,13 @@ Noise depends on the following **cipherset** functions:
 3.2.  Kernel state and methods
 -------------------------------
 
-To simplify the descriptions and improve modularity, a session contains a
-**kernel**.  The kernel can mix inputs into its internal state, and can encrypt
-and decrypt data based on its internal state.  
+A kernel can mix inputs into its internal state, and can encrypt and decrypt
+data based on its internal state.  A kernel contains the following state
+variables:
 
-A kernel contains the following state variables:
-
- * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified
- in the cipherset.  This mixes together the results of all DH operations, and
- is used for encryption.
+ * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
+ the cipherset.  This mixes together the results of all DH operations, and is
+ used for encryption.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
@@ -266,7 +251,7 @@ A session responds to the following methods:
    preshared_ephemeral_keypair, new_flags)`**: Takes a kernel object.  Also
    takes a protocol `name` and `preshared_key` which are both variable-length
    byte sequences (the `preshared_key` may be empty).  Also takes optional
-   static and "pre-shared ephemeral" keypairs.
+   static and "pre-shared ephemeral" keypairs, and a set of transport flags.
  
    * Sets `kernel` to `new_kernel`.  Calls `kernel.Initialize()`.
    
@@ -566,17 +551,14 @@ example:
     Noise_IE_SplitStep
 
 An abstract protocol may also be assigned a short name.  This document describe
-two protocols with short names:
-
-    Noise_Box
-
-    Noise_Pipe
+two protocols with short names:  **`Noise_Box`** and **`Noise_Pipe`**.  These
+represent the mainstream use of Noise, and are suitable for most use cases.
 
 
 6.2 Noise Box
 --------------
 
-The **Noise_Box** protocol uses handshake `X` with no re-initialization or
+The **`Noise_Box`** protocol uses handshake `X` with no re-initialization or
 transport flags.  This protocol is used to encrypt a single item (a
 file, database record, etc).
 
@@ -587,7 +569,7 @@ by using a "dummy static".
 6.3. Noise Pipe
 ----------------
 
-The **Noise_Pipe** protocol uses handshake `XX` with the `split` transport
+The **`Noise_Pipe`** protocol uses handshake `XX` with the `split` transport
 flag.  This protocol is used for interactive communications where either party
 can authenticate.
 
@@ -599,24 +581,24 @@ re-initialization:
 
  * Type 1 on the responder's first `IS` response indicates the responder failed
  to authenticate the `IS` message and is falling back to `XX`, using abstract
- name "Noise_PipeXXfallback".  The sender and responder will re-initialize, the
+ name "Noise_PipeISfallbackXX".  The sender and responder will re-initialize, the
  responder using the first message's ephemeral ("e") turned into a pre-message.
 
 The below patterns are annotated to show the message types for the regular,
 abbreviated, and fallback cases:
 
-    XX:  
+    Noise_Pipe (XX):  
       0 -> e
       0 <- e, dhee, s, dhse  
       0 -> s, dhse
 
-    IS:                   
+    Noise_PipeIS:                   
       <- s                         
       ------
       1 -> e, dhes, s, dhss          
       0 <- e, dhee, dhes             
                                         
-    IS fallback to XX:                   
+    Noise_Pipe_ISfallbackXX:                   
       <- s                         
       ------
       1 -> e, dhes, s, dhss          
@@ -636,7 +618,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
 
     Noise_Pipe_25519_AESGCM
 
-    Noise_PipeIS_25519_AESGCM
+    Noise_PipeISfallbackXX_AESGCM_25519_AESGCM
 
     Noise_IE_Split_448_ChaChaPoly
 
@@ -716,8 +698,7 @@ nonces.   `SetNonce()` should only be called with extreme caution.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  This is the rationale behind the security rules for patterns in
-Section 4.1.
+encrypted data.  This is the rationale behind the patterns in Section 4.1.
 
 12. Rationale
 =============
