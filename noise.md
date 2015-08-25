@@ -348,7 +348,7 @@ A session responds to the following methods:
    * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
 
    * If the first byte of `payload` is 1 then sets `final = True`, otherwise sets
-     `final = `False`.  Removes the first byte from `payload`.
+   `final = False`.  Removes the first byte from `payload`.
 
    * If `flags.step == True` then calls `kernel.Step()`.
    
@@ -517,10 +517,10 @@ the new handshake pattern to be used when this `type` is sent.
 
 Transport encryption is controlled by several flags:
 
- * **`split`**:  A one-way handshake must be followed by a one-way stream of
- transport messages.  But an interactive handshake is allowed to "split" the
- session into two sessions (via `session.Split()`), so that the initiator and
- responder can both send streams of messages.  
+ * **`split`**:  A one-way handshake message must be followed by a one-way
+ stream of transport messages.  But an interactive handshake is allowed to
+ "split" the session into two sessions (via `session.Split()`), so that the
+ initiator and responder can both send streams of messages.  
 
  * **`step`**: After sending or receiving a message, `kernel.Step()` may be
  called to destroy the old key and replace it with a new one.  This provides
