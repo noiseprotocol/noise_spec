@@ -87,7 +87,7 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
     byte payload[length - pubkeys_length];
 
 Every handshake message begins with a single `type` byte, which will be zero
-unless a handshake branch is being taken.
+unless a handshake re-initialization is being performed.
 
 Following the `type` byte is a big-endian `uint16` `length` field describing
 the number of following bytes in the message.
@@ -247,7 +247,9 @@ session(s) until you are finished communicating.
 3.4. Session state and methods 
 ------------------------------
 
-Sessions contain a kernel object, plus the following state variables:
+Sessions contain the following state variables:
+
+ * **`kernel``**: Kernel object that provides symmetric crypto.
 
  * **`s`**: The local static key pair 
 
@@ -257,23 +259,21 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`kernel``**: Kernel object that provides symmetric crypto.
- 
  * **`flags`**: Booleans that control transport messages: `split`, `step`,
  `nonce`.
-
- * **`has_key`**: Boolean that records whether the kernel has a secret key.
 
  * **`dummy_s, dummy_rs`**: Booleans that record whether `s` and `rs` are "dummy
  values".
 
+ * **`has_key`**: Boolean that records whether the kernel has a secret key.
+
 A session responds to the following methods:
 
- * **`Initialize(name, preshared_key, static_keypair,
- preshared_ephemeral_keypair, new_kernel, new_flags)`**: Takes a protocol `name` and
- `preshared_key` which are both variable-length byte sequences (the
- `preshared_key` may be empty).  Also takes optional static and "pre-shared
- ephemeral" keypairs.
+ * **`Initialize(new_kernel, name, preshared_key, static_keypair,
+   preshared_ephemeral_keypair, new_flags)`**: Takes a kernel object.  Also
+   takes a protocol `name` and `preshared_key` which are both variable-length
+   byte sequences (the `preshared_key` may be empty).  Also takes optional
+   static and "pre-shared ephemeral" keypairs.
  
    * Sets `kernel` to `new_kernel`.  Calls `kernel.Initialize()`.
    
@@ -282,13 +282,15 @@ A session responds to the following methods:
    * If `preshared_key` isn't empty then sets `has_key` to `True`, otherwise
    sets it to `False`.
   
-   * If `static_keypair` isn't empty then sets `s` to `static_keypair`.
+   * Sets `s` to `static_keypair` (which may be empty).
 
-   * If `preshared_ephemeral_keypair` isn't empty then sets `e` to `preshared_ephemeral_keypair`.
+   * Sets `e` to `preshared_ephemeral_keypair` (which may be empty).
+
+   * Sets `rs` and `re` to empty.
 
    * Sets `flags` to `new_flags`.
 
-   * Sets `s` and `rs` to `False`.
+   * Sets `dummy_s` and `dummy_rs` to `False`.
 
    * Sets all other variables to empty.
 
@@ -511,7 +513,7 @@ uses.
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-4.3. Static nullification
+4.3. Dummy statics
 --------------------------
 
 Some patterns can be viewed as subsets of a larger pattern with the static
@@ -539,34 +541,9 @@ The `type` field in handshake messages can be used to trigger **session
 re-initialization**.  This allows parties to alter handshake patterns,
 ciphersets, and transport flags on the fly. 
 
-
-Branching allows parties to alter the handshake pattern on the fly.  For
-example, a client could attempt an abbreviated handshake like `IS` or `IE`
-based on cached information.  If this information is stale the server could
-fall back to a full handshake, like `XX`.
-
-Branching requires:
-
- * Designating a particular handshake message as a branch message
-
- * Assigning branch numbers and names to the alternatives for the branch message
- (where branch number zero is the default, and other branches count up from
- there).
-
- * Providing some way to indicate the branch number to the recipient (see
- Section 8).
-
- * For each alternative, specifying whether it re-uses the session state or
- re-initializes the session.
-
-If a non-zero branch is taken and session state is re-used, `MixKey(name)` is
-called on the branch name.
-
-If a non-zero branch is taken and session state is re-initialized, then the
-branch message is treated as starting a new handshake, and the steps from 4.2
-are performed, except `InitializeKernel()` is called in place of
-`InitializeSession()` to allow previously exchanged public keys to be re-used.
-
+To allow re-initialization specify a non-zero `type` value for a particular
+handshake message, the arguments to be used for `session.Reinitialize()`, and
+the new handshake pattern to be used when this `type` is sent.
 
 5. Transport flags
 ========================
