@@ -110,7 +110,9 @@ If the protocol uses explicit nonces, transport messages will begin with a
 64-bit big-endian `uint64` nonce.
 
 Following this (or at the beginning) is a big-endian `uint16` length field
-describing the number of following bytes in the encrypted payload.
+describing the number of following bytes in the encrypted payload.  The first
+byte of the decrypted payload will be a 1 if this is the final message, 0
+otherwise.
 
 3. Sessions
 ============
