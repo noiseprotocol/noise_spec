@@ -38,8 +38,8 @@ A **descriptor** specifies the DH public keys and DH operations that comprise a
 handshake message.  A **pattern** specifies the sequence of descriptors that
 comprise a handshake.
 
-A simple pattern might describe a one-way encrypted message from Alice to Bob.
-A more complex pattern might describe an interactive handshake.
+A pattern might describe a one-way encrypted message from Alice to Bob or an
+interactive handshake.
 
 2.3.  After the handshake: transport messages
 ----------------------------------------------
@@ -285,12 +285,10 @@ A session responds to the following methods:
 
    * Sets `dummy_s` and `dummy_rs` to `False`.
 
-   * Sets all other variables to empty.
-
- * **`Reinitialize(name, preshared_key, new_kernel, new_flags)`**:  This
+ * **`Reinitialize(new_kernel, name, preshared_key, new_kernel, new_flags)`**:  This
    re-initializes a session while preserving its existing key pairs.  It can be
    used to support complex handshakes where behavior is altered by the `type`
-   field.  Calls `Initialize(name, preshared_key, s, e, new_flags)`.
+   field.  Calls `Initialize(kernel, name, preshared_key, s, e, new_flags)`.
 
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
@@ -340,8 +338,8 @@ A session responds to the following methods:
  buffer, a `final` boolean indicating whether this is the final transport
  message in the session, and a payload.
 
-   * If `final == True` sets `type` byte to 1, otherwise sets `type` to 0.
-     Prepends `type` to payload.
+   * If `final == True` prepends a byte with value 1 to payload, otherwise
+     prepends a byte with value 0.
 
    * If `flags.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
    big-endian `uint64`.
@@ -364,8 +362,8 @@ A session responds to the following methods:
 
    * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
 
-   * If the first byte of `payload` is 1 then set `final = True`, otherwise set
-     `final = `False`.  Remove the first byte from `payload`.
+   * If the first byte of `payload` is 1 then sets `final = True`, otherwise sets
+     `final = `False`.  Removes the first byte from `payload`.
 
    * If `flags.step == True` then calls `kernel.Step()`.
    
@@ -554,36 +552,101 @@ Transport encryption is controlled by several flags:
  explicit nonce to each message.  The recipient will call `kernel.SetNonce()`
  on the explicit nonce.  This is incompatible with `step`.
 
-7. Protocol names
-==================
+6. Protocols and names
+=======================
 
-An **abstract protocol name** specifies a handshake pattern and any transport
-flags ("None, "Split", "Step", "Nonce", "SplitStep", "SplitNonce"): 
+6.1. Abstract protocols
+------------------------
 
- * `Noise_X_None`
-   
- * `Noise_NX_Split`
-   
- * `Noise_XX_SplitStep`
-   
- * `Noise_IS_SplitNonce`
+An **abstract protocol** specifies a handshake pattern, any handshake
+re-initialization that is supported, and any transport flags.  
 
-An abstract protocol name can be replaced with a **short name** for easier
-reference.  The following short names are defined:
+An abstract protocol can be named by describing the handshake pattern and the
+flags ("None", "Split", "Step", "Nonce", "SplitStep", "SplitNonce").  For
+example:
 
- * `Noise_Box = Noise_1X_None`
+    Noise_X_None
 
- * `Noise_Pipe = Noise_2XX_Split`
+    Noise_XX_Split
 
-A **concrete protocol name** also specifies the DH functions and cipherset:
+    Noise_IE_SplitStep
 
- * `Noise_Box_25519_ChaChaPoly`
+An abstract protocol may also be assigned a short name.  This document describe
+two protocols with short names:
 
- * `Noise_Pipe_448_AESGCM`
+    Noise_Box
 
- * `Noise_IS_SplitNonce_25519_AESGCM`
+    Noise_Pipe
 
- * `Noise_N_None_25519_ChaChaPoly`
+
+6.2 Noise Box
+--------------
+
+The **Noise_Box** protocol uses handshake `X` with no re-initialization or
+transport flags.  This protocol is used to encrypt a single item (a
+file, database record, etc).
+
+Authentication of the sender is supported but the sender can also be anonymous
+by using a "dummy static".
+
+
+6.3. Noise Pipe
+----------------
+
+The **Noise_Pipe** protocol uses handshake `XX` with the `split` transport
+flag.  This protocol is used for interactive communications where either party
+can authenticate.
+
+An abbreviated or "zero-round-trip" handshake is also supported via handshake
+re-initialization:
+
+ * Type 1 on the initiator's first handshake message indicates the message is
+   an abbreviated `IS` handshake instead of `XX`, using name "Noise_PipeIS".
+
+ * Type 1 on the responder's first `IS` response indicates the responder failed
+ to authenticate the `IS` message and is falling back to `XX`, using abstract
+ name "Noise_PipeXXfallback".  The sender and responder will re-initialize, the
+ responder using the first message's ephemeral ("e") turned into a pre-message.
+
+The below patterns are annotated to show the message types for the regular,
+abbreviated, and fallback cases:
+
+    XX:  
+      0 -> e
+      0 <- e, dhee, s, dhse  
+      0 -> s, dhse
+
+    IS:                   
+      <- s                         
+      ------
+      1 -> e, dhes, s, dhss          
+      0 <- e, dhee, dhes             
+                                        
+    IS fallback to XX:                   
+      <- s                         
+      ------
+      1 -> e, dhes, s, dhss          
+
+      (re-initialize, responder handles "e" as pre-message)
+
+      1 <- e, dhee, s, dhse
+      0 -> s, dhse
+
+
+6.4. Concrete protocols
+------------------------
+
+Concrete protocol names add DH and cipherset names to abstract names.  For example:
+
+    Noise_Box_25519_ChaChaPoly
+
+    Noise_Pipe_25519_AESGCM
+
+    Noise_PipeIS_25519_AESGCM
+
+    Noise_IE_Split_448_ChaChaPoly
+
+    Noise_N_None_448_AESGCM
 
 9. DH functions and ciphersets
 ===============================
