@@ -108,9 +108,9 @@ information, advertisements for supported features, or anything else.
     uint16 length;
     byte payload[length];
 
-Every transport message begins with a single `type` byte, which will be zero
+Every transport message begins with a single `type` byte, which will be 254
 unless this is the last transport message in a session, in which case it's
-set to 255.
+255.
 
 If the protocol uses explicit nonces, then the `type` will be followed by a
 64-bit big-endian `uint64` nonce.
@@ -257,22 +257,25 @@ Sessions contain a kernel object, plus the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`has_key`**: Boolean that records whether the kernel has a secret key.
- 
  * **`kernel``**: Kernel object that provides symmetric crypto.
  
  * **`flags`**: Booleans that control transport messages: `split`, `step`,
  `nonce`.
 
+ * **`has_key`**: Boolean that records whether the kernel has a secret key.
+
+ * **`dummy_s, dummy_rs`**: Booleans that record whether `s` and `rs` are "dummy
+ values".
+
 A session responds to the following methods:
 
  * **`Initialize(name, preshared_key, static_keypair,
- preshared_ephemeral_keypair, new_flags)`**: Takes a protocol `name` and
+ preshared_ephemeral_keypair, new_kernel, new_flags)`**: Takes a protocol `name` and
  `preshared_key` which are both variable-length byte sequences (the
  `preshared_key` may be empty).  Also takes optional static and "pre-shared
  ephemeral" keypairs.
  
-   * Calls `kernel.Initialize()`.
+   * Sets `kernel` to `new_kernel`.  Calls `kernel.Initialize()`.
    
    * Calls `kernel.MixKey(name || 0x00 || preshared_key)`.
 
@@ -284,6 +287,8 @@ A session responds to the following methods:
    * If `preshared_ephemeral_keypair` isn't empty then sets `e` to `preshared_ephemeral_keypair`.
 
    * Sets `flags` to `new_flags`.
+
+   * Sets `s` and `rs` to `False`.
 
    * Sets all other variables to empty.
 
@@ -298,7 +303,7 @@ A session responds to the following methods:
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s":  If `s` is empty copies `e` to `s`. If `has_key == True`
+      * For "s":  If `s` is empty copies `e` to `s` and sets `dummy_s` to `True`. If `has_key == True`
       appends `kernel.Encrypt(s)` to the buffer, otherwise appends `s`.  Then
       calls `kernel.MixHash(s)`.  
       * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
@@ -322,7 +327,7 @@ A session responds to the following methods:
       * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
       * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
         `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next
-        `dhlen` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  
+        `dhlen` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  If `rs == re` sets `dummy_rs` to `True`.  
       * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to
         True.
 
@@ -331,9 +336,10 @@ A session responds to the following methods:
     the remainder of the buffer.  Then calls `kernel.MixHash(payload)`.  
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
- `kernel.ClearHash()`.  If `flags.split == True` then returns a new session by
- calling `kernel.Split()` and copying the returned kernel and all session state
- into the new session.
+ `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
+ `dummy_rs` is `True` sets `rs` to empty.  If `flags.split == True` then
+ returns a new session by calling `kernel.Split()` and copying the returned
+ kernel and all session state into the new session.
 
  * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
  buffer, a `final` boolean indicating whether this is the final transport
