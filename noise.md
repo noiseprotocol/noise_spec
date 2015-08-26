@@ -177,7 +177,7 @@ variables:
  
 A kernel responds to the following methods:
 
- * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to empty.
+ * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
  * **`ClearHash()`**: Sets `h` to empty.
 
