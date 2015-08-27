@@ -250,11 +250,6 @@ A session responds to the following methods:
 
    * Sets `dummy_s` and `dummy_rs` to `False`.
 
- * **`Reinitialize(new_kernel, name, preshared_key, new_kernel)`**:  This
-   re-initializes a session while preserving its existing key pairs.  It can be
-   used to support complex handshakes where behavior is altered by the `type`
-   field.  Calls `Initialize(kernel, name, preshared_key, s, e)`.
-
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
  dhee, dhes, dhse, dhss", a `type` byte, and a `payload`.
@@ -479,7 +474,7 @@ re-initialization**.  This allows parties to alter handshake patterns on the
 fly.
 
 To allow re-initialization specify a non-zero `type` value for a particular
-handshake message, the arguments to be used for `session.Reinitialize()`, and
+handshake message, the arguments to be used for `session.Initialize()`, and
 the new handshake pattern to be used when this `type` is sent.
 
 6. Protocols and names
@@ -514,7 +509,7 @@ by using a "dummy static".
 
 The **`Noise_Pipe`** protocol uses handshake `XX` with default transport flags.
 This protocol is used for interactive communications where either party can
-authenticate.
+authenticate or be anonymous by using a "dummy static".
 
 An abbreviated or "zero-round-trip" handshake is also supported via handshake
 re-initialization:
