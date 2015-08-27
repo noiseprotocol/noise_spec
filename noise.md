@@ -354,7 +354,7 @@ can be defined in other documents.
 ----------------------
 
 The following patterns represent "one-way" messages from a sender to a
-recipient.  `X` is recommended for most uses.
+recipient.
 
      N  = no static key for sender
      S  = static key for sender known to recipient
@@ -380,8 +380,7 @@ recipient.  `X` is recommended for most uses.
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
-exchange messages to agree on a shared key.  `XX` is recommended for most
-uses.
+exchange messages to agree on a shared key.
 
      N_ = no static key for initiator
      S_ = static key for initiator known to responder
@@ -448,24 +447,12 @@ uses.
 4.3. Dummy statics
 --------------------------
 
-Some patterns can be viewed as subsets of a larger pattern with the static
-key operations from one or both parties removed.  
+Patterns where one party sends their static public key allow that party to opt
+out of authenticating themselves.  To do this, the party sets their static
+public key equal to their ephemeral public key.  This signals to the other
+party that a distinct static public key does not exist.
 
-For example, `N` can be viewed as a subset of `X`.  Similarly, `NN`, `NX`, and
-`XN` can be viewed as subsets of `XX`.  `XX` provides mutual authentication,
-`NN` provides no authentication, `XN` authenticates the initiator, and `NX`
-authenticates the responder.
-
-A party can simulate a subset pattern by copying her ephemeral public as the
-static public key.  This signals to the recipient that a distinct static public
-key does not exist.
-
-The recipient could detect this and skip redundant DH calculations.  This
-allows `X` and `XX` to support authentication options with minimal efficiency
-loss, added complexity, or information leakage.  For this reason, `X` and `XX`
-are recommended for most cases.
-
-4.3. Re-initialization
+4.3. Re-initialization 
 ------------------------
 
 The `type` field in handshake messages can be used to trigger **session
