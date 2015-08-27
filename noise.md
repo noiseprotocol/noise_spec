@@ -291,7 +291,7 @@ A session responds to the following methods:
    `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
    `dummy_rs` is `True` sets `rs` to empty.  Then returns two new sessions by
    calling `kernel.Split()` and copying the returned kernels and all session
-   state into two new sessions.  Then erases all data from the current session.
+   state into the new sessions.  Then erases all data from the current session.
 
  * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
  buffer, a `final` boolean indicating whether this is the final transport
