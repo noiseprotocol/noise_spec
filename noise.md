@@ -37,11 +37,6 @@ interactive handshake.
 After the handshake messages each party will possess a shared secret key and
 can send **transport messages** which consist of encrypted payloads.
 
-The transport phase is described by **transport flags** that specify whether to
-use features like explicit nonces for out-of-order messages, "stepping" the
-shared key for forward security, and "splitting" the shared key for duplex
-communications.
-
 2.3. Key agreement
 -------------------
 
@@ -53,8 +48,7 @@ used for a single handshake.
 2.4. DH functions and ciphersets
 ---------------------------------
 
-A Noise protocol is specified abstractly by its handshake pattern and transport
-flags.
+A Noise protocol is specified abstractly by its handshake pattern.
 
 A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
@@ -74,8 +68,9 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
     )+ 
     byte payload[length - pubkeys_length];
 
-Every handshake message begins with a single `type` byte, which will be zero
-unless a handshake re-initialization is being performed.
+Every handshake message begins with a single `type` byte, which is typically
+zero.  Non-zero values can be used to indicate new versions or alternate
+messages.
 
 Following the `type` byte is a big-endian `uint16` `length` field describing
 the number of following bytes in the message.
@@ -91,14 +86,10 @@ information, advertisements for supported features, or anything else.
 3.2. Transport messages
 --------------------------
 
-    ( uint64 nonce; )?
     uint16 length;
     byte payload[length];
 
-If the protocol uses explicit nonces, transport messages will begin with a
-64-bit big-endian `uint64` nonce.
-
-Following this (or at the beginning) is a big-endian `uint16` length field
+Every transport message begins with a big-endian `uint16` length field
 describing the number of following bytes in the encrypted payload.  The first
 byte of the decrypted payload will be a 1 if this is the final message, 0
 otherwise.
@@ -181,17 +172,11 @@ A kernel responds to the following methods:
  
  * **`ClearHash()`**: Sets `h` to empty.
 
- * **`GetNonce(nonce)`**: Returns `n`.
- 
- * **`SetNonce(nonce)`**:  Sets `n` to `nonce`.
-
  * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Then sets `n`
  to zero.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
-
- * **`Step()`**:  Sets `k` to `GETKEY(k, n)`.  Sets `n` to zero.
 
  * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h`
  copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k,
@@ -237,9 +222,6 @@ Sessions contain the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`flags`**: Booleans that control transport messages: `split`, `step`,
- `nonce`.
-
  * **`dummy_s, dummy_rs`**: Booleans that record whether `s` and `rs` are "dummy
  values".
 
@@ -248,10 +230,10 @@ Sessions contain the following state variables:
 A session responds to the following methods:
 
  * **`Initialize(new_kernel, name, preshared_key, static_keypair,
-   preshared_ephemeral_keypair, new_flags)`**: Takes a kernel object.  Also
+   preshared_ephemeral_keypair)`**: Takes a kernel object.  Also
    takes a protocol `name` and `preshared_key` which are both variable-length
    byte sequences (the `preshared_key` may be empty).  Also takes optional
-   static and "pre-shared ephemeral" keypairs, and a set of transport flags.
+   static and "pre-shared ephemeral" keypairs.
  
    * Sets `kernel` to `new_kernel`.  Calls `kernel.Initialize()`.
    
@@ -266,14 +248,12 @@ A session responds to the following methods:
 
    * Sets `rs` and `re` to empty.
 
-   * Sets `flags` to `new_flags`.
-
    * Sets `dummy_s` and `dummy_rs` to `False`.
 
- * **`Reinitialize(new_kernel, name, preshared_key, new_kernel, new_flags)`**:  This
+ * **`Reinitialize(new_kernel, name, preshared_key, new_kernel)`**:  This
    re-initializes a session while preserving its existing key pairs.  It can be
    used to support complex handshakes where behavior is altered by the `type`
-   field.  Calls `Initialize(kernel, name, preshared_key, s, e, new_flags)`.
+   field.  Calls `Initialize(kernel, name, preshared_key, s, e)`.
 
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
@@ -314,10 +294,10 @@ A session responds to the following methods:
     the remainder of the buffer.  Then calls `kernel.MixHash(payload)`.  
 
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
- `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
- `dummy_rs` is `True` sets `rs` to empty.  If `flags.split == True` then
- returns a new session by calling `kernel.Split()` and copying the returned
- kernel and all session state into the new session.
+   `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
+   `dummy_rs` is `True` sets `rs` to empty.  Then returns two new sessions by
+   calling `kernel.Split()` and copying the returned kernels and all session
+   state into two new sessions.
 
  * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
  buffer, a `final` boolean indicating whether this is the final transport
@@ -326,23 +306,15 @@ A session responds to the following methods:
    * If `final == True` prepends a byte with value 1 to payload, otherwise
      prepends a byte with value 0.
 
-   * If `flags.nonce == True` then writes `kernel.GetNonce()` to `buffer` as a
-   big-endian `uint64`.
-
    * Writes a big-endian `uint16` encoding of payload length + 16 to `buffer`.
 
    * Writes `kernel.Encrypt(payload)` to `buffer`.
 
-   * If `flags.step == True` then calls `kernel.Step()`.
- 
  * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
  message.  Returns a payload and `final` boolean indicating whether this is the
  final transport message in the session.
 
-   * If `flag.nonce == True` then reads the next 64 bits from `buffer` as a
-   big-endian `uint64` `nonce` and calls `kernel.SetNonce(nonce)`.
-
-   * Checks that the next 16 bits of length field are consistent with the size
+   * Checks that the first 16 bits of length field are consistent with the size
    of `buffer`.
 
    * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
@@ -350,8 +322,6 @@ A session responds to the following methods:
    * If the first byte of `payload` is 1 then sets `final = True`, otherwise sets
    `final = False`.  Removes the first byte from `payload`.
 
-   * If `flags.step == True` then calls `kernel.Step()`.
-   
    * Returns `payload` and `final`.
 
 
@@ -505,31 +475,12 @@ are recommended for most cases.
 ------------------------
 
 The `type` field in handshake messages can be used to trigger **session
-re-initialization**.  This allows parties to alter handshake patterns,
-ciphersets, and transport flags on the fly. 
+re-initialization**.  This allows parties to alter handshake patterns on the
+fly.
 
 To allow re-initialization specify a non-zero `type` value for a particular
 handshake message, the arguments to be used for `session.Reinitialize()`, and
 the new handshake pattern to be used when this `type` is sent.
-
-5. Transport flags
-========================
-
-Transport encryption is controlled by several flags:
-
- * **`split`**:  A one-way handshake message must be followed by a one-way
- stream of transport messages.  But an interactive handshake is allowed to
- "split" the session into two sessions (via `session.Split()`), so that the
- initiator and responder can both send streams of messages.  
-
- * **`step`**: After sending or receiving a message, `kernel.Step()` may be
- called to destroy the old key and replace it with a new one.  This provides
- security for old messages against future compromises.  This is incompatible
- with `nonce`.
-
- * **`nonce`**: Out of order messages can be handled by prepending `n` as an
- explicit nonce to each message.  The recipient will call `kernel.SetNonce()`
- on the explicit nonce.  This is incompatible with `step`.
 
 6. Protocols and names
 =======================
@@ -537,30 +488,22 @@ Transport encryption is controlled by several flags:
 6.1. Abstract protocols
 ------------------------
 
-An **abstract protocol** specifies a handshake pattern, any handshake
-re-initialization that is supported, and any transport flags.  
+An **abstract protocol** specifies a handshake pattern and any handshake
+re-initialization that is supported.
 
-An abstract protocol can be named by describing the handshake pattern and the
-flags ("None", "Split", "Step", "Nonce", "SplitStep", "SplitNonce").  For
-example:
+An abstract protocol can be named by its handshake pattern:
 
-    Noise_X_None
+    Noise_X
 
-    Noise_XX_Split
+    Noise_XX
 
-    Noise_IE_SplitStep
-
-An abstract protocol may also be assigned a short name.  This document describe
-two protocols with short names:  **`Noise_Box`** and **`Noise_Pipe`**.  These
-represent the mainstream use of Noise, and are suitable for most use cases.
-
+    Noise_IE
 
 6.2 Noise Box
 --------------
 
-The **`Noise_Box`** protocol uses handshake `X` with no re-initialization or
-transport flags.  This protocol is used to encrypt a single item (a
-file, database record, etc).
+The **`Noise_Box`** protocol uses handshake `X` with no re-initialization.
+This protocol is used to encrypt a single item (a file, database record, etc).
 
 Authentication of the sender is supported but the sender can also be anonymous
 by using a "dummy static".
@@ -569,9 +512,9 @@ by using a "dummy static".
 6.3. Noise Pipe
 ----------------
 
-The **`Noise_Pipe`** protocol uses handshake `XX` with the `split` transport
-flag.  This protocol is used for interactive communications where either party
-can authenticate.
+The **`Noise_Pipe`** protocol uses handshake `XX` with default transport flags.
+This protocol is used for interactive communications where either party can
+authenticate.
 
 An abbreviated or "zero-round-trip" handshake is also supported via handshake
 re-initialization:
@@ -625,9 +568,9 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
 
     Noise_PipeISfallbackXX_25519_AESGCM
 
-    Noise_IE_Split_448_ChaChaPoly
+    Noise_IE_448_ChaChaPoly
 
-    Noise_N_None_448_AESGCM
+    Noise_N_448_AESGCM
 
 9. DH functions and ciphersets
 ===============================
