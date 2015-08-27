@@ -178,10 +178,10 @@ A kernel responds to the following methods:
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
 
- * **`Split()`**:  Creates a new child kernel, with `n` set to 0 and `h`
- copied from this kernel.  Sets the child's `k` to the output of `GETKEY(k,
- n)`, and increments `n`.  Then sets its own `k` to the output of `GETKEY(k,
- n)` and sets `n` to zero.  Then returns the child.
+ * **`Split()`**:  Creates two new child kernels by calling `GETKEY(k, n)` to
+ get the first child's `k`, then incrementing `n` and calling `GETKEY(k, n)` to
+ get the second child's `k`.  The children have `n` set to zero and `h` set to
+ the parent's value. The two children are returned.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -200,12 +200,12 @@ To execute a Noise protocol you `Initialize()` a session, then call
 descriptors from the protocol's handshake pattern until the handshake is
 complete.
 
-After the handshake is complete you call `EndHandshake()`, which for some
-protocols will return a second session for transport messages from responder to
-initiator.
+After the handshake is complete you call `EndHandshake()`, which returns two
+new sessions, the first for transport messages from initiator to responder, and
+the second for messages in the other direction.
 
 Then you call `WriteTransportMessage()` and/or `ReadTransportMessage()` on the
-session(s) until you are finished communicating.
+session(s) until finished communicating.
 
 3.4. Session state and methods 
 ------------------------------
@@ -292,7 +292,7 @@ A session responds to the following methods:
    `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
    `dummy_rs` is `True` sets `rs` to empty.  Then returns two new sessions by
    calling `kernel.Split()` and copying the returned kernels and all session
-   state into two new sessions.
+   state into two new sessions.  Then erases all data from the current session.
 
  * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
  buffer, a `final` boolean indicating whether this is the final transport
