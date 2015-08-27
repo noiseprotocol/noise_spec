@@ -463,10 +463,10 @@ To allow re-initialization specify a non-zero `type` value for a particular
 handshake message, the arguments to be used for `session.Initialize()`, and
 the new handshake pattern to be used when this `type` is sent.
 
-6. Protocols and names
+5. Protocols and names
 =======================
 
-6.1. Abstract protocols
+5.1. Abstract protocols
 ------------------------
 
 An **abstract protocol** specifies a handshake pattern and any handshake
@@ -480,7 +480,7 @@ An abstract protocol can be named by its handshake pattern:
 
     Noise_IE
 
-6.2 Noise Box
+5.2 Noise Box
 --------------
 
 The **`Noise_Box`** protocol uses handshake `X` with no re-initialization.
@@ -490,7 +490,7 @@ Authentication of the sender is supported but the sender can also be anonymous
 by using a "dummy static".
 
 
-6.3. Noise Pipe
+5.3. Noise Pipe
 ----------------
 
 The **`Noise_Pipe`** protocol uses handshake `XX` with default transport flags.
@@ -538,7 +538,7 @@ abbreviated, and fallback cases:
       0 -> s, dhse
 
 
-6.4. Concrete protocols
+5.4. Concrete protocols
 ------------------------
 
 Concrete protocol names add DH and cipherset names to abstract names.  For example:
@@ -553,10 +553,10 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
 
     Noise_N_448_AESGCM
 
-9. DH functions and ciphersets
+6. DH functions and ciphersets
 ===============================
 
-9.1. The 25519 DH functions
+6.1. The 25519 DH functions
 ----------------------------
 
  * **`dhlen`** = 32
@@ -565,7 +565,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.
 
-9.2. The 448 DH functions
+6.2. The 448 DH functions
 --------------------------
 
  * **`dhlen`** = 56
@@ -574,7 +574,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
 
-9.2. The ChaChaPoly cipherset
+6.2. The ChaChaPoly cipherset
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -594,7 +594,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
  * **`HASH(input)`**: `SHA2-256(intput)` 
  
 
-9.3. The AESGCM cipherset
+6.3. The AESGCM cipherset
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -616,7 +616,7 @@ Concrete protocol names add DH and cipherset names to abstract names.  For examp
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-11. Security Considerations
+7. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -629,7 +629,7 @@ To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
 encrypted data.  This is the rationale behind the patterns in Section 4.1.
 
-12. Rationale
+8. Rationale
 =============
 
 This section collects various design rationale:
@@ -661,12 +661,12 @@ Big-endian is preferred because:
  traditional.
 
 
-13. IPR
+9. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-14. Acknowledgements
+10. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
