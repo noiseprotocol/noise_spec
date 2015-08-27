@@ -62,10 +62,9 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 
     uint8 type;
     uint16 length;
-    (
-      ( byte pubkey[dhlen]; )?
-      ( byte encrypted_static_pubkey[dhlen + 16]; )?
-    )+ 
+    // 1 or more of
+    //   byte pubkey[dhlen] or 
+    //   byte encrypted_pubkey[dhlen+16];
     byte payload[length - pubkeys_length];
 
 Every handshake message begins with a single `type` byte, which is typically
