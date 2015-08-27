@@ -4,7 +4,7 @@ Noise v1 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-08-26
- * **Revision:** 00 (work in progress)
+ * **Revision:** 01 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -448,9 +448,9 @@ exchange messages to agree on a shared key.
 --------------------------
 
 Patterns where one party sends their static public key allow that party to opt
-out of authenticating themselves.  To do this, the party sets their static
-public key equal to their ephemeral public key.  This signals to the other
-party that a distinct static public key does not exist.
+out of authenticating themselves.  If that party sets their static public key
+equal to their ephemeral public key, this signals to the other party that a
+distinct static public key does not exist.
 
 4.3. Re-initialization 
 ------------------------
@@ -466,47 +466,42 @@ the new handshake pattern to be used when this `type` is sent.
 5. Protocols and names
 =======================
 
-5.1. Abstract protocols
-------------------------
+5.1. Simple and compound protocols
+-----------------------------------
 
-An **abstract protocol** specifies a handshake pattern and any handshake
-re-initialization that is supported.
+A **simple protocol** supports a single handshake pattern, and is named for
+that pattern (`Noise_X`, `Noise_NX`, `Noise_IE`, etc).
 
-An abstract protocol can be named by its handshake pattern:
+A protocol that uses the handshake type field to switch handshake patterns is a
+**compound protocol**, and must be assigned a specific name.  Every branch
+taken by this protocol is also assigned its own name that contains the protocol
+name as a prefix.  
 
-    Noise_X
+This document defines a single compound protocol (`Noise_Pipe`) with branch
+names (`Noise_PipeXX`, `Noise_PipeIS`, and `Noise_PipeXXfromIS`).
 
-    Noise_XX
+All of the above are **abstract names**.  To produce a **concrete name** you
+add name fields for the DH functions and cipherset (`Noise_X_25519_ChaChaPoly`,
+`Noise_Pipe_25519_AESGCM`, `Noise_PipeXXfromIS_448_AESGCM`, etc.)
 
-    Noise_IE
-
-5.2 Noise Box
---------------
-
-The **`Noise_Box`** protocol uses handshake `X` with no re-initialization.
-This protocol is used to encrypt a single item (a file, database record, etc).
-
-Authentication of the sender is supported but the sender can also be anonymous
-by using a "dummy static".
-
-
-5.3. Noise Pipe
+5.2. Noise Pipe
 ----------------
 
-The **`Noise_Pipe`** protocol uses handshake `XX` with default transport flags.
-This protocol is used for interactive communications where either party can
-authenticate or be anonymous by using a "dummy static".
-
-An abbreviated or "zero-round-trip" handshake is also supported via handshake
+The **`Noise_Pipe`** protocol supports a "full" handshake `XX`.  An abbreviated
+or "zero-round-trip" handshake `IS` is also supported via handshake
 re-initialization:
 
- * Type 1 on the initiator's first handshake message indicates the message is
-   an abbreviated `IS` handshake instead of `XX`, using name `Noise_PipeIS`.
+ * If `type == 0` in the initiator's first handshake message then that message
+ is an `XX` handshake using the name `Noise_PipeXX`.
 
- * Type 1 on the responder's first `IS` response indicates the responder failed
- to authenticate the `IS` message and is falling back to `XX`, using abstract
- name `Noise_PipeISfallbackXX`.  The sender and responder will re-initialize, the
- responder using the first message's ephemeral ("e") turned into a pre-message.
+ * If `type == 1` in the initiator's first handshake message then that message
+ is an abbreviated `IS` handshake using the name `Noise_PipeIS`.
+
+ * If `type == 1` in the responder's first `IS` response then the responder
+ failed to authenticate the `IS` message (perhaps due to a static key change)
+ and is falling back to `XX`, using name `Noise_PipeXXfromIS`.  The sender and
+ responder will re-initialize, the responder using the first message's
+ ephemeral ("e") turned into a pre-message.
 
 Encrypted data sent in the first `IS` message is susceptible to replay attacks,
 and also loses forward security and authentication if the responder's static
@@ -527,7 +522,7 @@ abbreviated, and fallback cases:
       1 -> e, dhes, s, dhss          
       0 <- e, dhee, dhes             
                                         
-    Noise_Pipe_ISfallbackXX:                   
+    Noise_Pipe_XXfromIS:                   
       <- s                         
       ------
       1 -> e, dhes, s, dhss          
@@ -537,21 +532,6 @@ abbreviated, and fallback cases:
       1 <- e, dhee, s, dhse
       0 -> s, dhse
 
-
-5.4. Concrete protocols
-------------------------
-
-Concrete protocol names add DH and cipherset names to abstract names.  For example:
-
-    Noise_Box_25519_ChaChaPoly
-
-    Noise_Pipe_25519_AESGCM
-
-    Noise_PipeISfallbackXX_25519_AESGCM
-
-    Noise_IE_448_ChaChaPoly
-
-    Noise_N_448_AESGCM
 
 6. DH functions and ciphersets
 ===============================
@@ -627,7 +607,7 @@ nonces.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  This is the rationale behind the patterns in Section 4.
+encrypted data.  This is one rationale behind the patterns in Section 4.
 
 8. Rationale
 =============
