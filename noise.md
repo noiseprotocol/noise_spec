@@ -3,7 +3,7 @@ Noise v1 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-25
+ * **Date:** 2015-08-26
  * **Revision:** 00 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -627,7 +627,7 @@ nonces.
 
 To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  This is the rationale behind the patterns in Section 4.1.
+encrypted data.  This is the rationale behind the patterns in Section 4.
 
 8. Rationale
 =============
