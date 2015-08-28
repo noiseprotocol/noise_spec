@@ -294,8 +294,8 @@ A session responds to the following methods:
 
 
  * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
- message.  Checks that 16 bit length field is correct, then returns
- `kernel.Decrypt()` on the rest of the buffer.
+ message.  Checks that the big-endian `uint16` length field is correct, then
+ returns `kernel.Decrypt()` on the rest of the buffer.
 
 
 4. Handshake patterns 
@@ -490,7 +490,7 @@ used for data where this reduction in security is acceptable.
 The below patterns are annotated to show the message types for the regular,
 abbreviated, and fallback cases:
 
-    Noise_Pipe (XX):  
+    Noise_PipeXX:  
       0 -> e
       0 <- e, dhee, s, dhse  
       0 -> s, dhse
