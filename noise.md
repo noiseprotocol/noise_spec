@@ -3,8 +3,8 @@ Noise v1 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-26
- * **Revision:** 01 (work in progress)
+ * **Date:** 2015-08-27
+ * **Revision:** 02 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -29,8 +29,8 @@ handshake message.  A **pattern** specifies the sequence of descriptors that
 comprise a handshake.  A pattern might describe a one-way encrypted message
 from Alice to Bob or an interactive handshake.
 
-After the handshake messages each party will possess a shared secret key and
-can send **transport messages** which consist of encrypted payloads.
+After the handshake messages each party can send **transport messages** which
+consist of encrypted payloads.
 
 2.2. Key agreement
 -------------------
@@ -84,7 +84,7 @@ information, advertisements for supported features, or anything else.
     byte payload[length];
 
 Every transport message begins with a big-endian `uint16` length field
-describing the number of following bytes in the encrypted payload.
+describing the number of bytes in the encrypted payload.
 
 3. Sessions
 ============
@@ -164,16 +164,18 @@ A kernel responds to the following methods:
  
  * **`ClearHash()`**: Sets `h` to empty.
 
- * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  Then sets `n`
- to zero.
+ * **`GetKey()`**: Calls `GETKEY(k, n)`, then increments `n` and returns the
+ `GETKEY()` output.
+
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GetKey(), data)`.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
 
- * **`Split()`**:  Creates two new child kernels by calling `GETKEY(k, n)` to
- get the first child's `k`, then incrementing `n` and calling `GETKEY(k, n)` to
- get the second child's `k`.  The children have `n` set to zero and `h` set to
- the parent's value. The two children are returned.
+ * **`Split()`**:  Creates two new child kernels by calling `GetKey()` to get
+ the first child's `k`, then calling `GetKey()` to get the second child's `k`.
+ The children have `n` set to zero and `h` set to the parent's value. The two
+ children are returned.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -287,21 +289,13 @@ A session responds to the following methods:
    state into the new sessions.  Then erases all data from the current session.
 
  * **`WriteTransportMessage(buffer, payload)`**:  Takes an empty byte buffer
- and a payload.
+ and a payload.  Writes `kernel.Encrypt(payload)` to `buffer` preceded by a
+ big-endian `uint16` encoding of payload length + 16.
 
-   * Writes a big-endian `uint16` encoding of payload length + 16 to `buffer`.
-
-   * Writes `kernel.Encrypt(payload)` to `buffer`.
 
  * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
- message.  Returns a payload.
-
-   * Checks that the first 16 bits of length field are consistent with the size
-   of `buffer`.
-
-   * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
-
-   * Returns `payload`.
+ message.  Checks that 16 bit length field is correct, then returns
+ `kernel.Decrypt()` on the rest of the buffer.
 
 
 4. Handshake patterns 
