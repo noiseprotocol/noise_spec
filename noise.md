@@ -149,8 +149,7 @@ data based on its internal state.  A kernel contains the following state
 variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
- the cipherset.  This mixes together the results of all DH operations, and is
- used for encryption.
+ the cipherset.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
@@ -438,9 +437,10 @@ The `type` field in handshake messages can be used to trigger **session
 re-initialization**.  This allows parties to alter handshake patterns on the
 fly.
 
-To allow re-initialization specify a non-zero `type` value for a particular
-handshake message, the arguments to be used for `session.Initialize()`, and
-the new handshake pattern to be used when this `type` is sent.
+To allow re-initialization when defining a protocol specify a non-zero `type`
+value for a particular handshake message, the arguments to be used for
+`session.Initialize()`, and the new handshake pattern to be used when this
+`type` is sent.
 
 5. Protocols and names
 =======================
@@ -550,7 +550,7 @@ abbreviated, and fallback cases:
 
  * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
- * **`HASH(input)`**: `SHA2-256(intput)` 
+ * **`HASH(input)`**: `SHA2-256(input)` 
  
 
 6.3. The AESGCM cipherset
