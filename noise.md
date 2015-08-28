@@ -17,8 +17,8 @@ interactive protocols.
 2. Overview
 ============
 
-2.1. Handshake messages: descriptors and patterns
---------------------------------------------------
+2.1. Handshake messages and transport messages
+-----------------------------------------------
 
 A Noise protocol begins with a handshake phase where both parties send
 **handshake messages** containing DH public keys and perform DH operations to
@@ -26,18 +26,13 @@ agree on a shared secret.
 
 A **descriptor** specifies the DH public keys and DH operations that comprise a
 handshake message.  A **pattern** specifies the sequence of descriptors that
-comprise a handshake.
-
-A pattern might describe a one-way encrypted message from Alice to Bob or an
-interactive handshake.
-
-2.2.  After the handshake: transport messages
-----------------------------------------------
+comprise a handshake.  A pattern might describe a one-way encrypted message
+from Alice to Bob or an interactive handshake.
 
 After the handshake messages each party will possess a shared secret key and
 can send **transport messages** which consist of encrypted payloads.
 
-2.3. Key agreement
+2.2. Key agreement
 -------------------
 
 Noise can implement handshakes where each party has a static and/or ephemeral
@@ -45,7 +40,7 @@ DH key pair.  The static keypair is a long-term key pair that exists prior to
 the protocol.  Ephemeral key pairs are short-term key pairs that are typically
 used for a single handshake.
 
-2.4. DH functions and ciphersets
+2.3. DH functions and ciphersets
 ---------------------------------
 
 A Noise protocol is specified abstractly by its handshake pattern.
@@ -89,9 +84,7 @@ information, advertisements for supported features, or anything else.
     byte payload[length];
 
 Every transport message begins with a big-endian `uint16` length field
-describing the number of following bytes in the encrypted payload.  The first
-byte of the decrypted payload will be a 1 if this is the final message, 0
-otherwise.
+describing the number of following bytes in the encrypted payload.
 
 3. Sessions
 ============
@@ -293,30 +286,22 @@ A session responds to the following methods:
    calling `kernel.Split()` and copying the returned kernels and all session
    state into the new sessions.  Then erases all data from the current session.
 
- * **`WriteTransportMessage(buffer, final, payload)`**:  Takes an empty byte
- buffer, a `final` boolean indicating whether this is the final transport
- message in the session, and a payload.
-
-   * If `final == True` prepends a byte with value 1 to payload, otherwise
-     prepends a byte with value 0.
+ * **`WriteTransportMessage(buffer, payload)`**:  Takes an empty byte buffer
+ and a payload.
 
    * Writes a big-endian `uint16` encoding of payload length + 16 to `buffer`.
 
    * Writes `kernel.Encrypt(payload)` to `buffer`.
 
  * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
- message.  Returns a payload and `final` boolean indicating whether this is the
- final transport message in the session.
+ message.  Returns a payload.
 
    * Checks that the first 16 bits of length field are consistent with the size
    of `buffer`.
 
    * Sets `payload` to `kernel.Decrypt()` on the rest of `buffer`.  
 
-   * If the first byte of `payload` is 1 then sets `final = True`, otherwise sets
-   `final = False`.  Removes the first byte from `payload`.
-
-   * Returns `payload` and `final`.
+   * Returns `payload`.
 
 
 4. Handshake patterns 
