@@ -277,10 +277,11 @@ A session responds to the following methods:
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s": If `has_key == True` sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.
+      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.  If `s == e` sets `dummy_rs` to `True`.
       * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to True.
 
-    * Calls `DecryptHandshakeData()` on the rest of the buffer and returns the output.
+    * Sets `payload = DecryptHandshakeData()` on the rest of the buffer and
+    returns the payload.
     
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
    `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
