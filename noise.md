@@ -58,8 +58,8 @@ elliptic curve DH.  The cipherset specifies the symmetric-key functions.
     uint8 type;
     uint16 length;
     // 1 or more of
-    //   byte pubkey[dhlen] or 
-    //   byte encrypted_pubkey[dhlen+16];
+    //   byte pubkey[DHLEN] or 
+    //   byte encrypted_pubkey[DHLEN+16];
     byte payload[length - pubkeys_length];
 
 Every handshake message begins with a single `type` byte, which is typically
@@ -105,7 +105,7 @@ The below sections describe each of these layers in turn.
 
 Noise depends on the following **DH functions** and constants:
 
- * **`dhlen`** = A constant specifying the size of public keys in bytes.
+ * **`DHLEN`** = A constant specifying the size of public keys in bytes.
  
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
@@ -270,10 +270,10 @@ A session responds to the following methods:
     of the buffer.
 
     * Processes each token in the descriptor sequentially:
-      * For "e" sets `re` to the next `dhlen` bytes from `buffer`.  
+      * For "e" sets `re` to the next `DHLEN` bytes from `buffer`.  
       * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
-        `dhlen + 16` bytes from the buffer, otherwise sets `rs` to the next
-        `dhlen` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  If `rs == re` sets `dummy_rs` to `True`.  
+        `DHLEN + 16` bytes from the buffer, otherwise sets `rs` to the next
+        `DHLEN` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  If `rs == re` sets `dummy_rs` to `True`.  
       * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to
         True.
 
@@ -518,7 +518,7 @@ abbreviated, and fallback cases:
 6.1. The 25519 DH functions
 ----------------------------
 
- * **`dhlen`** = 32
+ * **`DHLEN`** = 32
  
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
@@ -527,7 +527,7 @@ abbreviated, and fallback cases:
 6.2. The 448 DH functions
 --------------------------
 
- * **`dhlen`** = 56
+ * **`DHLEN`** = 56
  
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
