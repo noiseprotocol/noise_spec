@@ -185,8 +185,8 @@ A kernel responds to the following methods:
 3.3.  Session object usage
 --------------------------------
 
-A session object encapsulates the state variables and methods for executing a
-Noise protocol.
+A session object contains the state variables and methods for executing a Noise
+protocol.
 
 To execute a Noise protocol you `Initialize()` a session, then call
 `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
@@ -243,22 +243,28 @@ A session responds to the following methods:
 
    * Sets `dummy_s` and `dummy_rs` to `False`.
 
+ * **`EncryptHandshakeData(data)`**: If `has_key == True` sets `output_data =
+ kernel.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
+ `kernel.MixHash(data)` and returns `output_data`.
+
+ * **`DecryptHandshakeData(data, data_len)`**: If `has_key == True` sets
+ `output_data` to `kernel.Decrypt()` on the next `data_len + 16` bytes of
+ `data`, otherwise sets `output_data` to the next `data_len` bytes of `data`.
+ Then calls `kernel.MixHash(output_data)` and returns `output_data`.
+
  * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
  byte buffer, a descriptor which is some sequence of the tokens from "e, s,
  dhee, dhes, dhse, dhss", a `type` byte, and a `payload`.
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s":  If `s` is empty copies `e` to `s` and sets `dummy_s` to `True`. If `has_key == True`
-      appends `kernel.Encrypt(s)` to the buffer, otherwise appends `s`.  Then
-      calls `kernel.MixHash(s)`.  
+      * For "s":  If `s` is empty copies `e` to `s` and sets `dummy_s` to `True`.  Appends `EncryptHandshakeData(s.pub)` to the buffer.
       * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
 
-    * If `has_key == True` appends `kernel.Encrypt(payload)` to the
-    buffer, otherwise appends `payload`.  Then calls `kernel.MixHash(payload)`.  
+    * Appends `EncryptHandshakeData(payload)` to the buffer.
 
     * Sets `buffer_len` to the length in bytes of `buffer`.  Prepends the
-    `type` and `uint16` encoding of `buffer_len` to the buffer.
+    `type` and `uint16` encoding of the buffer's length to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.
@@ -266,21 +272,16 @@ A session responds to the following methods:
     * Skips the first byte (which may be used by the caller to select the right
     descriptor).
 
-    * Checks that the next 16 bits of length field are consistent with the size
+    * Checks that the next 16 bits of length field equal the remaining length
     of the buffer.
 
     * Processes each token in the descriptor sequentially:
-      * For "e" sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s" if `has_key == True` sets `rs` to the output from calling `kernel.Decrypt()` on the next
-        `DHLEN + 16` bytes from the buffer, otherwise sets `rs` to the next
-        `DHLEN` bytes from `buffer`. Then calls `kernel.MixHash(rs)`.  If `rs == re` sets `dummy_rs` to `True`.  
-      * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to
-        True.
+      * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
+      * For "s": If `has_key == True` sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.
+      * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to True.
 
-    * If `has_key == True` sets `payload` to the output from calling
-    `kernel.Decrypt()` on the rest of the buffer, otherwise sets `payload` to
-    the remainder of the buffer.  Then calls `kernel.MixHash(payload)`.  
-
+    * Calls `DecryptHandshakeData()` on the rest of the buffer and returns the output.
+    
  * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
    `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
    `dummy_rs` is `True` sets `rs` to empty.  Then returns two new sessions by
