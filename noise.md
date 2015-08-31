@@ -20,17 +20,20 @@ interactive protocols.
 2.1. Handshake messages and transport messages
 -----------------------------------------------
 
-A Noise protocol begins with a handshake phase where both parties send
-**handshake messages** containing DH public keys and perform DH operations to
-agree on a shared secret.
+A Noise protocol begins with a **handshake phase** where two parties send
+**handshake messages**.  During the handshake phase the two parties perform a
+DH-based key agreement to arrive at a shared secret.  Each handshake message
+contains one or more DH public keys followed by a payload which may contain
+certificates, advertisements for supported features, or anything else.
 
-A **descriptor** specifies the DH public keys and DH operations that comprise a
-handshake message.  A **pattern** specifies the sequence of descriptors that
-comprise a handshake.  A pattern might describe a one-way encrypted message
-from Alice to Bob or an interactive handshake.
+The Noise framework can support any DH-based key agreement that can be expressed
+in terms of **descriptors** and **patterns**.  A **descriptor** specifies the DH
+public keys and DH operations that comprise a handshake message.  A **pattern**
+specifies the sequence of messages that comprise the handshake.  A pattern might
+describe a one-way encrypted message or an interactive handshake.
 
-After the handshake messages each party can send **transport messages** which
-consist of encrypted payloads.
+After the handshake phase each party can send **transport messages** which
+consist solely of encrypted payloads.
 
 2.2. Key agreement
 -------------------
@@ -49,47 +52,11 @@ A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
 elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 
-3. Message format
-==================
-
-3.1. Handshake messages
-------------------------
-
-    uint8 type;
-    uint16 length;
-    // 1 or more of
-    //   byte pubkey[DHLEN] or 
-    //   byte encrypted_pubkey[DHLEN+16];
-    byte payload[length - pubkeys_length];
-
-Every handshake message begins with a single `type` byte, which is typically
-zero.  Non-zero values can be used to indicate new versions or alternate
-messages.
-
-Following the `type` byte is a big-endian `uint16` `length` field describing
-the number of following bytes in the message.
-
-Following the `length` field will be one or more public keys.  Ephemeral public
-keys are in the clear.  Static public keys will be encrypted if a secret key
-has been negotiated.
-
-Following the public keys is a `payload` field, which will be encrypted if a
-secret key has been negotiated.  The payload may contain certificates, routing
-information, advertisements for supported features, or anything else.
-
-3.2. Transport messages
---------------------------
-
-    uint16 length;
-    byte payload[length];
-
-Every transport message begins with a big-endian `uint16` length field
-describing the number of bytes in the encrypted payload.
-
 3. Sessions
 ============
 
-A Noise session can be viewed as three layers:
+A Noise **session** contains the state variables and methods for executing a Noise
+protocol.  A session can be viewed in terms of three layers:
 
  * **DH functions** and a **cipherset** provide low-level crypto functions.
 
@@ -161,8 +128,6 @@ A kernel responds to the following methods:
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
- * **`ClearHash()`**: Sets `h` to empty.
-
  * **`GetKey()`**: Calls `GETKEY(k, n)`, then increments `n` and returns the
  `GETKEY()` output.
 
@@ -173,8 +138,8 @@ A kernel responds to the following methods:
 
  * **`Split()`**:  Creates two new child kernels by calling `GetKey()` to get
  the first child's `k`, then calling `GetKey()` to get the second child's `k`.
- The children have `n` set to zero and `h` set to the parent's value. The two
- children are returned.
+ The children have `n` set to zero and `h` set to empty (i.e. zero-length). The
+ two children are returned.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -185,20 +150,13 @@ A kernel responds to the following methods:
 3.3.  Session object usage
 --------------------------------
 
-A session object contains the state variables and methods for executing a Noise
-protocol.
-
-To execute a Noise protocol you `Initialize()` a session, then call
+To execute a Noise protocol you `Initialize()` a session object, then call
 `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
-descriptors from the protocol's handshake pattern until the handshake is
-complete.
+descriptors from a handshake pattern until the handshake is complete.
 
-After the handshake is complete you call `EndHandshake()`, which returns two
-new sessions, the first for transport messages from initiator to responder, and
-the second for messages in the other direction.
-
-Then you call `WriteTransportMessage()` and/or `ReadTransportMessage()` on the
-session(s) until finished communicating.
+After the handshake is complete you call `EndHandshake()` which returns two
+kernels, the first for encrypting transport messages from initiator to
+responder, and the second for messages in the other direction.
 
 3.4. Session state and methods 
 ------------------------------
@@ -214,9 +172,6 @@ Sessions contain the following state variables:
  * **`rs`**: The remote party's static public key
 
  * **`re`**: The remote party's ephemeral public key 
-
- * **`dummy_s, dummy_rs`**: Booleans that record whether `s` and `rs` are "dummy
- values".
 
  * **`has_key`**: Boolean that records whether the kernel has a secret key.
 
@@ -241,7 +196,6 @@ A session responds to the following methods:
 
    * Sets `rs` and `re` to empty.
 
-   * Sets `dummy_s` and `dummy_rs` to `False`.
 
  * **`EncryptHandshakeData(data)`**: If `has_key == True` sets `output_data =
  kernel.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
@@ -252,52 +206,29 @@ A session responds to the following methods:
  `data`, otherwise sets `output_data` to the next `data_len` bytes of `data`.
  Then calls `kernel.MixHash(output_data)` and returns `output_data`.
 
- * **`WriteHandshakeMessage(buffer, descriptor, type, payload)`**: Takes an empty
- byte buffer, a descriptor which is some sequence of the tokens from "e, s,
- dhee, dhes, dhse, dhss", a `type` byte, and a `payload`.
+ * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty byte
+ buffer, a descriptor which is some sequence of the tokens from "e, s, dhee,
+ dhes, dhse, dhss", and a `payload`.
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s":  If `s` is empty copies `e` to `s` and sets `dummy_s` to `True`.  Appends `EncryptHandshakeData(s.pub)` to the buffer.
+      * For "s":  If `s` is empty copies `e` to `s`.  Appends `EncryptHandshakeData(s.public_key)` to the buffer.
       * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
 
     * Appends `EncryptHandshakeData(payload)` to the buffer.
 
-    * Sets `buffer_len` to the length in bytes of `buffer`.  Prepends the
-    `type` and `uint16` encoding of the buffer's length to the buffer.
-
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.
 
-    * Skips the first byte (which may be used by the caller to select the right
-    descriptor).
-
-    * Checks that the next 16 bits of length field equal the remaining length
-    of the buffer.
-
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.  If `s == e` sets `dummy_rs` to `True`.
+      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.
       * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to True.
 
     * Sets `payload = DecryptHandshakeData()` on the rest of the buffer and
     returns the payload.
     
- * **`EndHandshake()`**:  Sets `e` and `re` to empty, and calls
-   `kernel.ClearHash()`.  If `dummy_s` is `True` sets `s` to empty.  If
-   `dummy_rs` is `True` sets `rs` to empty.  Then returns two new sessions by
-   calling `kernel.Split()` and copying the returned kernels and all session
-   state into the new sessions.  Then erases all data from the current session.
-
- * **`WriteTransportMessage(buffer, payload)`**:  Takes an empty byte buffer
- and a payload.  Writes `kernel.Encrypt(payload)` to `buffer` preceded by a
- big-endian `uint16` encoding of payload length + 16.
-
-
- * **`ReadTransportMessage(buffer)`**:  Takes a byte buffer containing a
- message.  Checks that the big-endian `uint16` length field is correct, then
- returns `kernel.Decrypt()` on the rest of the buffer.
-
+ * **`EndHandshake()`**:  Returns two new kernels by calling `kernel.Split()`.
 
 4. Handshake patterns 
 ======================
