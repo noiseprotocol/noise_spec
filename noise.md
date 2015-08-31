@@ -22,9 +22,7 @@ interactive protocols.
 
 A Noise protocol begins with a **handshake phase** where two parties send
 **handshake messages**.  During the handshake phase the two parties perform a
-DH-based key agreement to arrive at a shared secret.  Each handshake message
-contains one or more DH public keys followed by a payload which may contain
-certificates, advertisements for supported features, or anything else.
+DH-based key agreement to arrive at a shared secret.  
 
 The Noise framework can support any DH-based key agreement that can be expressed
 in terms of **descriptors** and **patterns**.  A **descriptor** specifies the DH
@@ -32,8 +30,13 @@ public keys and DH operations that comprise a handshake message.  A **pattern**
 specifies the sequence of messages that comprise the handshake.  A pattern might
 describe a one-way encrypted message or an interactive handshake.
 
-After the handshake phase each party can send **transport messages** which
-consist solely of encrypted payloads.
+Each handshake message consists of a sequence of one or more DH public keys,
+followed by a payload which may contain certificates, advertisements for
+supported features, or anything else.  Some of the public keys and payloads may
+be encrypted, as indicated by the pattern.
+
+After the handshake phase each party can send **transport messages**.  Each
+transport message consists solely of an encrypted payload.
 
 2.2. Key agreement
 -------------------
@@ -156,7 +159,9 @@ descriptors from a handshake pattern until the handshake is complete.
 
 After the handshake is complete you call `EndHandshake()` which returns two
 kernels, the first for encrypting transport messages from initiator to
-responder, and the second for messages in the other direction.
+responder, and the second for messages in the other direction.  Transport
+messages are encrypted and decrypted by calling `kernel.Encrypt()` and
+`kernel.Decrypt()`.
 
 3.4. Session state and methods 
 ------------------------------
