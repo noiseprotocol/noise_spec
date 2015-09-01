@@ -107,13 +107,13 @@ Noise depends on the following **cipher parameters**:
  MAC calculation).
 
  * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of 256 bits and some
- input data and returns a new value for the cipher key `k`.  The `kdf_key` will
+ input data and returns a new cipher key.  The `kdf_key` will
  be a random secret key and the KDF should implement a "PRF" based on the
  `kdf_key`.  The KDF should also be a collision-resistant hash function given a
  known `kdf_key`.  `HMAC-SHA2-256` is an example KDF.
 
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
- hash output of 256 bits. SHA2-256 is an example hash function.
+ hash output of 256 bits. `SHA2-256` is an example hash function.
 
 3.2. The  `CipherState` object 
 -------------------------------
@@ -152,9 +152,8 @@ A `CipherState` responds to the following methods:
  ciphertext, then increments `n` and returns the ciphertext.
 
  * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
- plaintext, then increments `n` and returns the plaintext.  If an authentication
- failure occurs all variables are set to zeros and the error is signalled to the
- caller.
+   plaintext, then increments `n` and returns the plaintext.  If an
+   authentication failure occurs the error is signalled to the caller.
 
 3.3.  Using the `HandshakeState` object 
 ---------------------------------------
@@ -238,9 +237,8 @@ A `HandshakeState` responds to the following methods:
     * Appends `ConditionalEncryptAndMixHash(payload)` to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
- containing a message, and a descriptor, and returns a payload.  If a decryption
- error occurs all variables are set to zeros and the error is signalled to the
- caller.
+   containing a message, and a descriptor, and returns a payload.  If a
+   decryption error occurs the error is signalled to the caller.
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
