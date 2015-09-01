@@ -58,18 +58,17 @@ A set of **DH functions** and a **cipherset** instantiate the crypto functions
 to give a concrete protocol.  The DH functions could use finite-field or
 elliptic curve DH.  The cipherset specifies the symmetric-key functions.
 
-3. Sessions
-============
+3. CipherState and HandshakeState 
+==================================
 
-A Noise **session** contains the state variables and methods for executing a Noise
-protocol.  A session can be viewed in terms of three layers:
+A Noise implementation can be viewed in terms of three layers:
 
  * **DH functions** and a **cipherset** provide low-level crypto functions.
 
- * A **kernel object** builds on the cipherset.  The kernel mixes inputs into a
- secret key and uses that key for encryption and decryption.
+ * A **`CipherState`** object builds on the cipherset.  The `CipherState` mixes
+ inputs into a secret key and uses that key for encryption and decryption.
 
- * A **session object** builds on the kernel and DH functions.
+ * A **`HandshakeState`** object builds on the `CipherState` and DH functions.
 
 The below sections describe each of these layers in turn.
 
@@ -114,12 +113,12 @@ Noise depends on the following **cipherset** functions:
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
  hash output of 256 bits. SHA2-256 is an example hash function.
 
-3.2.  Kernel state and methods
+3.2. The CipherState object 
 -------------------------------
 
-A kernel can mix inputs into its internal state, and can encrypt and decrypt
-data based on its internal state.  A kernel contains the following state
-variables:
+A `CipherState` can mix inputs into its internal state, and can encrypt and
+decrypt data based on its internal state.  A `CipherState` contains the
+following variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
  the cipherset.
@@ -130,7 +129,7 @@ variables:
  * **`h`**: Either empty or 256 bits containing a hash output.  This is used as
  "associated data" for encryption.
  
-A kernel responds to the following methods:
+A `CipherState` responds to the following methods:
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
@@ -142,10 +141,10 @@ A kernel responds to the following methods:
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
  replaces `h` by the hash of `h` with `data` appended.
 
- * **`Split()`**:  Creates two new child kernels by calling `GetKey()` to get
- the first child's `k`, then calling `GetKey()` to get the second child's `k`.
- The children have `n` set to zero and `h` set to empty (i.e. zero-length). The
- two children are returned.
+ * **`Split()`**:  Creates two new child `CipherState` objects by calling
+ `GetKey()` to get the first child's `k`, then calling `GetKey()` to get the
+ second child's `k`.  The children have `n` set to zero and `h` set to empty
+ (i.e.  zero-length). The two children are returned.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -155,28 +154,29 @@ A kernel responds to the following methods:
  failure occurs all variables are set to zeros and the error is signalled to the
  caller.
 
-3.3.  Session object usage
+3.3.  Using the HandshakeState object 
 --------------------------------
 
-To execute a Noise protocol you `Initialize()` a session object, then call
-`WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
+To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
+call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
 descriptors from a handshake pattern until the handshake is complete.  If a
-decryption error occurs the handshake has failed and the session is deleted
-without sending further messages.
+decryption error occurs the handshake has failed and the `HandshakeState` is
+deleted without sending further messages.
 
 After the handshake is complete you call `EndHandshake()` which returns two
-kernels, the first for encrypting transport messages from initiator to
-responder, and the second for messages in the other direction.  The session
-object should be securely deleted, so that any traces of the ephemeral private
-keys are removed from memory.  Then transport messages can be encrypted and
-decrypted by calling `kernel.Encrypt()` and `kernel.Decrypt()`.
+`CipherState` objects, the first for encrypting transport messages from
+initiator to responder, and the second for messages in the other direction.  The
+`HandshakeState` object should be securely deleted, so that any traces of the
+ephemeral private keys are removed from memory.  Then transport messages can be
+encrypted and decrypted by calling `CipherState.Encrypt()` and
+`CipherState.Decrypt()`.
 
-3.4. Session state and methods 
-------------------------------
+3.4. The `HandshakeState` object
+---------------------------------
 
-Sessions contain the following state variables:
+A `HandshakeState` contain the following variables:
 
- * **`kernel`**: Kernel object that provides symmetric crypto.
+ * **`cipherstate`**: `CipherState` object that provides symmetric crypto.
 
  * **`s`**: The local static key pair 
 
@@ -186,19 +186,20 @@ Sessions contain the following state variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`has_key`**: Boolean that records whether the kernel has a secret key.
+ * **`has_key`**: Boolean that records whether the `CipherState` has a secret
+ key.
 
-A session responds to the following methods:
+A `HandshakeState` responds to the following methods:
 
- * **`Initialize(new_kernel, name, preshared_key, static_keypair,
-   preshared_ephemeral_keypair)`**: Takes a kernel object.  Also
-   takes a protocol `name` and `preshared_key` which are both variable-length
-   byte sequences (the `preshared_key` may be empty).  Also takes optional
-   static and "pre-shared ephemeral" keypairs.
+ * **`Initialize(new_cipherstate, name, preshared_key, static_keypair,
+ preshared_ephemeral_keypair)`**: Takes a `CipherState` object.  Also takes a
+ protocol `name` and `preshared_key` which are both variable-length byte
+ sequences (the `preshared_key` may be empty).  Also takes optional static and
+ "pre-shared ephemeral" keypairs.
  
-   * Sets `kernel` to `new_kernel`.  Calls `kernel.Initialize()`.
+   * Sets `cipherstate` to `new_cipherstate`.  Calls `cipherstate.Initialize()`.
    
-   * Calls `kernel.MixKey(name || 0x00 || preshared_key)`.
+   * Calls `cipherstate.MixKey(name || 0x00 || preshared_key)`.
 
    * If `preshared_key` isn't empty then sets `has_key` to `True`, otherwise
    sets it to `False`.
@@ -211,13 +212,13 @@ A session responds to the following methods:
 
 
  * **`EncryptHandshakeData(data)`**: If `has_key == True` sets `output_data =
- kernel.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
- `kernel.MixHash(data)` and returns `output_data`.
+ cipherstate.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
+ `cipherstate.MixHash(data)` and returns `output_data`.
 
  * **`DecryptHandshakeData(data, data_len)`**: If `has_key == True` sets
- `output_data` to `kernel.Decrypt()` on the next `data_len + 16` bytes of
+ `output_data` to `cipherstate.Decrypt()` on the next `data_len + 16` bytes of
  `data`, otherwise sets `output_data` to the next `data_len` bytes of `data`.
- Then calls `kernel.MixHash(output_data)` and returns `output_data`.
+ Then calls `cipherstate.MixHash(output_data)` and returns `output_data`.
 
  * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty byte
  buffer, a descriptor which is some sequence of the tokens from "e, s, dhee,
@@ -226,7 +227,10 @@ A session responds to the following methods:
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
       * For "s":  If `s` is empty copies `e` to `s`.  Appends `EncryptHandshakeData(s.public_key)` to the buffer.
-      * For "dh*xy*" calls `kernel.MixKey(DH(x, ry))` and sets `has_key` to True.
+
+      * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
+      True.
+
 
     * Appends `EncryptHandshakeData(payload)` to the buffer.
 
@@ -237,14 +241,17 @@ A session responds to the following methods:
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.
-      * For "dh*xy*" calls `kernel.MixKey(DH(y, rx))` and sets `has_key` to True.
+      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.  
+      
+      * For "dh*xy*" calls `cipherstate.MixKey(DH(y, rx))` and sets `has_key` to
+      True.
 
     * Sets `payload = DecryptHandshakeData()` on the rest of the buffer and
     returns the payload.
    
 
- * **`EndHandshake()`**:  Returns two new kernels by calling `kernel.Split()`.
+ * **`EndHandshake()`**:  Returns two new `CipherState` objects by calling
+ `cipherstate.Split()`.
 
 4. Handshake patterns 
 ======================
@@ -378,8 +385,8 @@ exchange messages to agree on a shared key.
 
 A handshake may support pattern re-initialization.  In this case, the recipient
 of a handshake message must also receive some indication whether this is the
-next message in the pattern, or whether to re-initialize the session and execute
-a different pattern.
+next message in the pattern, or whether to re-initialize the `HandshakeState`
+and execute a different pattern.
 
 By way of example, this section defines the "Noise Pipe" handshake.  This
 handshake uses `Noise_XX` for a full handshake but also provides an abbreviated
@@ -492,8 +499,8 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 7. Protocol names
 ==================
 
-To produce a **protocol name** for `Session.Initialize()` you add name fields
-for the DH functions and cipherset to the handshake pattern name
+To produce a **protocol name** for `HandshakeState.Initialize()` you add name
+fields for the DH functions and cipherset to the handshake pattern name
 (`Noise_N_25519_ChaChaPoly`, `Noise_XX_25519_AESGCM`, `Noise_IS_448_AESGCM`,
 etc.)
 
