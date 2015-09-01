@@ -37,15 +37,15 @@ handshake:
       <- e, dhee, s, dhse  
       -> s, dhse
 
-The initiator's first message sends an ephemeral public key (described by the
-descriptor "e").  The responder's first message sends an ephemeral public key,
-then sends the responder's static public key ("s") encrypted under a symmetric
-key derived from DH between the ephemerals ("dhee").  The initiator's final
-message contains the initiator's static public key ("s") encrypted under a key
-derived from DH between the ephemerals and between the initiator's ephemeral and
-responder's static key pair.  The final shared secret mixes a DH between the
-initiator's static and responder's ephemeral with the previous two DHs to
-provide forward secrecy and mutual authentication.
+The initiator's first message sends an ephemeral public key.  The responder's
+first message sends an ephemeral public key, then sends the responder's static
+public key ("s") encrypted under a symmetric key derived from DH between the
+ephemerals ("dhee").  The initiator's final message contains the initiator's
+static public key ("s") encrypted under a key derived from DH between the
+ephemerals and between the initiator's ephemeral and responder's static key
+pair.  The final shared key mixes a DH between the initiator's static and
+responder's ephemeral with the previous two DHs to provide forward secrecy and
+mutual authentication.
 
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain certificates, advertisements for
