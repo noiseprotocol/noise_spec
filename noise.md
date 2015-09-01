@@ -17,18 +17,17 @@ interactive protocols.
 2. Overview
 ============
 
-2.1. Handshake messages and transport messages
------------------------------------------------
-
 A Noise protocol begins with a **handshake phase** where two parties send
 **handshake messages**.  During the handshake phase the two parties perform a
-DH-based key agreement to arrive at a shared secret.  
+DH-based key agreement to agree on a shared secret.  
 
-The Noise framework can support any DH-based key agreement that can be expressed
-in terms of **descriptors** and **patterns**.  A **descriptor** specifies the DH
-public keys and DH operations that comprise a handshake message.  A **pattern**
-specifies the sequence of messages that comprise the handshake.  A pattern might
-describe a one-way encrypted message or an interactive handshake.
+The Noise framework can support any DH-based key agreement where each party has
+a long-term key pair (aka **static key pair**) and/or **ephemeral key pair**.
+The key agreement is expressed in terms of **descriptors** and **patterns**.  A
+**descriptor** specifies the DH public keys and DH operations that comprise a
+handshake message.  A **pattern** specifies the sequence of messages that
+comprise a key agreement.  A pattern might describe a one-way encrypted message
+or an interactive handshake.
 
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain certificates, advertisements for
@@ -41,23 +40,8 @@ transport message consists solely of an encrypted payload.
 All Noise messages are 65535 bytes in length or less.  This allows safe
 streaming decryption and 16-bit length fields.
 
-2.2. Key agreement
--------------------
-
-Noise can implement handshakes where each party has a static and/or ephemeral
-DH key pair.  The static keypair is a long-term key pair that exists prior to
-the protocol.  Ephemeral key pairs are short-term key pairs that are typically
-used for a single handshake.
-
-2.3. DH and cipher parameters
----------------------------------
-
-A Noise protocol is specified abstractly by its handshake pattern.
-
-A set of **DH parameters** and **cipher parameters** instantiate the crypto
-functions to give a concrete protocol.  The DH parameters could use finite-field
-or elliptic curve DH.  The cipher parameters specifies the symmetric-key
-functions.
+An abstract handshake pattern can be instantiated by **DH parameters** and
+**cipher parameters** to give a concrete protocol.
 
 3.  `CipherState` and `HandshakeState` 
 ==================================
@@ -157,7 +141,7 @@ A `CipherState` responds to the following methods:
  failure occurs all variables are set to zeros and the error is signalled to the
  caller.
 
-3.3.  Using the `HandshakeState`object 
+3.3.  Using the `HandshakeState` object 
 ---------------------------------------
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
@@ -194,9 +178,9 @@ A `HandshakeState` responds to the following methods:
 
  * **`Initialize(new_cipherstate, name, preshared_key, static_keypair,
  preshared_ephemeral_keypair)`**: Takes a `CipherState` object.  Also takes a
- protocol `name` and `preshared_key` which are both variable-length byte
- sequences (the `preshared_key` may be empty).  Also takes optional static and
- "pre-shared ephemeral" keypairs.
+ concrete handshake `name` (see Section 7) and `preshared_key` which are both
+ variable-length byte sequences (the `preshared_key` may be empty).  Also takes
+ optional static and "pre-shared ephemeral" keypairs.
  
    * Sets `cipherstate` to `new_cipherstate`.  Calls `cipherstate.Initialize()`.
    
@@ -386,17 +370,16 @@ exchange messages to agree on a shared key.
 
 A handshake may support pattern re-initialization.  In this case, the recipient
 of a handshake message must also receive some indication whether this is the
-next message in the pattern, or whether to re-initialize the `HandshakeState`
-and execute a different pattern.
+next message in the current pattern, or whether to re-initialize the
+`HandshakeState` and execute a different pattern.
 
-By way of example, this section defines the "Noise Pipe" handshake.  This
-handshake uses `Noise_XX` for a full handshake but also provides an abbreviated
-or "zero-round-trip" handshake via `Noise_IS`.  If the responder fails to
-decrypt the first `Noise_IS` message (perhaps due to changing her static key),
-she will use the `Noise_XXfallback` pattern to "fall back" to `Noise_XX` while
-re-using the initiator's ephemeral public key.  This allows the initiator to
-cache the responder's static public key and attempt to send an encrypted payload
-in the first `Noise_IS` message of future handshakes.
+By way of example, this section defines the "Noise Pipe" protocol.  This
+protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
+or "zero-round-trip" handshake via `Noise_IS` if the initiator has pre-knowledge
+of the responder's static public key.  If the responder fails to decrypt the
+first `Noise_IS` message (perhaps due to changing her static key), she will use
+the `Noise_XXfallback` pattern to "fall back" to `Noise_XX` while re-using the
+initiator's ephemeral public key.
 
 Encrypted data sent in the first `Noise_IS` message is susceptible to replay
 attacks, and also loses forward security and authentication if the responder's
@@ -434,7 +417,9 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  responder failed to authenticate the initiator's `Noise_IS` message and is
  performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
  public key as a pre-message.
- 
+
+ * In all other cases, `type` will be 0.
+
 6. DH parameters and cipher parameters
 ===============================
 
@@ -497,13 +482,19 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-7. Protocol names
-==================
+7. Handshake and Protocol names 
+=========================
 
-To produce a **protocol name** for `HandshakeState.Initialize()` you add name
-fields for the DH functions and cipher parameters to the handshake pattern name
-(`Noise_N_25519_ChaChaPoly`, `Noise_XX_25519_AESGCM`, `Noise_IS_448_AESGCM`,
-etc.)
+To produce a **concrete handshake name** for `HandshakeState.Initialize()` you
+add the DH parameter and cipher parameter names to the handshake pattern name.
+For example: `Noise_N_25519_ChaChaPoly`, `Noise_XXfallback_25519_AESGCM`, or
+`Noise_IS_448_AESGCM`.
+
+The concrete handshake name is identical to the **concrete protocol name**
+unless the protocol uses pattern re-initialization. In that case, the protocol
+should be given a special name (e.g.  "Pipe").  This name isn't used for
+`HandshakeState.Initialize()` but fully defines the protocol for interop
+purposes, e.g.  `Noise_Pipe_25519_AESGCM`.
 
 8. Application responsibilities
 ================================
