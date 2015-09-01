@@ -98,7 +98,7 @@ Noise depends on the following **cipher parameters**:
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
- data `ad`.  If the authentication fails an error is signalled to the caller.
+ data `ad`.  If the authentication fails an error is signaled to the caller.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
  nonce `n`, and empty `ad` to encrypt a block of 256 zero bits.  Returns the
@@ -153,7 +153,7 @@ A `CipherState` responds to the following methods:
 
  * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
    plaintext, then increments `n` and returns the plaintext.  If an
-   authentication failure occurs the error is signalled to the caller.
+   authentication failure occurs the error is signaled to the caller.
 
 3.3.  Using the `HandshakeState` object 
 ---------------------------------------
@@ -238,7 +238,7 @@ A `HandshakeState` responds to the following methods:
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
    containing a message, and a descriptor, and returns a payload.  If a
-   decryption error occurs the error is signalled to the caller.
+   decryption error occurs the error is signaled to the caller.
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
