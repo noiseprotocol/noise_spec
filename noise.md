@@ -516,12 +516,13 @@ An application built on Noise must consider several issues:
 
  * **Length fields**:  Applications must handle any framing or additional length
  fields for Noise messages, considering that a Noise message may be up to 65535
- bytes in length.
+ bytes in length.  Applications are recommended to add a 16-bit big-endian
+ length field prior to each message.
 
  * **Type fields**:  Applications are recommended to include a single-byte type
- field prior to each Noise handshake message, or provide some equivalent
- mechanism.  This allows extending the handshake with pattern re-initialization
- or other alternative messages in the future.
+ field prior to each Noise handshake message (and prior to a length field, if
+ one is included).  This allows extending the handshake with pattern
+ re-initialization or other alternative messages in the future.
 
 
 8. Security Considerations
