@@ -38,8 +38,8 @@ be encrypted, as indicated by the pattern.
 After the handshake phase each party can send **transport messages**.  Each
 transport message consists solely of an encrypted payload.
 
-All Noise messages are assumed to be 65535 bytes in length or less.  This allows
-safe streaming decryption and 16-bit length fields.
+All Noise messages are 65535 bytes in length or less.  This allows safe
+streaming decryption and 16-bit length fields.
 
 2.2. Key agreement
 -------------------
@@ -49,33 +49,36 @@ DH key pair.  The static keypair is a long-term key pair that exists prior to
 the protocol.  Ephemeral key pairs are short-term key pairs that are typically
 used for a single handshake.
 
-2.3. DH functions and ciphersets
+2.3. DH and cipher parameters
 ---------------------------------
 
 A Noise protocol is specified abstractly by its handshake pattern.
 
-A set of **DH functions** and a **cipherset** instantiate the crypto functions
-to give a concrete protocol.  The DH functions could use finite-field or
-elliptic curve DH.  The cipherset specifies the symmetric-key functions.
+A set of **DH parameters** and **cipher parameters** instantiate the crypto
+functions to give a concrete protocol.  The DH parameters could use finite-field
+or elliptic curve DH.  The cipher parameters specifies the symmetric-key
+functions.
 
-3. CipherState and HandshakeState 
+3.  `CipherState` and `HandshakeState` 
 ==================================
 
-A Noise implementation can be viewed in terms of three layers:
+A Noise implementation can be viewed as three layers:
 
- * **DH functions** and a **cipherset** provide low-level crypto functions.
+ * **DH parameters** and **cipher parameters** provide low-level crypto
+ functions.
 
- * A **`CipherState`** object builds on the cipherset.  The `CipherState` mixes
- inputs into a secret key and uses that key for encryption and decryption.
+ * A **`CipherState`** object builds on the cipher parameters.  The
+ `CipherState` mixes inputs into a secret key and uses that key for encryption
+ and decryption.
 
- * A **`HandshakeState`** object builds on the `CipherState` and DH functions.
+ * A **`HandshakeState`** object builds on the `CipherState` and DH parameters.
 
 The below sections describe each of these layers in turn.
 
-3.1. DH algorithm and cipherset functions
+3.1. DH parameters and cipher parameters
 ------------------------------------------
 
-Noise depends on the following **DH functions** and constants:
+Noise depends on the following **DH parameters**:
 
  * **`DHLEN`** = A constant specifying the size of public keys in bytes.
  
@@ -84,7 +87,7 @@ Noise depends on the following **DH functions** and constants:
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes. 
 
-Noise depends on the following **cipherset** functions:
+Noise depends on the following **cipher parameters**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
  key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
@@ -113,7 +116,7 @@ Noise depends on the following **cipherset** functions:
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
  hash output of 256 bits. SHA2-256 is an example hash function.
 
-3.2. The CipherState object 
+3.2. The  `CipherState` object 
 -------------------------------
 
 A `CipherState` can mix inputs into its internal state, and can encrypt and
@@ -121,7 +124,7 @@ decrypt data based on its internal state.  A `CipherState` contains the
 following variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
- the cipherset.
+ the cipher parameters.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
@@ -154,8 +157,8 @@ A `CipherState` responds to the following methods:
  failure occurs all variables are set to zeros and the error is signalled to the
  caller.
 
-3.3.  Using the HandshakeState object 
---------------------------------
+3.3.  Using the `HandshakeState`object 
+---------------------------------------
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
 call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
@@ -165,11 +168,9 @@ deleted without sending further messages.
 
 After the handshake is complete you call `EndHandshake()` which returns two
 `CipherState` objects, the first for encrypting transport messages from
-initiator to responder, and the second for messages in the other direction.  The
-`HandshakeState` object should be securely deleted, so that any traces of the
-ephemeral private keys are removed from memory.  Then transport messages can be
-encrypted and decrypted by calling `CipherState.Encrypt()` and
-`CipherState.Decrypt()`.
+initiator to responder, and the second for messages in the other direction.
+Then transport messages can be encrypted and decrypted by calling
+`CipherState.Encrypt()` and `CipherState.Decrypt()`.
 
 3.4. The `HandshakeState` object
 ---------------------------------
@@ -434,10 +435,10 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
  public key as a pre-message.
  
-6. DH functions and ciphersets
+6. DH parameters and cipher parameters
 ===============================
 
-6.1. The 25519 DH functions
+6.1. The 25519 DH parameters
 ----------------------------
 
  * **`DHLEN`** = 32
@@ -446,7 +447,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.
 
-6.2. The 448 DH functions
+6.2. The 448 DH parameters
 --------------------------
 
  * **`DHLEN`** = 56
@@ -455,7 +456,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
 
-6.3. The ChaChaPoly cipherset
+6.3. The ChaChaPoly cipher parameters
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -474,7 +475,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
-6.4. The AESGCM cipherset
+6.4. The AESGCM cipher parameters
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -500,7 +501,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 ==================
 
 To produce a **protocol name** for `HandshakeState.Initialize()` you add name
-fields for the DH functions and cipherset to the handshake pattern name
+fields for the DH functions and cipher parameters to the handshake pattern name
 (`Noise_N_25519_ChaChaPoly`, `Noise_XX_25519_AESGCM`, `Noise_IS_448_AESGCM`,
 etc.)
 
@@ -559,7 +560,7 @@ Nonces are 64 bits in length because:
  * 64 bits allows the entire nonce to be treated as an integer and incremented 
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
 
-The default ciphersets use SHA2-256 because:
+The default cipher parameters use SHA2-256 because:
 
  * SHA2 is widely available
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
