@@ -39,7 +39,7 @@ After the handshake phase each party can send **transport messages**.  Each
 transport message consists solely of an encrypted payload.
 
 All Noise messages are assumed to be 65535 bytes in length or less.  This allows
-safe streaming decryption, simplifies testing, and allows 16-bit length fields.
+safe streaming decryption and 16-bit length fields.
 
 2.2. Key agreement
 -------------------
@@ -507,7 +507,8 @@ An application built on Noise must consider several issues:
 
  * **Padding**:  Applications are recommended to use a data format for the
  payloads of all encrypted messages that allows the addition of padding data, so
- that payload lengths don't leak information.
+ that payload lengths don't leak information.  Using an extensible data format,
+ per the previous bullet, will typically suffice.
 
  * **Termination**: Applications must consider that a sequence of Noise
  transport messages could be truncated by an attacker.  Applications should
@@ -520,7 +521,7 @@ An application built on Noise must consider several issues:
  length field prior to each message.
 
  * **Type fields**:  Applications are recommended to include a single-byte type
- field prior to each Noise handshake message (and prior to a length field, if
+ field prior to each Noise handshake message (and prior to the length field, if
  one is included).  This allows extending the handshake with pattern
  re-initialization or other alternative messages in the future.
 
