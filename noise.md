@@ -3,7 +3,7 @@ Noise v1 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-27
+ * **Date:** 2015-08-31
  * **Revision:** 03 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -37,6 +37,9 @@ be encrypted, as indicated by the pattern.
 
 After the handshake phase each party can send **transport messages**.  Each
 transport message consists solely of an encrypted payload.
+
+All Noise messages are assumed to be 65535 bytes in length or less.  This allows
+safe streaming decryption, simplifies testing, and allows 16-bit length fields.
 
 2.2. Key agreement
 -------------------
@@ -94,7 +97,7 @@ Noise depends on the following **cipherset** functions:
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
- data `ad`.
+ data `ad`.  If the authentication fails an error is signalled to the caller.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
  nonce `n`, and empty `ad` to encrypt a block of 256 zero bits.  Returns the
@@ -148,14 +151,18 @@ A kernel responds to the following methods:
  ciphertext, then increments `n` and returns the ciphertext.
 
  * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
- plaintext, then increments `n` and returns the plaintext.
+ plaintext, then increments `n` and returns the plaintext.  If an authentication
+ failure occurs all variables are set to zeros and the error is signalled to the
+ caller.
 
 3.3.  Session object usage
 --------------------------------
 
 To execute a Noise protocol you `Initialize()` a session object, then call
 `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
-descriptors from a handshake pattern until the handshake is complete.
+descriptors from a handshake pattern until the handshake is complete.  If a
+decryption error occurs the handshake has failed and the session is deleted
+without sending further messages.
 
 After the handshake is complete you call `EndHandshake()` which returns two
 kernels, the first for encrypting transport messages from initiator to
@@ -223,7 +230,9 @@ A session responds to the following methods:
     * Appends `EncryptHandshakeData(payload)` to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
- containing a message, and a descriptor, and returns a payload.
+ containing a message, and a descriptor, and returns a payload.  If a decryption
+ error occurs all variables are set to zeros and the error is signalled to the
+ caller.
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
@@ -232,7 +241,8 @@ A session responds to the following methods:
 
     * Sets `payload = DecryptHandshakeData()` on the rest of the buffer and
     returns the payload.
-    
+   
+
  * **`EndHandshake()`**:  Returns two new kernels by calling `kernel.Split()`.
 
 4. Handshake patterns 
@@ -265,8 +275,8 @@ responder's static public key as well as the responder's ephemeral:
 
 Patterns where one party sends their static public key allow that party to opt
 out of authenticating themselves.  If that party sets their static public key
-equal to their ephemeral public key, this signals to the other party that a
-distinct static public key does not exist.
+equal to their ephemeral public key (a "dummy" static public key), this signals
+to the other party that a distinct static public key does not exist.
 
 4.1. One-way patterns
 ----------------------
@@ -381,8 +391,8 @@ in the first `Noise_IS` message of future handshakes.
 
 Encrypted data sent in the first `Noise_IS` message is susceptible to replay
 attacks, and also loses forward security and authentication if the responder's
-static private key is compromised. So a 0-RTT payload like this should only be
-used when this reduction in security is acceptable.
+static private key is compromised. So a 0-RTT encrypted payload should only be
+used when this is acceptable.
 
 Below are the three patterns used for Noise Pipes:
 
@@ -412,9 +422,9 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  is performing a `Noise_IS` handshake.
 
  * If `type == 1` in the responder's first `Noise_IS` response then the
- responder failed to authenticate the `Noise_IS` message and is performing a
- `Noise_XXfallback` handshake, using the initiator's ephemeral public key as a
- pre-message.
+ responder failed to authenticate the initiator's `Noise_IS` message and is
+ performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
+ public key as a pre-message.
  
 6. DH functions and ciphersets
 ===============================
@@ -485,6 +495,34 @@ To produce a **protocol name** for `Session.Initialize()` you add name fields
 for the DH functions and cipherset to the handshake pattern name
 (`Noise_N_25519_ChaChaPoly`, `Noise_XX_25519_AESGCM`, `Noise_IS_448_AESGCM`,
 etc.)
+
+8. Application responsibilities
+================================
+
+An application built on Noise must consider several issues:
+
+ * **Extensibility**:  Applications are recommended to use an extensible data
+ format for the payloads of all messages (e.g. JSON, Protocol Buffers) so that
+ fields can be added in the future which are ignored by older implementations.
+
+ * **Padding**:  Applications are recommended to use a data format for the
+ payloads of all encrypted messages that allows the addition of padding data, so
+ that payload lengths don't leak information.
+
+ * **Termination**: Applications must consider that a sequence of Noise
+ transport messages could be truncated by an attacker.  Applications should
+ include explicit length fields or termination signals inside of transport
+ payloads to signal the end of a stream of transport messages. 
+
+ * **Length fields**:  Applications must handle any framing or additional length
+ fields for Noise messages, considering that a Noise message may be up to 65535
+ bytes in length.
+
+ * **Type fields**:  Applications are recommended to include a single-byte type
+ field prior to each Noise handshake message, or provide some equivalent
+ mechanism.  This allows extending the handshake with pattern re-initialization
+ or other alternative messages in the future.
+
 
 8. Security Considerations
 ===========================
