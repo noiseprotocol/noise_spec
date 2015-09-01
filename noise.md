@@ -562,6 +562,12 @@ encrypted data.  This is one rationale behind the patterns in Section 4.
 
 This section collects various design rationale:
 
+Noise messages are <= 65535 bytes because:
+
+ * This allows streaming decryption of large files without having to hold the entire file in memory
+ * This simplifies testing and reduces memory or overflow errors in handling large messages
+ * This restricts length fields to 16 bits - the overhead of larger length fields might cost something for small messages, but the overhead of smaller length fields is insignificant for large messages.
+
 Nonces are 64 bits in length because:
 
  * Some ciphers (e.g. Salsa20) only have 64 bit nonces
@@ -585,7 +591,7 @@ Big-endian is preferred because:
  ChaCha20/Poly1305 use little-endian, these will likely be handled by
  specialized libraries.
  * The Noise length fields, on the other hand, are more likely to be handled by
- network parsing code where big-endian "network byte order" is more
+ network parsing code where big-endian "network byte order" is 
  traditional.
 
 
