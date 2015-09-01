@@ -23,7 +23,7 @@ DH-based key agreement to agree on a shared secret.
 
 The Noise framework can support any DH-based key agreement where each party has
 a long-term key pair (aka **static key pair**) and/or **ephemeral key pair**.
-The key agreement is expressed in terms of **descriptors** and **patterns**.  A
+The key agreement is described in terms of **descriptors** and **patterns**.  A
 **descriptor** specifies the DH public keys and DH operations that comprise a
 handshake message.  A **pattern** specifies the sequence of messages that
 comprise a key agreement.  A pattern might describe a one-way encrypted message
