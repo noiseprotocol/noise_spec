@@ -585,6 +585,7 @@ The cipher key must be 256 bits because:
 
 Big-endian is preferred because:
 
+ * Some ciphers use big-endian internally (e.g. GCM, SHA2).
  * While it's true that bignum libraries, Curve25519, Curve448, and
  ChaCha20/Poly1305 use little-endian, these will likely be handled by
  specialized libraries.
