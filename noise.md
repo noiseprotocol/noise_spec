@@ -498,7 +498,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-7. Handshake and Protocol names 
+7. Handshake and protocol names 
 =========================
 
 To produce a **concrete handshake name** for `HandshakeState.Initialize()` you
@@ -542,7 +542,7 @@ An application built on Noise must consider several issues:
  re-initialization or other alternative messages in the future.
 
 
-8. Security Considerations
+8. Security considerations
 ===========================
 
 This section collects various security considerations:
