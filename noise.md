@@ -19,11 +19,12 @@ interactive protocols.
 
 A Noise protocol begins with a **handshake phase** where two parties send
 **handshake messages**.  During the handshake phase the two parties perform a
-DH-based key agreement to agree on a shared secret.  
+DH-based key agreement to agree on a shared secret.  After the handshake phase
+each party can send **transport messages**. 
 
-The Noise framework can support any DH-based key agreement where each party has
-a long-term key pair (aka **static key pair**) and/or **ephemeral key pair**.
-The key agreement is described in terms of **descriptors** and **patterns**.  A
+The Noise framework can support any DH-based handshake where each party has a
+long-term key pair (aka **static key pair**) and/or **ephemeral key pair**.  The
+handshake is described in terms of **descriptors** and **patterns**.  A
 **descriptor** specifies the DH public keys and DH operations that comprise a
 handshake message.  A **pattern** specifies the sequence of messages that
 comprise a key agreement.  A pattern might describe a one-way encrypted message
@@ -37,26 +38,22 @@ handshake:
       <- e, dhee, s, dhse  
       -> s, dhse
 
-The initiator's first message sends an ephemeral public key.  The responder's
-first message sends an ephemeral public key, then sends the responder's static
-public key ("s") encrypted under a symmetric key derived from DH between the
-ephemerals ("dhee").  The initiator's final message contains the initiator's
-static public key ("s") encrypted under a key derived from DH between the
-ephemerals and DH between the initiator's ephemeral and responder's static key
-pair.  The final shared key mixes a DH between the initiator's static and
-responder's ephemeral with the previous two DHs to provide forward secrecy and
-mutual authentication.
+The initiator's first message sends an ephemeral public key ("e").  The
+responder's first message sends an ephemeral public key, then sends the
+responder's static public key ("s") encrypted under a symmetric key derived from
+DH between the ephemerals ("dhee").  The initiator's final message contains the
+initiator's static public key ("s") encrypted under a key derived from DH
+between the ephemerals and DH between the initiator's ephemeral and responder's
+static key pair.  The final shared key mixes a DH between the initiator's static
+and responder's ephemeral with the previous two DHs to provide forward secrecy
+and mutual authentication.
 
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain certificates, advertisements for
 supported features, or anything else.  Some of the public keys and payloads may
-be encrypted, as determined by the pattern.
-
-After the handshake phase each party can send **transport messages**.  Each
-transport message consists solely of an encrypted payload.
-
-All Noise messages are 65535 bytes in length or less.  This allows safe
-streaming decryption and 16-bit length fields.
+be encrypted, as determined by the pattern.  Each transport message consists
+solely of an encrypted payload.  All Noise messages are 65535 bytes in length or
+less.
 
 An abstract handshake pattern can be instantiated by **DH parameters** and
 **cipher parameters** to give a concrete protocol.
@@ -171,7 +168,7 @@ deleted without sending further messages.
 After the handshake is complete you call `EndHandshake()` which returns two
 `CipherState` objects, the first for encrypting transport messages from
 initiator to responder, and the second for messages in the other direction.
-Then transport messages can be encrypted and decrypted by calling
+Transport messages can be encrypted and decrypted by calling
 `CipherState.Encrypt()` and `CipherState.Decrypt()`.
 
 3.4. The `HandshakeState` object
@@ -229,7 +226,10 @@ A `HandshakeState` responds to the following methods:
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s":  If `s` is empty copies `e` to `s`.  Appends `ConditionalEncryptAndMixHash(s.public_key)` to the buffer.
+
+      * For "s":  If `s` is empty copies `e` to `s` (see "dummy statics" in
+      Section 4).  Appends `ConditionalEncryptAndMixHash(s.public_key)` to the
+      buffer.
 
       * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
       True.
