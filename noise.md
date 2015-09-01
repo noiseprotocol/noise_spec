@@ -29,10 +29,28 @@ handshake message.  A **pattern** specifies the sequence of messages that
 comprise a key agreement.  A pattern might describe a one-way encrypted message
 or an interactive handshake.
 
+For example, the following pattern (named `Noise_XX`) describes a mutually-authenticated
+handshake:
+
+    Noise_XX:  
+      -> e
+      <- e, dhee, s, dhse  
+      -> s, dhse
+
+The initiator's first message sends an ephemeral public key (described by the
+descriptor "e").  The responder's first message sends an ephemeral public key,
+then sends the responder's static public key ("s") encrypted under a symmetric
+key derived from DH between the ephemerals ("dhee").  The initiator's final
+message contains the initiator's static public key ("s") encrypted under a key
+derived from DH between the ephemerals and between the initiator's ephemeral and
+responder's static key pair.  The final shared secret mixes a DH between the
+initiator's static and responder's ephemeral with the previous two DHs to
+provide forward secrecy and mutual authentication.
+
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain certificates, advertisements for
 supported features, or anything else.  Some of the public keys and payloads may
-be encrypted, as indicated by the pattern.
+be encrypted, as determined by the pattern.
 
 After the handshake phase each party can send **transport messages**.  Each
 transport message consists solely of an encrypted payload.
@@ -196,11 +214,11 @@ A `HandshakeState` responds to the following methods:
    * Sets `rs` and `re` to empty.
 
 
- * **`EncryptHandshakeData(data)`**: If `has_key == True` sets `output_data =
+ * **`ConditionalEncryptAndMixHash(data)`**: If `has_key == True` sets `output_data =
  cipherstate.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
  `cipherstate.MixHash(data)` and returns `output_data`.
 
- * **`DecryptHandshakeData(data, data_len)`**: If `has_key == True` sets
+ * **`ConditionalDecryptAndMixHash(data, data_len)`**: If `has_key == True` sets
  `output_data` to `cipherstate.Decrypt()` on the next `data_len + 16` bytes of
  `data`, otherwise sets `output_data` to the next `data_len` bytes of `data`.
  Then calls `cipherstate.MixHash(output_data)` and returns `output_data`.
@@ -211,13 +229,13 @@ A `HandshakeState` responds to the following methods:
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
-      * For "s":  If `s` is empty copies `e` to `s`.  Appends `EncryptHandshakeData(s.public_key)` to the buffer.
+      * For "s":  If `s` is empty copies `e` to `s`.  Appends `ConditionalEncryptAndMixHash(s.public_key)` to the buffer.
 
       * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
       True.
 
 
-    * Appends `EncryptHandshakeData(payload)` to the buffer.
+    * Appends `ConditionalEncryptAndMixHash(payload)` to the buffer.
 
  * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
  containing a message, and a descriptor, and returns a payload.  If a decryption
@@ -226,12 +244,12 @@ A `HandshakeState` responds to the following methods:
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s": Sets `rs` to `DecryptHandshakeData(buffer, DHLEN)`.  
+      * For "s": Sets `rs` to `ConditionalDecryptAndMixHash(buffer, DHLEN)`.  
       
       * For "dh*xy*" calls `cipherstate.MixKey(DH(y, rx))` and sets `has_key` to
       True.
 
-    * Sets `payload = DecryptHandshakeData()` on the rest of the buffer and
+    * Sets `payload = ConditionalDecryptAndMixHash()` on the rest of the buffer and
     returns the payload.
    
 
@@ -373,7 +391,7 @@ of a handshake message must also receive some indication whether this is the
 next message in the current pattern, or whether to re-initialize the
 `HandshakeState` and execute a different pattern.
 
-By way of example, this section defines the "Noise Pipe" protocol.  This
+By way of example, this section defines the `Noise_Pipe` protocol.  This
 protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
 or "zero-round-trip" handshake via `Noise_IS` if the initiator has pre-knowledge
 of the responder's static public key.  If the responder fails to decrypt the
