@@ -166,9 +166,10 @@ without sending further messages.
 
 After the handshake is complete you call `EndHandshake()` which returns two
 kernels, the first for encrypting transport messages from initiator to
-responder, and the second for messages in the other direction.  Transport
-messages are encrypted and decrypted by calling `kernel.Encrypt()` and
-`kernel.Decrypt()`.
+responder, and the second for messages in the other direction.  The session
+object should be securely deleted, so that any traces of the ephemeral private
+keys are removed from memory.  Then transport messages can be encrypted and
+decrypted by calling `kernel.Encrypt()` and `kernel.Decrypt()`.
 
 3.4. Session state and methods 
 ------------------------------
