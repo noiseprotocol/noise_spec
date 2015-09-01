@@ -4,7 +4,7 @@ Noise v1 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-08-27
- * **Revision:** 02 (work in progress)
+ * **Revision:** 03 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -263,8 +263,10 @@ responder's static public key as well as the responder's ephemeral:
       -> e, dhes 
       <- e, dhee
 
-The following patterns represent the mainstream use of Noise.  Other patterns
-can be defined in other documents.
+Patterns where one party sends their static public key allow that party to opt
+out of authenticating themselves.  If that party sets their static public key
+equal to their ephemeral public key, this signals to the other party that a
+distinct static public key does not exist.
 
 4.1. One-way patterns
 ----------------------
@@ -276,18 +278,18 @@ recipient.
      S  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
-    N:
+    Noise_N:
       <- s
       ------
       -> e, dhes
 
-    S:
+    Noise_S:
       <- s
       -> s
       ------
       -> e, dhes, dhss
 
-    X:
+    Noise_X:
       <- s
       ------
       -> e, dhes, s, dhss
@@ -309,147 +311,111 @@ exchange messages to agree on a shared key.
      _X = static key for responder transmitted to initiator
 
 
-    NN:                              SN:                 
+    Noise_NN:                        Noise_SN:                 
       -> e                             -> s                       
       <- e, dhee                       ------                     
                                        -> e                       
                                        <- e, dhee, dhes           
                                              
-    NS:                              SS:                 
+    Noise_NS:                        Noise_SS:                 
       <- s                             <- s                       
       ------                           -> s                       
       -> e, dhes                       ------                     
       <- e, dhee                       -> e, dhes, dhss           
                                        <- e, dhee, dhes           
                                               
-    NE:                              SE:                 
+    Noise_NE:                        Noise_SE:                 
       <- s, e                          <- s, e                    
       ------                           -> s                       
       -> e, dhee, dhes                 ------                     
       <- e, dhee                       -> e, dhee, dhes, dhse     
                                        <- e, dhee, dhes           
                                                                      
-    NX:                              SX:                 
+    Noise_NX:                        Noise_SX:                 
       -> e                             -> s                       
       <- e, dhee, s, dhse              ------                     
                                        -> e                       
                                        <- e, dhee, dhes, s, dhse  
                             
 
-    XN:                              IN:                   
+    Noise_XN:                        Noise_IN:                   
       -> e                             -> e, s                      
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    XS:                              IS:                   
+    Noise_XS:                        Noise_IS:                   
       <- s                             <- s                         
       ------                           ------                       
       -> e, dhes                       -> e, dhes, s, dhss          
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
-    XE:                              IE:                   
+    Noise_XE:                        Noise_IE:                   
       <- s, e                          <- s, e                      
       ------                           ------                       
       -> e, dhee, dhes                 -> e, dhee, dhes, s, dhse    
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                        
-    XX:                              IX:                  
+    Noise_XX:                        Noise_IX:                  
       -> e                             -> e, s                     
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-4.3. Dummy statics
---------------------------
+5. Pattern re-initialization and "Noise Pipes"
+===============================================
 
-Patterns where one party sends their static public key allow that party to opt
-out of authenticating themselves.  If that party sets their static public key
-equal to their ephemeral public key, this signals to the other party that a
-distinct static public key does not exist.
+A handshake may support pattern re-initialization.  In this case, the recipient
+of a handshake message must also receive some indication whether this is the
+next message in the pattern, or whether to re-initialize the session and execute
+a different pattern.
 
-4.3. Re-initialization 
-------------------------
+By way of example, this section defines the "Noise Pipe" handshake.  This
+handshake uses `Noise_XX` for a full handshake but also provides an abbreviated
+or "zero-round-trip" handshake via `Noise_IS`.  If the responder fails to
+decrypt the first `Noise_IS` message (perhaps due to changing her static key),
+she will use the `Noise_XXfallback` pattern to "fall back" to `Noise_XX` while
+re-using the initiator's ephemeral public key.  This allows the initiator to
+cache the responder's static public key and attempt to send an encrypted payload
+in the first `Noise_IS` message of future handshakes.
 
-The `type` field in handshake messages can be used to trigger **session
-re-initialization**.  This allows parties to alter handshake patterns on the
-fly.
+Encrypted data sent in the first `Noise_IS` message is susceptible to replay
+attacks, and also loses forward security and authentication if the responder's
+static private key is compromised. So a 0-RTT payload like this should only be
+used when this reduction in security is acceptable.
 
-To allow re-initialization when defining a protocol specify a non-zero `type`
-value for a particular handshake message, the arguments to be used for
-`session.Initialize()`, and the new handshake pattern to be used when this
-`type` is sent.
+Below are the three patterns used for Noise Pipes:
 
-5. Protocols and names
-=======================
+    Noise_XX:  
+      -> e
+      <- e, dhee, s, dhse  
+      -> s, dhse
 
-5.1. Simple and compound protocols
------------------------------------
-
-A **simple protocol** supports a single handshake pattern, and is named for
-that pattern (`Noise_X`, `Noise_NX`, `Noise_IE`, etc).
-
-A protocol that uses the handshake type field to switch handshake patterns is a
-**compound protocol**, and must be assigned a specific name.  Every branch
-taken by this protocol is also assigned its own name that contains the protocol
-name as a prefix.  
-
-This document defines a single compound protocol (`Noise_Pipe`) with branch
-names (`Noise_PipeXX`, `Noise_PipeIS`, and `Noise_PipeXXfromIS`).
-
-All of the above are **abstract names**.  To produce a **concrete name** you
-add name fields for the DH functions and cipherset (`Noise_X_25519_ChaChaPoly`,
-`Noise_Pipe_25519_AESGCM`, `Noise_PipeXXfromIS_448_AESGCM`, etc.)
-
-5.2. Noise Pipe
-----------------
-
-The **`Noise_Pipe`** protocol supports a "full" handshake `XX`.  An abbreviated
-or "zero-round-trip" handshake `IS` is also supported via handshake
-re-initialization:
-
- * If `type == 0` in the initiator's first handshake message then that message
- is an `XX` handshake using the name `Noise_PipeXX`.
-
- * If `type == 1` in the initiator's first handshake message then that message
- is an abbreviated `IS` handshake using the name `Noise_PipeIS`.
-
- * If `type == 1` in the responder's first `IS` response then the responder
- failed to authenticate the `IS` message (perhaps due to a static key change)
- and is falling back to `XX`, using name `Noise_PipeXXfromIS`.  The sender and
- responder will re-initialize, the responder using the first message's
- ephemeral ("e") turned into a pre-message.
-
-Encrypted data sent in the first `IS` message is susceptible to replay attacks,
-and also loses forward security and authentication if the responder's static
-private key is compromised.  The abbreviated handshake's payload should only be
-used for data where this reduction in security is acceptable.
-
-The below patterns are annotated to show the message types for the regular,
-abbreviated, and fallback cases:
-
-    Noise_PipeXX:  
-      0 -> e
-      0 <- e, dhee, s, dhse  
-      0 -> s, dhse
-
-    Noise_PipeIS:                   
+    Noise_IS:                   
       <- s                         
       ------
-      1 -> e, dhes, s, dhss          
-      0 <- e, dhee, dhes             
+      -> e, dhes, s, dhss          
+      <- e, dhee, dhes             
                                         
-    Noise_Pipe_XXfromIS:                   
-      <- s                         
+    Noise_XXfallback:                   
+      -> e
       ------
-      1 -> e, dhes, s, dhss          
+      <- e, dhee, s, dhse
+      -> s, dhse
 
-      (re-initialize, responder handles initiator's "e" as pre-message)
+To distinguish these patterns, each handshake message will be preceded by a `type` byte:
 
-      1 <- e, dhee, s, dhse
-      0 -> s, dhse
+ * If `type == 0` in the initiator's first message then the initiator is performing
+ a `Noise_XX` handshake.
 
+ * If `type == 1` in the initiator's first message then the initiator
+ is performing a `Noise_IS` handshake.
 
+ * If `type == 1` in the responder's first `Noise_IS` response then the
+ responder failed to authenticate the `Noise_IS` message and is performing a
+ `Noise_XXfallback` handshake, using the initiator's ephemeral public key as a
+ pre-message.
+ 
 6. DH functions and ciphersets
 ===============================
 
@@ -471,7 +437,7 @@ abbreviated, and fallback cases:
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
 
-6.2. The ChaChaPoly cipherset
+6.3. The ChaChaPoly cipherset
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -489,9 +455,8 @@ abbreviated, and fallback cases:
  * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
  * **`HASH(input)`**: `SHA2-256(input)` 
- 
 
-6.3. The AESGCM cipherset
+6.4. The AESGCM cipherset
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -513,7 +478,15 @@ abbreviated, and fallback cases:
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-7. Security Considerations
+7. Protocol names
+==================
+
+To produce a **protocol name** for `Session.Initialize()` you add name fields
+for the DH functions and cipherset to the handshake pattern name
+(`Noise_N_25519_ChaChaPoly`, `Noise_XX_25519_AESGCM`, `Noise_IS_448_AESGCM`,
+etc.)
+
+8. Security Considerations
 ===========================
 
 This section collects various security considerations:
@@ -526,7 +499,7 @@ To avoid catastrophic key reuse, every party in a Noise protocol should send a
 fresh ephemeral public key and perform a DH with it prior to sending any
 encrypted data.  This is one rationale behind the patterns in Section 4.
 
-8. Rationale
+9. Rationale
 =============
 
 This section collects various design rationale:
@@ -558,12 +531,12 @@ Big-endian is preferred because:
  traditional.
 
 
-9. IPR
+10. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-10. Acknowledgements
+11. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
