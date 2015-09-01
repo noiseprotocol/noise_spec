@@ -38,15 +38,20 @@ handshake:
       <- e, dhee, s, dhse  
       -> s, dhse
 
-The initiator's first message sends an ephemeral public key ("e").  The
-responder's first message sends an ephemeral public key, then sends the
-responder's static public key ("s") encrypted under a symmetric key derived from
-DH between the ephemerals ("dhee").  The initiator's final message contains the
-initiator's static public key ("s") encrypted under a key derived from DH
-between the ephemerals and DH between the initiator's ephemeral and responder's
-static key pair.  The final shared key mixes a DH between the initiator's static
-and responder's ephemeral with the previous two DHs to provide forward secrecy
-and mutual authentication.
+Explanation:
+
+ * The initiator's first message sends an ephemeral public key ("e").  
+ 
+ * The responder's first message sends an ephemeral public key, then sends the
+   responder's static public key ("s") encrypted under a symmetric key derived
+   from DH between the ephemerals ("dhee").  
+
+ * The initiator's final message contains the initiator's static public key
+   ("s") encrypted under a key that mixes DH between the ephemerals, and DH
+   between the initiator's ephemeral and responder's static key pair ("dhse" in
+   the previous message).  The final shared key mixes a DH between the
+   initiator's static and responder's ephemeral ("dhse") with the previous two
+   DHs to provide forward secrecy and mutual authentication.
 
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain certificates, advertisements for
@@ -56,7 +61,11 @@ solely of an encrypted payload.  All Noise messages are 65535 bytes in length or
 less.
 
 An abstract handshake pattern can be instantiated by **DH parameters** and
-**cipher parameters** to give a concrete protocol.
+**cipher parameters** to give a concrete protocol (Sections 6 and 7).
+
+An application using Noise must handle several **application responsibilities**
+on its own, such as indicating message lengths, adding padding and extensible
+data formats into the payload, and so on (Section 8).
 
 3.  `CipherState` and `HandshakeState` 
 ==================================
