@@ -42,7 +42,7 @@ first message sends an ephemeral public key, then sends the responder's static
 public key ("s") encrypted under a symmetric key derived from DH between the
 ephemerals ("dhee").  The initiator's final message contains the initiator's
 static public key ("s") encrypted under a key derived from DH between the
-ephemerals and between the initiator's ephemeral and responder's static key
+ephemerals and DH between the initiator's ephemeral and responder's static key
 pair.  The final shared key mixes a DH between the initiator's static and
 responder's ephemeral with the previous two DHs to provide forward secrecy and
 mutual authentication.
