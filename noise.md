@@ -606,11 +606,11 @@ The Noise specification (this document) is hereby placed in the public domain.
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
 and also by HOMQV from Hugo Krawzcyk.
 
+Feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld, Tiffany
+Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
+
 Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
 earlier versions of the key derivation.
-
-Additional feedback on spec and pseudocode came from: Jason Donenfeld, Jonathan
-Rudenberg, Stephen Touset, and Tony Arcieri.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
