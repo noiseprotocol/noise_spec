@@ -235,9 +235,9 @@ A `HandshakeState` responds to the following methods:
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
 
-      * For "s":  If `s` is empty copies `e` to `s` (see "dummy statics" in
-      Section 4).  Appends `ConditionalEncryptAndMixHash(s.public_key)` to the
-      buffer.
+      * For "s":  If `s` is empty copies `e` to `s` (see "dummy static" public
+      keys in Section 4).  Appends `ConditionalEncryptAndMixHash(s.public_key)`
+      to the buffer.
 
       * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
       True.
@@ -293,7 +293,7 @@ responder's static public key as well as the responder's ephemeral:
 
 Patterns where one party sends their static public key allow that party to opt
 out of authenticating themselves.  If that party sets their static public key
-equal to their ephemeral public key (a "dummy" static public key), this signals
+equal to their ephemeral public key (a "dummy static" public key), this signals
 to the other party that a distinct static public key does not exist.
 
 4.1. One-way patterns
@@ -556,13 +556,23 @@ An application built on Noise must consider several issues:
 
 This section collects various security considerations:
 
-Reusing a nonce value for `n` with the same key `k` for encryption would be
-catastrophic.  Implementations must carefully follow the rules for incrementing
-nonces.   
+ * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key `k`
+ for encryption would be catastrophic.  Implementations must carefully follow
+ the rules for incrementing nonces.   
 
-To avoid catastrophic key reuse, every party in a Noise protocol should send a
-fresh ephemeral public key and perform a DH with it prior to sending any
-encrypted data.  This is one rationale behind the patterns in Section 4.
+ * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
+ ephemeral public key and perform a DH with it prior to sending any encrypted
+ data.  Otherwise replay of a handshake message could trigger a catastrophic key
+ reuse. This is one rationale behind the patterns in Section 4.
+
+ * **Handshake names**:  The handshake name used with
+ `HandshakeState.Initialize()` must uniquely identify a single handshake pattern
+ for every key it's used with (whether ephemeral key pair, static key pair, or
+ pre-shared key).  This is because the pattern specifies the role of all
+ `CipherState` calls within a handshake.  If the same secret key was used in
+ different protocol executions with the same handshake name but a different
+ sequence of `CipherState` calls then bad interactions could occur between the
+ executions.
 
 9. Rationale
 =============
@@ -571,9 +581,10 @@ This section collects various design rationale:
 
 Noise messages are <= 65535 bytes because:
 
- * This allows streaming decryption of large files without having to hold the entire file in memory
- * This simplifies testing and reduces memory or overflow errors in handling large messages
- * This restricts length fields to 16 bits - the overhead of larger length fields might cost something for small messages, but the overhead of smaller length fields is insignificant for large messages.
+ * This allows safe streaming decryption, and random access decryption of large files.
+ * This simplifies testing and reduces likelihood of memory or overflow errors in handling large messages
+ * This restricts length fields to a standard size of 16 bits, aiding interop 
+ * The overhead of larger standard length fields (e.g. 32 or 64 bits) might cost something for small messages, but the overhead of smaller length fields is insignificant for large messages.
 
 Nonces are 64 bits in length because:
 
