@@ -551,7 +551,7 @@ An application built on Noise must consider several issues:
  re-initialization or other alternative messages in the future.
 
 
-8. Security considerations
+9. Security considerations
 ===========================
 
 This section collects various security considerations:
@@ -574,7 +574,7 @@ This section collects various security considerations:
  sequence of `CipherState` calls then bad interactions could occur between the
  executions.
 
-9. Rationale
+10. Rationale
 =============
 
 This section collects various design rationale:
@@ -614,12 +614,12 @@ Big-endian is preferred because:
  traditional.
 
 
-10. IPR
+11. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-11. Acknowledgements
+12. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
