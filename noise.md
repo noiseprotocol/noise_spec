@@ -113,7 +113,7 @@ Noise depends on the following **cipher parameters**:
  nonce `n`, and empty `ad` to encrypt a block of 256 zero bits.  Returns the
  first 256 bits from the encrypted output.  This function can usually be
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
- MAC calculation).
+ authentication tag calculation).
 
  * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of 256 bits and some
  input data and returns a new cipher key.  The `kdf_key` will
@@ -230,7 +230,7 @@ A `HandshakeState` responds to the following methods:
 
  * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty byte
  buffer, a descriptor which is some sequence of the tokens from "e, s, dhee,
- dhes, dhse, dhss", and a `payload`.
+ dhes, dhse, dhss", and a `payload` (which may be empty).
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
