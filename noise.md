@@ -27,7 +27,7 @@ long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
 is described by **descriptors** and **patterns**.  A **descriptor** specifies
 the DH public keys that comprise a handshake message, and the DH operations
 that are performed when sending or receiving that message.  A **pattern**
-specifies the sequence of messages that comprise a handshake.
+specifies the sequence of descriptors that comprise a handshake.
 
 Each handshake message consists of a sequence of one or more DH public keys,
 followed by a payload which may contain arbitrary data (e.g. certificates).
@@ -38,40 +38,53 @@ parameters** to give a concrete protocol.  An application using Noise must
 handle several **application responsibilities** on its own, such as indicating
 message lengths, or adding padding and extensibility into the payload.
 
-2.  Message format
+3.  Message format
 ===================
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
-processed by the recipient without parsing (there are no length fields or type fields 
-within the message). 
+processed without parsing (there are no length fields or type fields within the
+message). 
 
 A handshake message begins with a sequence of one or more DH public keys which
-are being conveyed to the other party.  The role of each public key is
-specified by the message's descriptor.
+are being sent to the other party.  Whether each public key is ephemeral or
+static is specified by the message's descriptor.
 
-Ephemeral public keys are unique to this handshake and are sent in the clear.
-Static public keys will be encrypted if the parties have negotiated a secret
-key, to provide identity hiding.  Following the public keys will be a payload,
-which will be encrypted if the parties have negotiated a secret key.
+Ephemeral public keys are sent in the clear.  Static public keys may be
+encrypted (to provide identity hiding).  Following the public keys will be a
+payload, which may also be encrypted.  Encryption of static public keys and
+payloads will occur if a shared secret key has been established, either from a
+pre-shared key, or from the output of handshake DH calculations.  
 
 Transport messages consist solely of an encrypted payload. 
 
+4.  Crypto algorithms and `cipherstate` objects
+================================================
 
-3.  `CipherState` and `HandshakeState` 
-==================================
+A Noise protocol depends on **DH parameters** and **cipher parameters**.  The DH
+parameters specify the Diffie-Hellman function, which will typically be ECDH
+over some elliptic curve.  The cipher parameters specify the symmetric crypto
+algorithms.
 
-A Noise implementation can be viewed as three layers:
+During a Noise handshake, the output from successive DH calculations will be
+mixed into a secret key (**`k`**).  This secret key is used to encrypt static
+public keys and handshake payloads, and will also be used to derive the keys
+that encrypt transport messages.  
 
- * **DH parameters** and **cipher parameters** provide low-level crypto
- functions.
+During a Noise handshake, when static public keys and handshake payloads are
+transmitted their plaintext will be mixed into a hash value (**`h`**).  This
+value will be authenticated along with every handshake ciphertext, to ensure
+that all handshake ciphertexts are bound to all important context from earlier
+messages.
 
- * A **`CipherState`** object builds on the cipher parameters.  The
- `CipherState` mixes inputs into a secret key and uses that key for encryption
- and decryption.
+To handle `k` and `h` we introduce the notion of a **`cipherstate`** which
+contains `k` and `h` variables and provides methods for working with them.  A
+`cipherstate` supports mixing inputs into the `k` and `h` variables, performing
+encryption and decryption, and "splitting" into two cipherstates which can be
+used for independent sequences of transport messages.
 
- * A **`HandshakeState`** object builds on the `CipherState` and DH parameters.
+The below sections describe the DH parameters, cipher parameters, and
+`cipherstate` notion in more detail.
 
-The below sections describe each of these layers in turn.
 
 3.1. DH parameters and cipher parameters
 ------------------------------------------
@@ -105,20 +118,19 @@ Noise depends on the following **cipher parameters**:
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
  authentication tag calculation).
 
- * **`KDF(kdf_key, input)`**: Takes a `kdf_key` of 256 bits and some
- input data and returns a new cipher key.  The `kdf_key` will
- be a random secret key and the KDF should implement a "PRF" based on the
- `kdf_key`.  The KDF should also be a collision-resistant hash function given a
- known `kdf_key`.  `HMAC-SHA2-256` is an example KDF.
+ * **`KDF(key, input)`**: Takes a `key` of 256 bits and some input data and
+ returns a 256-bit output.  This function should implement a cryptographic "PRF"
+ keyed by `key`.  This function should also be a collision-resistant hash
+ function given a known `key`.  `HMAC-SHA2-256` is an example KDF.
 
  * **`HASH(data)`**: Hashes some input data and returns a collision-resistant
  hash output of 256 bits. `SHA2-256` is an example hash function.
 
-3.2. The  `CipherState` object 
+3.2. The  `cipherstate` object 
 -------------------------------
 
-A `CipherState` can mix inputs into its internal state, and can encrypt and
-decrypt data based on its internal state.  A `CipherState` contains the
+A `cipherstate` can mix inputs into its internal state, and can encrypt and
+decrypt data based on its internal state.  A `cipherstate` contains the
 following variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
@@ -130,22 +142,27 @@ following variables:
  * **`h`**: Either empty or 256 bits containing a hash output.  This is used as
  "associated data" for encryption.
  
-A `CipherState` responds to the following methods:
+A `cipherstate` responds to the following methods:
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
  * **`GetKey()`**: Calls `GETKEY(k, n)`, then increments `n` and returns the
- `GETKEY()` output.
+ `GETKEY()` output.  This is a private function that is only used by `MixKey()`
+ and `Split()`.
 
- * **`MixKey(data)`**:  Sets `k` to `KDF(GetKey(), data)`.
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GetKey(), data)`.  This will be called
+ to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
- replaces `h` by the hash of `h` with `data` appended.
+ replaces `h` by the hash of `h` with `data` appended.  This will be called to
+ mix static public keys and handshake payloads into the hash value.
 
- * **`Split()`**:  Creates two new child `CipherState` objects by calling
+ * **`Split()`**:  Creates two new child `cipherstate` objects by calling
  `GetKey()` to get the first child's `k`, then calling `GetKey()` to get the
  second child's `k`.  The children have `n` set to zero and `h` set to empty
- (i.e.  zero-length). The two children are returned.
+ (i.e.  zero-length). The two children are returned.  This will be called at the
+ end of a handshake to yield separate `cipherstates` for the send and receive
+ directions.
 
  * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
  ciphertext, then increments `n` and returns the ciphertext.
@@ -153,6 +170,44 @@ A `CipherState` responds to the following methods:
  * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
    plaintext, then increments `n` and returns the plaintext.  If an
    authentication failure occurs the error is signaled to the caller.
+
+4.  The handshake state machine
+================================
+
+To execute a Noise handshake, two parties take turns sending and receiving
+messages.  Each message is precisely specified by a handshake descriptor, which specifies how the par
+
+
+
+
+
+To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
+call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
+descriptors from a handshake pattern until the handshake is complete.  If a
+decryption error occurs the handshake has failed and the `HandshakeState` is
+deleted without sending further messages.
+
+Processing the final handshake message returns two `cipherstate` objects, the
+first for encrypting transport messages from initiator to responder, and the
+second for messages in the other direction.  Transport messages can be encrypted
+and decrypted by calling `cipherstate.Encrypt()` and `cipherstate.Decrypt()`.
+
+
+3.  `CipherState` and `HandshakeState` 
+==================================
+
+A Noise implementation can be viewed as three layers:
+
+ * **DH parameters** and **cipher parameters** provide low-level crypto
+ functions.
+
+ * A **`CipherState`** object builds on the cipher parameters.  The
+ `CipherState` mixes inputs into a secret key and uses that key for encryption
+ and decryption.
+
+ * A **`HandshakeState`** object builds on the `CipherState` and DH parameters.
+
+The below sections describe each of these layers in turn.
 
 3.3.  Using the `HandshakeState` object 
 ---------------------------------------
