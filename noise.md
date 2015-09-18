@@ -148,7 +148,7 @@ operator applied to `n` means "use the current value, then increment it".  The
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
- * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n++), data)`.  This will be
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  This will be
  called to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  This will be called to
@@ -158,7 +158,7 @@ operator applied to `n` means "use the current value, then increment it".  The
  `GETKEY(K, n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to
  get the second child's `k`.  The children have `n` set to zero and `h` set to
  empty (i.e.  zero-length). The two children are returned.  This will be called
- at the end of a handshake to yield separate `cipherstates` for the send and
+ at the end of a handshake to get separate `cipherstates` for the send and
  receive directions.
 
  * **`Encrypt(plaintext)`**:  Returns `ENCRYPT(k, n++, h, plaintext)`.
@@ -181,8 +181,8 @@ operations it specifies, and calling `cipherstate.MixKey()` on DH outputs and
 To provide a rigorous description we introduce the notion of a `handshakestate`
 object.  A `handshakestate` contains DH variables and a `cipherstate`.  
 
-To execute a Noise protocol you `Initialize()` a `handshakestate` object, then
-call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
+To execute a Noise protocol you `Initialize()` a `handshakestate`, then call
+`WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
 descriptors from a handshake pattern until the handshake is complete.  If a
 decryption error occurs the handshake has failed and the `handshakestate` is
 deleted without sending further messages.
