@@ -1,10 +1,10 @@
 
-Noise v1 (draft) 
+Noise v0 (draft) 
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-08-31
- * **Revision:** 03 (work in progress)
+ * **Date:** 2015-09-17
+ * **Revision:** 04 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -147,7 +147,7 @@ A `cipherstate` responds to the following methods:
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
  * **`GetKey()`**: Calls `GETKEY(k, n)`, then increments `n` and returns the
- `GETKEY()` output.  This is a private function that is only used by `MixKey()`
+ `GETKEY()` output.  This is a private method that is only used by `MixKey()`
  and `Split()`.
 
  * **`MixKey(data)`**:  Sets `k` to `KDF(GetKey(), data)`.  This will be called
@@ -171,20 +171,25 @@ A `cipherstate` responds to the following methods:
    plaintext, then increments `n` and returns the plaintext.  If an
    authentication failure occurs the error is signaled to the caller.
 
-4.  The handshake state machine
-================================
+4.  The handshake algorithm and `handshakestate` objects
+=========================================================
 
 To execute a Noise handshake, two parties take turns sending and receiving
-messages.  Each message is precisely specified by a handshake descriptor, which specifies how the par
+messages.  Each message and its processing is specified by a handshake
+descriptor.
 
+To send (or receive) a message you iterate through the tokens that comprise a
+descriptor, writing (or reading) the public keys it specifies, performing the DH
+operations it specifies, and calling `cipherstate.MixKey()` on DH outputs and
+`cipherstate.MixHash()` on static public keys and payloads.
 
+To provide a rigorous description we introduce the notion of a `handshakestate`
+object.  A `handshakestate` contains DH variables and a `cipherstate`.  
 
-
-
-To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
+To execute a Noise protocol you `Initialize()` a `handshakestate` object, then
 call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
 descriptors from a handshake pattern until the handshake is complete.  If a
-decryption error occurs the handshake has failed and the `HandshakeState` is
+decryption error occurs the handshake has failed and the `handshakestate` is
 deleted without sending further messages.
 
 Processing the final handshake message returns two `cipherstate` objects, the
@@ -193,42 +198,12 @@ second for messages in the other direction.  Transport messages can be encrypted
 and decrypted by calling `cipherstate.Encrypt()` and `cipherstate.Decrypt()`.
 
 
-3.  `CipherState` and `HandshakeState` 
-==================================
-
-A Noise implementation can be viewed as three layers:
-
- * **DH parameters** and **cipher parameters** provide low-level crypto
- functions.
-
- * A **`CipherState`** object builds on the cipher parameters.  The
- `CipherState` mixes inputs into a secret key and uses that key for encryption
- and decryption.
-
- * A **`HandshakeState`** object builds on the `CipherState` and DH parameters.
-
-The below sections describe each of these layers in turn.
-
-3.3.  Using the `HandshakeState` object 
----------------------------------------
-
-To execute a Noise protocol you `Initialize()` a `HandshakeState` object, then
-call `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
-descriptors from a handshake pattern until the handshake is complete.  If a
-decryption error occurs the handshake has failed and the `HandshakeState` is
-deleted without sending further messages.
-
-Processing the final handshake message returns two `CipherState` objects, the
-first for encrypting transport messages from initiator to responder, and the
-second for messages in the other direction.  Transport messages can be encrypted
-and decrypted by calling `CipherState.Encrypt()` and `CipherState.Decrypt()`.
-
-3.4. The `HandshakeState` object
+3.4. The `handshakestate` object
 ---------------------------------
 
-A `HandshakeState` contain the following variables:
+A `handshakestate` contain the following variables:
 
- * **`cipherstate`**: `CipherState` object that provides symmetric crypto.
+ * **`cipherstate`**: An object that provides symmetric crypto.
 
  * **`s`**: The local static key pair 
 
@@ -238,18 +213,18 @@ A `HandshakeState` contain the following variables:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`has_key`**: Boolean that records whether the `CipherState` has a secret
+ * **`has_key`**: Boolean that records whether the `cipherstate` has a secret
  key.
 
-A `HandshakeState` responds to the following methods:
+A `handshakestate` responds to the following methods:
 
- * **`Initialize(new_cipherstate, name, preshared_key, static_keypair,
- preshared_ephemeral_keypair)`**: Takes a `CipherState` object.  Also takes a
- concrete handshake `name` (see Section 7) and `preshared_key` which are both
- variable-length byte sequences (the `preshared_key` may be empty).  Also takes
- optional static and "pre-shared ephemeral" keypairs.
+ * **`Initialize(name, preshared_key, static_keypair,
+ preshared_ephemeral_keypair)`**: Takes a concrete handshake `name` (see Section
+ 7) and `preshared_key` which are both variable-length byte sequences (the
+ `preshared_key` may be zero-length).  Also takes optional static and
+ "pre-shared ephemeral" keypairs.
  
-   * Sets `cipherstate` to `new_cipherstate`.  Calls `cipherstate.Initialize()`.
+   * Calls `cipherstate.Initialize()`.
    
    * Calls `cipherstate.MixKey(name || 0x00 || preshared_key)`.
 
@@ -265,23 +240,24 @@ A `HandshakeState` responds to the following methods:
  * **`WriteHandshakeMessage(buffer, descriptor, final, payload)`**: Takes an
  empty byte buffer, a descriptor which is some sequence of the tokens from "e,
  s, dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is
- the last handshake message, and a `payload` (which may be empty).
+ the last handshake message, and a `payload` (which may be zero-length).
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
 
       * For "s":  If `s` is empty copies `e` to `s` (see "dummy static" public
       keys in Section 4).  If `has_key == True` appends
-      `cipherstate.Encrypt(data)` to buffer, otherwise appends `data`.  Finally
-      calls `cipherstate.MixHash(data)`.
+      `cipherstate.Encrypt(s.public_key)` to buffer, otherwise appends
+      `s.public_key`.  Finally calls `cipherstate.MixHash(s.public_key)`.
 
       * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
       True.
 
     * If `has_key == True` appends `cipherstate.Encrypt(payload)` to buffer,
-    otherwise appends `payload`.  If `final == True` calls
-    `cipherstate.MixHash(payload)`, otherwise returns two new `CipherState`
-    objects by calling `cipherstate.Split()`.
+    otherwise appends `payload`.  
+    
+    * If `final == False` calls `cipherstate.MixHash(payload)`, otherwise
+    returns two new `cipherstate` objects by calling `cipherstate.Split()`.
 
  * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
  containing a message, a descriptor, and a `final` boolean which indicates
@@ -298,12 +274,13 @@ A `HandshakeState` responds to the following methods:
       * For "dh*xy*" calls `cipherstate.MixKey(DH(y, rx))` and sets `has_key` to
       True.
 
-    * If `has_key == True` sets `payload = ConditionalDecryptAndMixHash()` on
-    the rest of the buffer, otherwise sets `payload` to the rest of the buffer.
-    If `final == True` returns `payload` and two new `CipherState` objects by
-    calling `cipherstate.Split()`.  If `final == False` calls
-    `cipherstate.MixHash(payload)` and returns `payload`.
-
+    * If `has_key == True` sets `payload = cipherstate.Decrypt()` on the rest of
+    the buffer, otherwise sets `payload` to the rest of the buffer.
+  
+    * If `final == False` calls `cipherstate.MixHash(payload)` and returns
+    `payload`, otherwise returns `payload` and two new `cipherstate` objects by
+    calling `cipherstate.Split()`.
+    
 4. Handshake patterns 
 ======================
 
@@ -610,9 +587,9 @@ This section collects various security considerations:
  `HandshakeState.Initialize()` must uniquely identify a single handshake pattern
  for every key it's used with (whether ephemeral key pair, static key pair, or
  pre-shared key).  This is because the pattern specifies the role of all
- `CipherState` calls within a handshake.  If the same secret key was used in
+ `cipherstate` calls within a handshake.  If the same secret key was used in
  different protocol executions with the same handshake name but a different
- sequence of `CipherState` calls then bad interactions could occur between the
+ sequence of `cipherstate` calls then bad interactions could occur between the
  executions.
 
 10. Rationale
