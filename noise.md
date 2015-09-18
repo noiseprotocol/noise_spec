@@ -19,53 +19,43 @@ interactive protocols.
 
 A Noise protocol begins with a **handshake phase** where two parties send
 **handshake messages**.  During the handshake phase the two parties perform a
-DH-based key agreement to agree on a shared secret.  After the handshake phase
-each party can send **transport messages**. 
+DH-based key agreement to agree on a shared secret key.  After the handshake
+phase each party can send **transport messages** encrypted with the shared key.
 
 The Noise framework can support any DH-based handshake where each party has a
-long-term key pair (aka **static key pair**) and/or **ephemeral key pair**.  The
-handshake is described in terms of **descriptors** and **patterns**.  A
-**descriptor** specifies the DH public keys and DH operations that comprise a
-handshake message.  A **pattern** specifies the sequence of messages that
-comprise a key agreement.  A pattern might describe a one-way encrypted message
-or an interactive handshake.
-
-For example, the following pattern (named `Noise_XX`) describes a mutually-authenticated
-handshake:
-
-    Noise_XX:  
-      -> e
-      <- e, dhee, s, dhse  
-      -> s, dhse
-
-Explanation:
-
- * The initiator's first message sends an ephemeral public key ("e").  
- 
- * The responder's first message sends an ephemeral public key, then sends the
-   responder's static public key ("s") encrypted under a symmetric key derived
-   from DH between the ephemerals ("dhee").  
-
- * The initiator's final message contains the initiator's static public key
-   ("s") encrypted under a key that mixes DH between the ephemerals, and DH
-   between the initiator's ephemeral and responder's static key pair ("dhse" in
-   the previous message).  The final shared key mixes a DH between the
-   initiator's static and responder's ephemeral ("dhse") with the previous two
-   DHs to provide forward secrecy and mutual authentication.
+long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
+is described by **descriptors** and **patterns**.  A **descriptor** specifies
+the DH public keys that comprise a handshake message, and the DH operations
+that are performed when sending or receiving that message.  A **pattern**
+specifies the sequence of messages that comprise a handshake.
 
 Each handshake message consists of a sequence of one or more DH public keys,
-followed by a payload which may contain certificates, advertisements for
-supported features, or anything else.  Some of the public keys and payloads may
-be encrypted, as determined by the pattern.  Each transport message consists
-solely of an encrypted payload.  All Noise messages are 65535 bytes in length or
-less.
+followed by a payload which may contain arbitrary data (e.g. certificates).
+Some of the public keys and payloads may be encrypted.
 
-An abstract handshake pattern can be instantiated by **DH parameters** and
-**cipher parameters** to give a concrete protocol (Sections 6 and 7).
+A handshake pattern can be instantiated by **DH parameters** and **cipher
+parameters** to give a concrete protocol.  An application using Noise must
+handle several **application responsibilities** on its own, such as indicating
+message lengths, or adding padding and extensibility into the payload.
 
-An application using Noise must handle several **application responsibilities**
-on its own, such as indicating message lengths, adding padding and extensible
-data formats into the payload, and so on (Section 8).
+2.  Message format
+===================
+
+All Noise messages are less than or equal to 65535 bytes in length, and can be
+processed by the recipient without parsing (there are no length fields or type fields 
+within the message). 
+
+A handshake message begins with a sequence of one or more DH public keys which
+are being conveyed to the other party.  The role of each public key is
+specified by the message's descriptor.
+
+Ephemeral public keys are unique to this handshake and are sent in the clear.
+Static public keys will be encrypted if the parties have negotiated a secret
+key, to provide identity hiding.  Following the public keys will be a payload,
+which will be encrypted if the parties have negotiated a secret key.
+
+Transport messages consist solely of an encrypted payload. 
+
 
 3.  `CipherState` and `HandshakeState` 
 ==================================
@@ -173,11 +163,10 @@ descriptors from a handshake pattern until the handshake is complete.  If a
 decryption error occurs the handshake has failed and the `HandshakeState` is
 deleted without sending further messages.
 
-After the handshake is complete you call `EndHandshake()` which returns two
-`CipherState` objects, the first for encrypting transport messages from
-initiator to responder, and the second for messages in the other direction.
-Transport messages can be encrypted and decrypted by calling
-`CipherState.Encrypt()` and `CipherState.Decrypt()`.
+Processing the final handshake message returns two `CipherState` objects, the
+first for encrypting transport messages from initiator to responder, and the
+second for messages in the other direction.  Transport messages can be encrypted
+and decrypted by calling `CipherState.Encrypt()` and `CipherState.Decrypt()`.
 
 3.4. The `HandshakeState` object
 ---------------------------------
@@ -218,50 +207,47 @@ A `HandshakeState` responds to the following methods:
 
    * Sets `rs` and `re` to empty.
 
-
- * **`ConditionalEncryptAndMixHash(data)`**: If `has_key == True` sets `output_data =
- cipherstate.Encrypt(data)`, otherwise sets `output_data = data`.  Then calls
- `cipherstate.MixHash(data)` and returns `output_data`.
-
- * **`ConditionalDecryptAndMixHash(data, data_len)`**: If `has_key == True` sets
- `output_data` to `cipherstate.Decrypt()` on the next `data_len + 16` bytes of
- `data`, otherwise sets `output_data` to the next `data_len` bytes of `data`.
- Then calls `cipherstate.MixHash(output_data)` and returns `output_data`.
-
- * **`WriteHandshakeMessage(buffer, descriptor, payload)`**: Takes an empty byte
- buffer, a descriptor which is some sequence of the tokens from "e, s, dhee,
- dhes, dhse, dhss", and a `payload` (which may be empty).
+ * **`WriteHandshakeMessage(buffer, descriptor, final, payload)`**: Takes an
+ empty byte buffer, a descriptor which is some sequence of the tokens from "e,
+ s, dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is
+ the last handshake message, and a `payload` (which may be empty).
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
 
       * For "s":  If `s` is empty copies `e` to `s` (see "dummy static" public
-      keys in Section 4).  Appends `ConditionalEncryptAndMixHash(s.public_key)`
-      to the buffer.
+      keys in Section 4).  If `has_key == True` appends
+      `cipherstate.Encrypt(data)` to buffer, otherwise appends `data`.  Finally
+      calls `cipherstate.MixHash(data)`.
 
       * For "dh*xy*" calls `cipherstate.MixKey(DH(x, ry))` and sets `has_key` to
       True.
 
+    * If `has_key == True` appends `cipherstate.Encrypt(payload)` to buffer,
+    otherwise appends `payload`.  If `final == True` calls
+    `cipherstate.MixHash(payload)`, otherwise returns two new `CipherState`
+    objects by calling `cipherstate.Split()`.
 
-    * Appends `ConditionalEncryptAndMixHash(payload)` to the buffer.
-
- * **`ReadHandshakeMessage(buffer, descriptor)`**: Takes a byte buffer
-   containing a message, and a descriptor, and returns a payload.  If a
-   decryption error occurs the error is signaled to the caller.
+ * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
+ containing a message, a descriptor, and a `final` boolean which indicates
+ whether this is the last handshake message, and returns a payload.  If a
+ decryption error occurs the error is signaled to the caller.
 
     * Processes each token in the descriptor sequentially:
       * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
-      * For "s": Sets `rs` to `ConditionalDecryptAndMixHash(buffer, DHLEN)`.  
+
+      * For "s": If `has_key == True` sets `rs` to `cipherstate.Decrypt()` on
+      the next `DHLEN + 16` bytes, otherwise sets `rs` to the next `DHLEN`
+      bytes.  Finally calls `cipherstate.MixHash(rs)`.
       
       * For "dh*xy*" calls `cipherstate.MixKey(DH(y, rx))` and sets `has_key` to
       True.
 
-    * Sets `payload = ConditionalDecryptAndMixHash()` on the rest of the buffer and
-    returns the payload.
-   
-
- * **`EndHandshake()`**:  Returns two new `CipherState` objects by calling
- `cipherstate.Split()`.
+    * If `has_key == True` sets `payload = ConditionalDecryptAndMixHash()` on
+    the rest of the buffer, otherwise sets `payload` to the rest of the buffer.
+    If `final == True` returns `payload` and two new `CipherState` objects by
+    calling `cipherstate.Split()`.  If `final == False` calls
+    `cipherstate.MixHash(payload)` and returns `payload`.
 
 4. Handshake patterns 
 ======================
@@ -387,7 +373,7 @@ exchange messages to agree on a shared key.
                                        
     Noise_XX:                        Noise_IX:                  
       -> e                             -> e, s                     
-      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
+      <- e, dhee, s, dhse              <- e, dhee, dhes, dhse                                
       -> s, dhse
 
 5. Pattern re-initialization and "Noise Pipes"
