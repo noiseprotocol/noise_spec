@@ -154,17 +154,17 @@ operator applied to `n` means "use the current value, then increment it".  The
  * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  This will be called to
  mix static public keys and handshake payloads into the hash value.
 
+ * **`Encrypt(plaintext)`**:  Returns `ENCRYPT(k, n++, h, plaintext)`.
+
+ * **`Decrypt(ciphertext)`**:  Returns `DECRYPT(k, n++, h, ciphertext)`.  If an
+ authentication failure occurs the error is signaled to the caller.
+
  * **`Split()`**:  Creates two new child `cipherstate` objects by calling
  `GETKEY(K, n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to
  get the second child's `k`.  The children have `n` set to zero and `h` set to
  empty (i.e.  zero-length). The two children are returned.  This will be called
  at the end of a handshake to get separate `cipherstates` for the send and
  receive directions.
-
- * **`Encrypt(plaintext)`**:  Returns `ENCRYPT(k, n++, h, plaintext)`.
-
- * **`Decrypt(ciphertext)`**:  Returns `DECRYPT(k, n++, h, ciphertext)`.  If an
- authentication failure occurs the error is signaled to the caller.
 
 4.  The handshake algorithm and `handshakestate` objects
 =========================================================
