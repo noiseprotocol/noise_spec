@@ -142,34 +142,29 @@ following variables:
  * **`h`**: Either empty or 256 bits containing a hash output.  This is used as
  "associated data" for encryption.
  
-A `cipherstate` responds to the following methods:
+A `cipherstate` responds to the following methods.  The `++` post-increment
+operator applied to `n` means "use the current value, then increment it".  The
+`||` operator indicates concatentation of byte sequences.
 
  * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
  
- * **`GetKey()`**: Calls `GETKEY(k, n)`, then increments `n` and returns the
- `GETKEY()` output.  This is a private method that is only used by `MixKey()`
- and `Split()`.
+ * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n++), data)`.  This will be
+ called to mix DH outputs into the key.
 
- * **`MixKey(data)`**:  Sets `k` to `KDF(GetKey(), data)`.  This will be called
- to mix DH outputs into the key.
-
- * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  In other words,
- replaces `h` by the hash of `h` with `data` appended.  This will be called to
+ * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  This will be called to
  mix static public keys and handshake payloads into the hash value.
 
  * **`Split()`**:  Creates two new child `cipherstate` objects by calling
- `GetKey()` to get the first child's `k`, then calling `GetKey()` to get the
- second child's `k`.  The children have `n` set to zero and `h` set to empty
- (i.e.  zero-length). The two children are returned.  This will be called at the
- end of a handshake to yield separate `cipherstates` for the send and receive
- directions.
+ `GETKEY(K, n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to
+ get the second child's `k`.  The children have `n` set to zero and `h` set to
+ empty (i.e.  zero-length). The two children are returned.  This will be called
+ at the end of a handshake to yield separate `cipherstates` for the send and
+ receive directions.
 
- * **`Encrypt(plaintext)`**:  Calls `ENCRYPT(k, n, h, plaintext)` to get a
- ciphertext, then increments `n` and returns the ciphertext.
+ * **`Encrypt(plaintext)`**:  Returns `ENCRYPT(k, n++, h, plaintext)`.
 
- * **`Decrypt(ciphertext)`**:  Calls `DECRYPT(k, n, h, ciphertext)` to get a
-   plaintext, then increments `n` and returns the plaintext.  If an
-   authentication failure occurs the error is signaled to the caller.
+ * **`Decrypt(ciphertext)`**:  Returns `DECRYPT(k, n++, h, ciphertext)`.  If an
+ authentication failure occurs the error is signaled to the caller.
 
 4.  The handshake algorithm and `handshakestate` objects
 =========================================================
