@@ -101,10 +101,11 @@ Noise depends on the following **DH parameters**:
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
- sequence of bytes.  If the public key is invalid the output of this
- calculation is undefined (but must not leak information about the private key).
+ sequence of bytes.  If the public key is invalid the output of this calculation
+ is up to the implementation but must not leak information about the private
+ key.
 
-Noise depends on the following **cipher parameters**:
+Noise depends on the following **symmetric crypto parameters**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
  key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
@@ -141,7 +142,7 @@ A `CipherState` can encrypt and decrypt data based on its internal state.  A
 `CipherState` contains the following variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
- the cipher parameters.
+ the symmetric crypto parameters.
 
  * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
  for encryption.
@@ -470,7 +471,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 
  * In all other cases, `type` will be 0.
 
-6. DH parameters and cipher parameters
+6. DH parameters and symmetric crypto parameters 
 ===============================
 
 6.1. The 25519 DH parameters
@@ -491,7 +492,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
 
-6.3. The ChaChaPoly cipher parameters
+6.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -510,7 +511,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
-6.4. The AESGCM cipher parameters
+6.4. The AESGCM symmetric crypto parameters 
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -601,11 +602,12 @@ This section collects various security considerations:
 
  * **Channel binding**:  Depending on the DH parameters, it might be possible
  for a malicious party to engage in multiple sessions that derive the same
- shared secret key (e.g. if setting his public keys to invalid values causes DH
+ shared secret key (e.g. if setting her public keys to invalid values causes DH
  outputs of zero).  If a higher-level protocol wants a "channel binding" for the
- underlying Noise session it should use a value that identifies the remote party
- (like their static public key) or that is guaranteed unique to this session
- (like the local party's ephemeral public key).
+ underlying Noise session it should not use `k`.  Instead it should use a value
+ that identifies the remote party (like their static public key) or that is
+ guaranteed unique to this session (like the local party's ephemeral public
+ key).
 
 10. Rationale
 =============
@@ -626,7 +628,7 @@ Nonces are 64 bits in length because:
  * 64 bits allows the entire nonce to be treated as an integer and incremented.
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
 
-The default cipher parameters use SHA2-256 because:
+The default symmetric crypto parameters use SHA2-256 because:
 
  * SHA2 is widely available
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes).
