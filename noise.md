@@ -481,7 +481,9 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
+ detects an invalid public key, the output may be set to all zeros or any other
+ value independent from the private key.
 
 6.2. The 448 DH parameters
 --------------------------
@@ -490,7 +492,9 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve448 function.
+ * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
+ detects an invalid public key, the output may be set to all zeros or any other
+ value independent from the private key.
 
 6.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
