@@ -67,16 +67,17 @@ typically be ECDH over some elliptic curve.  The symmetric crypto parameters
 specify the symmetric crypto algorithms (cipher, hash function, and key
 derivation function).
 
-During a Noise handshake, the output from calculations will be mixed into a
-secret key (**`k`**).  This secret key is used to encrypt static public keys and
-handshake payloads, and will be used to derive the keys that encrypt transport
+During a Noise handshake, the outputs from DH calculations will be sequentially
+mixed into a secret key variable (**`k`**).  This secret key's current value is
+used to encrypt static public keys and handshake payloads.  Its final value once
+the handshake completes will be used to derive the keys that encrypt transport
 messages.  
 
 During a Noise handshake, when static public keys and handshake payloads are
-transmitted their plaintext will be mixed into a hash value (**`h`**).  This
-value will be authenticated along with every handshake ciphertext, to ensure
-that all handshake ciphertexts are bound to all important context from earlier
-messages.
+transmitted their plaintext will be mixed into a hash variable (**`h`**).  This
+variable's current value will be authenticated with every handshake ciphertext,
+to ensure that all handshake ciphertexts are bound to all important context from
+earlier messages.
 
 To handle `k` and its associated nonce we introduce the notion of a
 **`CipherState`** which contains `k` and `n` variables.
@@ -175,15 +176,14 @@ indicates concatentation of byte sequences.
  * **`InitializeKey(name, preshared_key)`**:  Takes an arbitrary-length `name`
  and a `preshared_key` which is either empty or a 256-bit secret key.  If
  `preshared_key` is empty sets `k = HASH(name)` and `has_key = False`.
- Otherwise sets `k = KDF(preshared_key, name)` and `has_key = True`.  Sets `n`
- to zero, and `h` to all zeros.
+ Otherwise sets `k = KDF(preshared_key, name)` and `has_key = True`.  Sets `n =
+ 0` and `h` to all zeros.
  
- * **`MixKey(data)`**:  If `n == 0` sets `k` to `KDF(k, data)`.  Otherwise sets
- `k` to `KDF(GETKEY(k, n), data)`.  Sets `has_key` to true.  This will be called
- to mix DH outputs into the key.
+ * **`MixKey(data)`**:  Sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0` and
+ `has_key = True`.  This will be called to mix DH outputs into the key.
 
- * **`MixHash(data)`**:  Sets `h` to `HASH(h || data)`.  This will be called to
- mix static public keys and handshake payloads into the hash value.
+ * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
+ static public keys and handshake payloads into the hash value.
 
  * **`ConditionalEncrypt(plaintext)`**: If `has_key == True` returns
  `EncryptAndIncrement(h, plaintext)`, otherwise returns `plaintext`.
@@ -211,18 +211,20 @@ operations it specifies, and calling `MixKey()` on DH outputs and `MixHash()` on
 static public keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
-object.  A `HandshakeState` contains DH variables and a `cipherstate`.  
+object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
+variables.  
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
 `WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
-descriptors from a handshake pattern until the handshake is complete.  If a
-decryption error occurs the handshake has failed and the `HandshakeState` is
-deleted without sending further messages.
+descriptors from a handshake pattern.  If a decryption error occurs the
+handshake has failed and the `HandshakeState` is deleted without sending further
+messages.
 
-Processing the final handshake message returns two `cipherstate` objects, the
+Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
-second for messages in the other direction.  Transport messages can be encrypted
-and decrypted by calling `cipherstate.Encrypt()` and `cipherstate.Decrypt()`.
+second for messages in the other direction.  Transport messages are encrypted
+and decrypted by calling `EncryptAndIncrement()` and `DecryptAndIncrement()`
+with zero-length associated data.
 
 
 3.4. The `HandshakeState` object
@@ -243,7 +245,7 @@ A `HandshakeState` responds to the following methods:
 
  * **`Initialize(name, preshared_key, new_s, new_e, new_rs, new_re)`**: Takes a
  concrete handshake `name` (see Section 7) and a `preshared_key` which may be
- empty or 256 bits.Also takes a set of DH keypairs and public keys for
+ empty or 256 bits.  Also takes a set of DH keypairs and public keys for
  initializing local variables, any of which may be empty.
  
    * Calls `InitializeKey(name, preshared_key)`.
@@ -270,7 +272,7 @@ A `HandshakeState` responds to the following methods:
 
  * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
  containing a message, a descriptor, and a `final` boolean which indicates
- whether this is the last handshake message, and returns a payload.  If a
+ whether this is the last handshake message.  Returns a payload.  If a
  decryption error occurs the error is signaled to the caller.
 
     * Processes each token in the descriptor sequentially:
