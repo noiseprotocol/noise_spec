@@ -75,23 +75,23 @@ messages.
 During a Noise handshake, when static public keys and handshake payloads are
 transmitted their plaintext will be mixed into a hash variable (**`h`**).  This
 variable's current value will be authenticated with every handshake ciphertext,
-to ensure that all handshake ciphertexts are bound to all important context from
+to ensure that all handshake ciphertexts are bound to important context from
 earlier messages.
 
 To handle `k` and its associated nonce we introduce the notion of a
 **`CipherState`** which contains `k` and `n` variables.
 
-To handle the mixing of secret and non-secret inputs into `k` and `h` during the
-handshake we introduce the notion of a **`SymmetricHandshakeState`** which
-extends a `CipherState` with an `h` variable.  A `SymmetricHandshakeState` also
-supports "splitting" into two `CipherState` objects which are used for transport
-messages once the handshake is complete.
+To handle the mixing of secret and non-secret inputs into `k` and `h` we
+introduce the notion of a **`SymmetricHandshakeState`** which extends a
+`CipherState` with an `h` variable.  A `SymmetricHandshakeState` also supports
+"splitting" into two `CipherState` objects which are used for transport messages
+once the handshake is complete.
 
 The below sections describe the DH parameters, symmetric crypto parameters, and
 `CipherState` and `SymmetricHandshakeState` notions in more detail.
 
 
-3.1. DH parameters and symmetric crypto parameters
+4.1. DH parameters and symmetric crypto parameters
 ------------------------------------------
 
 Noise depends on the following **DH parameters**:
@@ -135,7 +135,7 @@ Noise depends on the following **symmetric crypto parameters**:
  collision-resistant hash function given a known `key`.  `HMAC-SHA2-256` is an
  example KDF.
 
-3.2. The  `CipherState` object 
+4.2. The  `CipherState` object 
 -------------------------------
 
 A `CipherState` can encrypt and decrypt data based on its internal state.  A
@@ -157,15 +157,13 @@ operator applied to `n` means "use the current value, then increment it".
  ciphertext)`.  If an authentication failure occurs the error is signaled to the
  caller.
 
-3.3. The `SymmetricHandshakeState` object
+4.3. The `SymmetricHandshakeState` object
 -----------------------------------------
 
-A `SymmetricHandshakeState` object extends a `CipherState` with additional
-variables and methods used during the handshake phase.  It adds the following
-variables:
+A `SymmetricHandshakeState` object extends a `CipherState` with the following
+variables and methods used during the handshake phase:
 
- * **`has_key`**: A boolean that records whether key `k` has been initialized to
- a secret value.
+ * **`has_key`**: A boolean that records whether key `k` is a secret value.
 
  * **`h`**: A 256-bit hash output.  This is used as "associated data" for
  encryption.  
@@ -198,17 +196,17 @@ indicates concatentation of byte sequences.
  `CipherState` objects for the send and receive directions.
 
 
-4.  The handshake algorithm and `HandshakeState` objects
+5.  The handshake algorithm and `HandshakeState` objects
 =========================================================
 
 To execute a Noise handshake, two parties take turns sending and receiving
 messages.  Each message and its processing is specified by a handshake
 descriptor.
 
-To send (or receive) a message you iterate through the tokens that comprise a
-descriptor, writing (or reading) the public keys it specifies, performing the DH
-operations it specifies, and calling `MixKey()` on DH outputs and `MixHash()` on
-static public keys and payloads.
+To send (or receive) a handshake message you iterate through the tokens that
+comprise a descriptor, writing (or reading) the public keys it specifies,
+performing the DH operations it specifies, and calling `MixKey()` on DH outputs
+and `MixHash()` on static public keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
@@ -227,7 +225,7 @@ and decrypted by calling `EncryptAndIncrement()` and `DecryptAndIncrement()`
 with zero-length associated data.
 
 
-3.4. The `HandshakeState` object
+5.1. The `HandshakeState` object
 ---------------------------------
 
 A `HandshakeState` contain the following variables:
@@ -244,7 +242,7 @@ A `HandshakeState` contain the following variables:
 A `HandshakeState` responds to the following methods:
 
  * **`Initialize(name, preshared_key, new_s, new_e, new_rs, new_re)`**: Takes a
- concrete handshake `name` (see Section 7) and a `preshared_key` which may be
+ concrete handshake `name` (see Section 9) and a `preshared_key` which may be
  empty or 256 bits.  Also takes a set of DH keypairs and public keys for
  initializing local variables, any of which may be empty.
  
@@ -253,9 +251,9 @@ A `HandshakeState` responds to the following methods:
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
  * **`WriteHandshakeMessage(buffer, descriptor, final, payload)`**: Takes an
- empty byte buffer, a descriptor which is some sequence of the tokens from "e,
- s, dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is
- the last handshake message, and a `payload` (which may be zero-length).
+ empty byte buffer, a descriptor which is some sequence using tokens from "e, s,
+ dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is the
+ last handshake message, and a `payload` (which may be zero-length).
  
     * Processes each token in the descriptor sequentially:
       * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
@@ -290,7 +288,7 @@ A `HandshakeState` responds to the following methods:
     created by calling `Split()`.  If `final == False` calls `MixHash(payload)`
     and returns the `payload`.
     
-4. Handshake patterns 
+6. Handshake patterns 
 ======================
 
 A descriptor is some sequence of the tokens from "e, s, dhee, dhes, dhse,
@@ -322,7 +320,7 @@ out of authenticating themselves.  If that party sets their static public key
 equal to their ephemeral public key (a "dummy static" public key), this signals
 to the other party that a distinct static public key does not exist.
 
-4.1. One-way patterns
+6.1. One-way patterns
 ----------------------
 
 The following patterns represent "one-way" messages from a sender to a
@@ -348,7 +346,7 @@ recipient.
       ------
       -> e, dhes, s, dhss
 
-4.2. Interactive patterns 
+6.2. Interactive patterns 
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
@@ -416,7 +414,7 @@ exchange messages to agree on a shared key.
       <- e, dhee, s, dhse              <- e, dhee, dhes, dhse                                
       -> s, dhse
 
-5. Handshake re-initialization and "Noise Pipes"
+7. Handshake re-initialization and "Noise Pipes"
 ===============================================
 
 A protocol may support handshake re-initialization.  In this case, the recipient
@@ -471,10 +469,10 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 
  * In all other cases, `type` will be 0.
 
-6. DH parameters and symmetric crypto parameters 
+8. DH parameters and symmetric crypto parameters 
 ===============================
 
-6.1. The 25519 DH parameters
+8.1. The 25519 DH parameters
 ----------------------------
 
  * **`DHLEN`** = 32
@@ -485,7 +483,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  detects an invalid public key, the output may be set to all zeros or any other
  value independent from the private key.
 
-6.2. The 448 DH parameters
+8.2. The 448 DH parameters
 --------------------------
 
  * **`DHLEN`** = 56
@@ -496,7 +494,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  detects an invalid public key, the output may be set to all zeros or any other
  value independent from the private key.
 
-6.3. The ChaChaPoly symmetric crypto parameters 
+8.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -515,7 +513,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
-6.4. The AESGCM symmetric crypto parameters 
+8.4. The AESGCM symmetric crypto parameters 
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -537,7 +535,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-7. Handshake and protocol names 
+9. Handshake and protocol names 
 =========================
 
 To produce a **concrete handshake name** for `HandshakeState.Initialize()` you
@@ -551,7 +549,7 @@ should be given a special name (e.g.  "Pipe").  This name isn't used for
 `HandshakeState.Initialize()` but fully defines the protocol for interop
 purposes, e.g.  `Noise_Pipe_25519_AESGCM`.
 
-8. Application responsibilities
+10. Application responsibilities
 ================================
 
 An application built on Noise must consider several issues:
@@ -581,7 +579,7 @@ An application built on Noise must consider several issues:
  re-initialization or other alternative messages in the future.
 
 
-9. Security considerations
+11. Security considerations
 ===========================
 
 This section collects various security considerations:
@@ -593,7 +591,7 @@ This section collects various security considerations:
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
  ephemeral public key and perform a DH with it prior to sending any encrypted
  data.  Otherwise replay of a handshake message could trigger a catastrophic key
- reuse. This is one rationale behind the patterns in Section 4.
+ reuse. This is one rationale behind the patterns in Section 6.
 
  * **Handshake names**:  The handshake name used with
  `HandshakeState.Initialize()` must uniquely identify a single handshake pattern
@@ -613,7 +611,7 @@ This section collects various security considerations:
  guaranteed unique to this session (like the local party's ephemeral public
  key).
 
-10. Rationale
+12. Rationale
 =============
 
 This section collects various design rationale:
@@ -659,12 +657,12 @@ Big-endian is preferred because:
  traditional.
 
 
-11. IPR
+13. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
 
-12. Acknowledgements
+14. Acknowledgements
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
