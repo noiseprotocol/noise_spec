@@ -146,7 +146,9 @@ A `cipherstate` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current value, then increment it".  The
 `||` operator indicates concatentation of byte sequences.
 
- * **`Initialize()`**:  Sets `k` to all zeros, `n` to zero, and `h` to all zeros.
+ * **`Initialize(name, preshared_key)`**:  If `preshared_key` is empty sets `k =
+ HASH(name)`.  Otherwise sets `k = KDF(preshared_key, name)`.  Sets `n` to zero,
+ and `h` to all zeros.
  
  * **`MixKey(data)`**:  Sets `k` to `KDF(GETKEY(k, n), data)`.  This will be
  called to mix DH outputs into the key.
@@ -213,24 +215,15 @@ A `handshakestate` contain the following variables:
 
 A `handshakestate` responds to the following methods:
 
- * **`Initialize(name, preshared_key, static_keypair,
- preshared_ephemeral_keypair)`**: Takes a concrete handshake `name` (see Section
- 7) and `preshared_key` which are both variable-length byte sequences (the
- `preshared_key` may be zero-length).  Also takes optional static and
- "pre-shared ephemeral" keypairs.
+ * **`Initialize(name, preshared_key, new_s, new_e, new_rs, new_re)`**: Takes a
+ concrete handshake `name` (see Section 7) and `preshared_key` which are both
+ variable-length byte sequences (the `preshared_key` may be zero-length).  Also
+ takes a set of DH keypairs and public keys for initializing local variables,
+ any of which may be empty.
  
-   * Calls `cipherstate.Initialize()`.
+   * Calls `cipherstate.Initialize(name, preshared_key)`.
    
-   * Calls `cipherstate.MixKey(name || 0x00 || preshared_key)`.
-
-   * If `preshared_key` isn't empty then sets `has_key` to `True`, otherwise
-   sets it to `False`.
-  
-   * Sets `s` to `static_keypair` (which may be empty).
-
-   * Sets `e` to `preshared_ephemeral_keypair` (which may be empty).
-
-   * Sets `rs` and `re` to empty.
+   * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
  * **`WriteHandshakeMessage(buffer, descriptor, final, payload)`**: Takes an
  empty byte buffer, a descriptor which is some sequence of the tokens from "e,
@@ -291,9 +284,8 @@ The following pattern describes an unauthenticated DH handshake:
       <- e, dhee
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These messages are used with `WriteHandshakeMessage()` and
-`ReadHandshakeMessage()` but aren't actually sent.  They're only used for their
-side-effect of calling `MixHash()` and initializing `rs` and `re`.  
+These are virtual messages that indicate an exchange of public keys prior to the
+handshake
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
