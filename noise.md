@@ -594,10 +594,18 @@ This section collects various security considerations:
  `HandshakeState.Initialize()` must uniquely identify a single handshake pattern
  for every key it's used with (whether ephemeral key pair, static key pair, or
  pre-shared key).  This is because the pattern specifies the role of all
- `cipherstate` calls within a handshake.  If the same secret key was used in
- different protocol executions with the same handshake name but a different
- sequence of `cipherstate` calls then bad interactions could occur between the
- executions.
+ cryptographic operations within a handshake.  If the same secret key was used
+ in different protocol executions with the same handshake name but a different
+ sequence of cryptographic operations then bad interactions could occur between
+ the executions.
+
+ * **Channel binding**:  Depending on the DH parameters, it might be possible
+ for a malicious party to engage in multiple sessions that derive the same
+ shared secret key (e.g. if setting his public keys to invalid values causes DH
+ outputs of zero).  If a higher-level protocol wants a "channel binding" for the
+ underlying Noise session it should use a value that identifies the remote party
+ (like their static public key) or that is guaranteed unique to this session
+ (like the local party's ephemeral public key).
 
 10. Rationale
 =============
