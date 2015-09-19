@@ -35,9 +35,8 @@ Some of the public keys and payloads may be encrypted.
 
 A handshake pattern can be instantiated by **DH parameters** and **symmetric
 crypto parameters** to give a concrete protocol.  An application using Noise
-must handle several **application responsibilities** on its own, such as
-indicating message lengths, or adding padding and extensibility into the
-payload.
+must handle some **application responsibilities** on its own, such as indicating
+message lengths, or adding padding and extensibility into the payload.
 
 3.  Message format
 ===================
@@ -125,15 +124,15 @@ Noise depends on the following **cipher parameters**:
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
  authentication tag calculation).
 
- * **`KDF(key, input)`**: Takes a `key` of 256 bits and some arbitrary-length
- input data and returns a 256-bit output.  This function should implement a
- cryptographic "PRF" keyed by `key`.  This function should also be a
- collision-resistant hash function given a known `key`.  `HMAC-SHA2-256` is an
- example KDF.
-
  * **`HASH(data)`**: Hashes some arbitrary-length input data and returns a
  collision-resistant hash output of 256 bits. `SHA2-256` is an example hash
  function.
+
+ * **`KDF(key, data)`**: Takes a `key` of 256 bits and some arbitrary-length
+ `data` and returns a 256-bit output.  This function should implement a
+ cryptographic "PRF" keyed by `key`.  This function should also be a
+ collision-resistant hash function given a known `key`.  `HMAC-SHA2-256` is an
+ example KDF.
 
 3.2. The  `CipherState` object 
 -------------------------------
@@ -416,10 +415,10 @@ exchange messages to agree on a shared key.
       <- e, dhee, s, dhse              <- e, dhee, dhes, dhse                                
       -> s, dhse
 
-5. Pattern re-initialization and "Noise Pipes"
+5. Handshake re-initialization and "Noise Pipes"
 ===============================================
 
-A handshake may support pattern re-initialization.  In this case, the recipient
+A protocol may support handshake re-initialization.  In this case, the recipient
 of a handshake message must also receive some indication whether this is the
 next message in the current pattern, or whether to re-initialize the
 `HandshakeState` and execute a different pattern.
@@ -614,29 +613,35 @@ Noise messages are <= 65535 bytes because:
 
 Nonces are 64 bits in length because:
 
- * Some ciphers (e.g. Salsa20) only have 64 bit nonces
+ * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
  * 64 bit nonces were used in the initial specification and implementations of ChaCha20, so Noise nonces can be used with these implementations.
- * 64 bits allows the entire nonce to be treated as an integer and incremented 
+ * 64 bits allows the entire nonce to be treated as an integer and incremented.
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
 
 The default cipher parameters use SHA2-256 because:
 
  * SHA2 is widely available
- * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes)
- * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128 bytes), avoiding unnecessary calculation when processing smaller inputs
+ * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes).
+ * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128 bytes), avoiding unnecessary calculation when processing smaller inputs.
 
 The cipher key must be 256 bits because:
 
- * The cipher key accumulates the DH output, so collision-resistance is desirable
+ * The cipher key accumulates the DH output, so collision-resistance is desirable.
+
+The authentication tag is 128 bits because:
+
+ * Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.
+ * Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.
+ * A single fixed length is simpler than supporting variable-length tags.
 
 Big-endian is preferred because:
 
- * Some ciphers use big-endian internally (e.g. GCM, SHA2).
  * While it's true that bignum libraries, Curve25519, Curve448, and
  ChaCha20/Poly1305 use little-endian, these will likely be handled by
  specialized libraries.
- * The Noise length fields, on the other hand, are more likely to be handled by
- network parsing code where big-endian "network byte order" is 
+ * Some ciphers use big-endian internally (e.g. GCM, SHA2).
+ * The Noise length fields are likely to be handled by
+ parsing code where big-endian "network byte order" is 
  traditional.
 
 
