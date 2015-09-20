@@ -63,32 +63,31 @@ A transport message consists solely of an encrypted payload.
 A Noise protocol depends on **DH parameters** and **symmetric crypto
 parameters**.  The DH parameters specify the Diffie-Hellman function, which will
 typically be ECDH over some elliptic curve.  The symmetric crypto parameters
-specify the symmetric crypto algorithms (cipher, hash function, and key
+specify symmetric crypto algorithms (cipher, hash function, and key
 derivation function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
-mixed into a secret key variable (**`k`**).  This secret key's current value is
-used to encrypt static public keys and handshake payloads.  Its final value once
-the handshake completes will be used to derive the keys that encrypt transport
-messages.  
+mixed into a secret key variable (**`k`**).  This key is used to encrypt static
+public keys and handshake payloads.  
 
 During a Noise handshake, when static public keys and handshake payloads are
 transmitted their plaintext will be mixed into a hash variable (**`h`**).  This
 variable's current value will be authenticated with every handshake ciphertext,
-to ensure that all handshake ciphertexts are bound to important context from
-earlier messages.
+to ensure that handshake ciphertexts are bound to context from earlier
+messages.
 
 To handle `k` and its associated nonce we introduce the notion of a
-**`CipherState`** which contains `k` and `n` variables.
+**`CipherState`** object which contains `k` and `n` variables.
 
-To handle the mixing of secret and non-secret inputs into `k` and `h` we
-introduce the notion of a **`SymmetricHandshakeState`** which extends a
-`CipherState` with an `h` variable.  A `SymmetricHandshakeState` also supports
-"splitting" into two `CipherState` objects which are used for transport messages
-once the handshake is complete.
+To handle mixing secret and non-secret inputs into `k` and `h` we introduce the
+notion of a **`SymmetricHandshakeState`** object which extends a `CipherState` with an
+`h` variable.  A `SymmetricHandshakeState` also supports initializing `k` and
+`h` with an optional pre-shared key, and a protocol name to reduce the risk from
+accidental key reuse.  It also supports "splitting" into two `CipherState`
+objects which are used for transport messages once the handshake is complete.
 
 The below sections describe the DH parameters, symmetric crypto parameters, and
-`CipherState` and `SymmetricHandshakeState` notions in more detail.
+`CipherState` and `SymmetricHandshakeState` objects in more detail.
 
 
 4.1. DH parameters and symmetric crypto parameters
@@ -204,14 +203,10 @@ indicates concatentation of byte sequences.
 5.  The handshake algorithm and `HandshakeState` objects
 =========================================================
 
-To execute a Noise handshake, two parties take turns sending and receiving
-messages.  Each message and its processing is specified by a handshake
-descriptor.
-
 To send (or receive) a handshake message you iterate through the tokens that
-comprise a descriptor, writing (or reading) the public keys it specifies,
-performing the DH operations it specifies, and calling `MixKey()` on DH outputs
-and `MixHash()` on static public keys and payloads.
+comprise the message's descriptor, writing (or reading) the public keys it
+specifies, performing the DH operations it specifies, and calling `MixKey()` on
+DH outputs and `MixHash()` on static public keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
@@ -247,8 +242,8 @@ A `HandshakeState` contain the following variables:
 A `HandshakeState` responds to the following methods:
 
  * **`Initialize(preshared_key, name, new_s, new_e, new_rs, new_re)`**: Takes a
- concrete handshake `name` (see Section 9) and a `preshared_key` which may be
- empty or 256 bits.  Also takes a set of DH keypairs and public keys for
+ `preshared_key` which may be empty or 256 bits, and a concrete handshake `name`
+ (see Section 9 ).  Also takes a set of DH keypairs and public keys for
  initializing local variables, any of which may be empty.
  
    * Calls `InitializeSymmetric(preshared_key, name)`.
@@ -271,7 +266,7 @@ A `HandshakeState` responds to the following methods:
     * Appends `ConditionalEncrypt(payload)` to the buffer.  
     
     * If `final == True` returns two new `CipherState` objects by calling
-    `Split()`.  If `final == False` calls `MixHash(payload)`.
+    `Split()`.  Otherwise calls `MixHash(payload)`.
 
  * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
  containing a message, a descriptor, and a `final` boolean which indicates
@@ -290,7 +285,7 @@ A `HandshakeState` responds to the following methods:
     * Sets `payload = ConditionalDecrypt(buffer)`.
   
     * If `final == True` returns the `payload` and two new `CipherState` objects
-    created by calling `Split()`.  If `final == False` calls `MixHash(payload)`
+    created by calling `Split()`.  Otherwise calls `MixHash(payload)`
     and returns the `payload`.
     
 6. Handshake patterns 
