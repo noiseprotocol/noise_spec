@@ -125,15 +125,15 @@ Noise depends on the following **symmetric crypto parameters**:
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
  authentication tag calculation).
 
- * **`HASH(data)`**: Hashes some arbitrary-length input data and returns a
- collision-resistant hash output of 256 bits. `SHA2-256` is an example hash
- function.
+ * **`HASH(data)`**: Hashes some arbitrary-length data with a
+ cryptographically-secure collision-resistant hash function and returns an
+ output of 256 bits. `SHA2-256` is an example hash function.
 
  * **`KDF(key, data)`**: Takes a `key` of 256 bits and some arbitrary-length
  `data` and returns a 256-bit output.  This function should implement a
  cryptographic "PRF" keyed by `key`.  This function should also be a
- collision-resistant hash function given a known `key`.  `HMAC-SHA2-256` is an
- example KDF.
+ cryptographically-secure collision-resistant hash function given a known `key`.
+ `HMAC-SHA2-256` is an example KDF.
 
 4.2. The  `CipherState` object 
 -------------------------------
@@ -171,14 +171,19 @@ variables and methods used during the handshake phase:
 A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
  
- * **`InitializeKey(name, preshared_key)`**:  Takes an arbitrary-length `name`
- and a `preshared_key` which is either empty or a 256-bit secret key.  If
- `preshared_key` is empty sets `k = HASH(name)` and `has_key = False`.
- Otherwise sets `k = KDF(preshared_key, name)` and `has_key = True`.  Sets `n =
- 0` and `h` to all zeros.
- 
- * **`MixKey(data)`**:  Sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0` and
- `has_key = True`.  This will be called to mix DH outputs into the key.
+ * **`InitializeSymmetric(preshared_key, name)`**:  Takes a `preshared_key`
+ which is either empty or a 256-bit secret key, and an arbitrary-length `name`.
+ Performs the following steps: 
+   *  If `preshared_key` is empty leaves `k` and `n` uninitialized and sets
+   `has_key = False`.  Otherwise sets `k = preshared_key`, `n = 0`, and `has_key
+   = True`.  
+   * If `name` is less than or equal to 32 bytes in length, sets `h` equal
+   to `name` with zero bytes appended to make 32 bytes.  If `name` is longer than
+   32 bytes sets `h = HASH(name)`.
+
+ * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)`.  Otherwise
+ sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0` and `has_key = True`.  This
+ will be called to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
  static public keys and handshake payloads into the hash value.
@@ -241,12 +246,12 @@ A `HandshakeState` contain the following variables:
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(name, preshared_key, new_s, new_e, new_rs, new_re)`**: Takes a
+ * **`Initialize(preshared_key, name, new_s, new_e, new_rs, new_re)`**: Takes a
  concrete handshake `name` (see Section 9) and a `preshared_key` which may be
  empty or 256 bits.  Also takes a set of DH keypairs and public keys for
  initializing local variables, any of which may be empty.
  
-   * Calls `InitializeKey(name, preshared_key)`.
+   * Calls `InitializeSymmetric(preshared_key, name)`.
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
@@ -481,7 +486,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value independent from the private key.
+ value that doesn't leak information about the private key.
 
 8.2. The 448 DH parameters
 --------------------------
@@ -492,7 +497,7 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value independent from the private key.
+ value that doesn't leak information about the private key.
 
 8.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
