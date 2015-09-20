@@ -29,14 +29,11 @@ the DH public keys that comprise a handshake message, and the DH operations
 that are performed when sending or receiving that message.  A **pattern**
 specifies the sequence of descriptors that comprise a handshake.
 
-Each handshake message consists of a sequence of one or more DH public keys,
-followed by a payload which may contain arbitrary data (e.g. certificates).
-Some of the public keys and payloads may be encrypted.
-
 A handshake pattern can be instantiated by **DH parameters** and **symmetric
 crypto parameters** to give a concrete protocol.  An application using Noise
 must handle some **application responsibilities** on its own, such as indicating
-message lengths, or adding padding and extensibility into the payload.
+message lengths, and specifying a format for payload data that supports padding
+and extensibility.
 
 3.  Message format
 ===================
@@ -51,9 +48,10 @@ static is specified by the message's descriptor.
 
 Ephemeral public keys are sent in the clear.  Static public keys may be
 encrypted (to provide identity hiding).  Following the public keys will be a
-payload, which may also be encrypted.  Encryption of static public keys and
-payloads will occur if a shared secret key has been established, either from a
-pre-shared key, or from the output of handshake DH calculations.  
+payload which could be used to convey certificates or other handshake data, and
+which may also be encrypted.  Encryption of static public keys and payloads will
+occur if a shared secret key has been established, either from a pre-shared key,
+or from previous DH calculations.  
 
 A transport message consists solely of an encrypted payload. 
 
@@ -71,20 +69,20 @@ mixed into a secret key variable (**`k`**).  This key is used to encrypt static
 public keys and handshake payloads.  
 
 During a Noise handshake, when static public keys and handshake payloads are
-transmitted their plaintext will be mixed into a hash variable (**`h`**).  This
-variable's current value will be authenticated with every handshake ciphertext,
-to ensure that handshake ciphertexts are bound to context from earlier
-messages.
+transmitted their plaintext will be mixed into a hash variable (**`h`**).  The
+current `h` value will be authenticated with every handshake ciphertext, to
+ensure that handshake ciphertexts are bound to context from earlier messages.
 
-To handle `k` and its associated nonce we introduce the notion of a
+To handle `k` and its associated **nonce** we introduce the notion of a
 **`CipherState`** object which contains `k` and `n` variables.
 
-To handle mixing secret and non-secret inputs into `k` and `h` we introduce the
-notion of a **`SymmetricHandshakeState`** object which extends a `CipherState` with an
-`h` variable.  A `SymmetricHandshakeState` also supports initializing `k` and
-`h` with an optional pre-shared key, and a protocol name to reduce the risk from
-accidental key reuse.  It also supports "splitting" into two `CipherState`
-objects which are used for transport messages once the handshake is complete.
+To handle mixing inputs into `k` and `h` we introduce a
+**`SymmetricHandshakeState`** object which extends a `CipherState` with an `h`
+variable.  A `SymmetricHandshakeState` also supports initializing `k` with an
+optional **pre-shared key**, and initializing `h` with a **handshake name** to
+reduce the risk from accidental key reuse.  It also supports "splitting" into
+two `CipherState` objects which are used for transport messages once the
+handshake is complete.
 
 The below sections describe the DH parameters, symmetric crypto parameters, and
 `CipherState` and `SymmetricHandshakeState` objects in more detail.
@@ -119,8 +117,8 @@ Noise depends on the following **symmetric crypto parameters**:
  data `ad`.  If the authentication fails an error is signaled to the caller.
 
  * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
- nonce `n`, and empty `ad` to encrypt a block of 256 zero bits.  Returns the
- first 256 bits from the encrypted output.  This function can usually be
+ nonce `n`, and zero-length `ad` to encrypt a block of 256 zero bits.  Returns
+ the first 256 bits from the encrypted output.  This function can usually be
  implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
  authentication tag calculation).
 
@@ -170,15 +168,15 @@ variables and methods used during the handshake phase:
 A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
  
- * **`InitializeSymmetric(preshared_key, name)`**:  Takes a `preshared_key`
- which is either empty or a 256-bit secret key, and an arbitrary-length `name`.
- Performs the following steps: 
+ * **`InitializeSymmetric(preshared_key, handshake_name)`**:  Takes a `preshared_key`
+ which is either empty or a 256-bit secret key, and an arbitrary-length
+ `handshake_name`.  Performs the following steps: 
    *  If `preshared_key` is empty leaves `k` and `n` uninitialized and sets
    `has_key = False`.  Otherwise sets `k = preshared_key`, `n = 0`, and `has_key
    = True`.  
-   * If `name` is less than or equal to 32 bytes in length, sets `h` equal
-   to `name` with zero bytes appended to make 32 bytes.  If `name` is longer than
-   32 bytes sets `h = HASH(name)`.
+   * If `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal
+   to `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h =
+   HASH(handshake_name)`.
 
  * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)`.  Otherwise
  sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0` and `has_key = True`.  This
@@ -203,20 +201,22 @@ indicates concatentation of byte sequences.
 5.  The handshake algorithm and `HandshakeState` objects
 =========================================================
 
-To send (or receive) a handshake message you iterate through the tokens that
-comprise the message's descriptor, writing (or reading) the public keys it
-specifies, performing the DH operations it specifies, and calling `MixKey()` on
-DH outputs and `MixHash()` on static public keys and payloads.
+To send (or receive) a handshake message you iterate through the **tokens** that
+comprise the message's descriptor.  For each token you will write (or read) the
+public key it specifies, or perform the DH operation it specifies.  While doing
+this you will call `MixKey()` on DH outputs and `MixHash()` on static public
+keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
 variables.  
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
-`WriteHandshakeMessage()` and `ReadHandshakeMessage()` using successive
-descriptors from a handshake pattern.  If a decryption error occurs the
-handshake has failed and the `HandshakeState` is deleted without sending further
-messages.
+`MixHash()` for any static public keys that were exchanged prior to the
+handshake (see Section 6).  Then you call `WriteHandshakeMessage()` and
+`ReadHandshakeMessage()` using successive descriptors from a handshake pattern.
+If a decryption error occurs the handshake has failed and the `HandshakeState`
+is deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
@@ -241,12 +241,12 @@ A `HandshakeState` contain the following variables:
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(preshared_key, name, new_s, new_e, new_rs, new_re)`**: Takes a
- `preshared_key` which may be empty or 256 bits, and a concrete handshake `name`
- (see Section 9 ).  Also takes a set of DH keypairs and public keys for
- initializing local variables, any of which may be empty.
+ * **`Initialize(preshared_key, handshake_name, new_s, new_e, new_rs, new_re)`**: Takes a
+ `preshared_key` which may be empty or 256 bits, and a `handshake_name` (see
+ Section 9).  Also takes a set of DH keypairs and public keys for initializing
+ local variables, any of which may be empty.
  
-   * Calls `InitializeSymmetric(preshared_key, name)`.
+   * Calls `InitializeSymmetric(preshared_key, handshake_name)`.
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
@@ -291,11 +291,11 @@ A `HandshakeState` responds to the following methods:
 6. Handshake patterns 
 ======================
 
-A descriptor is some sequence of the tokens from "e, s, dhee, dhes, dhse,
-dhss".  A pattern is a sequence of descriptors. The first descriptor describes
-the first message sent from the initiator to the responder; the next descriptor
-describes the response message, and so on.  All messsages described by the
-pattern must be sent in order.  
+A descriptor is some sequence of tokens from "e, s, dhee, dhes, dhse, dhss".  A
+pattern is a sequence of descriptors. The first descriptor describes the first
+message sent from the initiator to the responder; the next descriptor describes
+the response message, and so on.  All messsages described by the pattern must be
+sent in order.  
 
 The following pattern describes an unauthenticated DH handshake:
 
@@ -303,8 +303,10 @@ The following pattern describes an unauthenticated DH handshake:
       <- e, dhee
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These are virtual messages that indicate an exchange of public keys prior to the
-handshake
+These indicate an exchange of public keys was somehow performed prior to the
+handshake, so these key pairs and public keys should be inputs to
+`Initialize()`.  After `Initialize()` is called, `MixHash()` is called on any
+pre-message static public keys in the order they are listed.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -314,11 +316,6 @@ responder's static public key as well as the responder's ephemeral:
       ------
       -> e, dhes 
       <- e, dhee
-
-Patterns where one party sends their static public key allow that party to opt
-out of authenticating themselves.  If that party sets their static public key
-equal to their ephemeral public key (a "dummy static" public key), this signals
-to the other party that a distinct static public key does not exist.
 
 6.1. One-way patterns
 ----------------------
@@ -535,19 +532,17 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
-9. Handshake and protocol names 
+9. Handshake names 
 =========================
 
-To produce a **concrete handshake name** for `HandshakeState.Initialize()` you
-add the DH parameter and cipher parameter names to the handshake pattern name.
-For example: `Noise_N_25519_ChaChaPoly`, `Noise_XXfallback_25519_AESGCM`, or
-`Noise_IS_448_AESGCM`.
+To produce a **handshake name** for `Initialize()` you add the DH parameter and
+symmetric crypto parameter names to the handshake pattern name.  For example: 
 
-The concrete handshake name is identical to the **concrete protocol name**
-unless the protocol uses pattern re-initialization. In that case, the protocol
-should be given a special name (e.g.  "Pipe").  This name isn't used for
-`HandshakeState.Initialize()` but fully defines the protocol for interop
-purposes, e.g.  `Noise_Pipe_25519_AESGCM`.
+ * `Noise_N_25519_ChaChaPoly`
+ 
+ * `Noise_XXfallback_25519_AESGCM`
+ 
+ * `Noise_IS_448_AESGCM`
 
 10. Application responsibilities
 ================================
@@ -559,9 +554,9 @@ An application built on Noise must consider several issues:
  fields can be added in the future which are ignored by older implementations.
 
  * **Padding**:  Applications are recommended to use a data format for the
- payloads of all encrypted messages that allows the addition of padding data, so
- that payload lengths don't leak information.  Using an extensible data format,
- per the previous bullet, will typically suffice.
+ payloads of all encrypted messages that allows padding, so that payload lengths
+ don't leak information.  Using an extensible data format, per the previous
+ bullet, will typically suffice.
 
  * **Termination**: Applications must consider that a sequence of Noise
  transport messages could be truncated by an attacker.  Applications should
@@ -575,7 +570,7 @@ An application built on Noise must consider several issues:
 
  * **Type fields**:  Applications are recommended to include a single-byte type
  field prior to each Noise handshake message (and prior to the length field, if
- one is included).  This allows extending the handshake with pattern
+ one is included).  This allows extending the handshake with handshake
  re-initialization or other alternative messages in the future.
 
 
@@ -593,14 +588,13 @@ This section collects various security considerations:
  data.  Otherwise replay of a handshake message could trigger a catastrophic key
  reuse. This is one rationale behind the patterns in Section 6.
 
- * **Handshake names**:  The handshake name used with
- `HandshakeState.Initialize()` must uniquely identify a single handshake pattern
- for every key it's used with (whether ephemeral key pair, static key pair, or
- pre-shared key).  This is because the pattern specifies the role of all
- cryptographic operations within a handshake.  If the same secret key was used
- in different protocol executions with the same handshake name but a different
- sequence of cryptographic operations then bad interactions could occur between
- the executions.
+ * **Handshake names**:  The handshake name used with `Initialize()` must
+ uniquely identify a single handshake pattern for every key it's used with
+ (whether ephemeral key pair, static key pair, or pre-shared key).  This is
+ because the pattern specifies the role of all cryptographic operations within a
+ handshake.  If the same secret key was used in different protocol executions
+ with the same handshake name but a different sequence of cryptographic
+ operations then bad interactions could occur between the executions.
 
  * **Channel binding**:  Depending on the DH parameters, it might be possible
  for a malicious party to engage in multiple sessions that derive the same
