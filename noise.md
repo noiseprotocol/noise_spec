@@ -419,7 +419,7 @@ of a handshake message must also receive some indication whether this is the
 next message in the current pattern, or whether to re-initialize the
 `HandshakeState` and execute a different pattern.
 
-By way of example, this section defines the `Noise_Pipe` protocol.  This
+By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
 or "zero-round-trip" handshake via `Noise_IS` if the initiator has pre-knowledge
 of the responder's static public key.  If the responder fails to decrypt the
