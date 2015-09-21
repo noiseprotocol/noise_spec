@@ -61,8 +61,7 @@ A transport message consists solely of an encrypted payload.
 A Noise protocol depends on **DH parameters** and **symmetric crypto
 parameters**.  The DH parameters specify the Diffie-Hellman function, which will
 typically be ECDH over some elliptic curve.  The symmetric crypto parameters
-specify symmetric crypto algorithms (cipher, hash function, and key
-derivation function).
+specify symmetric crypto algorithms (cipher, hash function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
 mixed into a secret key variable (**`k`**).  This key is used to encrypt static
@@ -100,7 +99,8 @@ Noise depends on the following **DH parameters**:
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
  sequence of bytes.  If the public key is invalid the output of this calculation
  is up to the implementation but must not leak information about the private
- key.
+ key.  Implementations are also allowed to abort on receiving or processing an
+ invalid public key.
 
 Noise depends on the following **symmetric crypto parameters**:
 
@@ -126,11 +126,9 @@ Noise depends on the following **symmetric crypto parameters**:
  cryptographically-secure collision-resistant hash function and returns an
  output of 256 bits. `SHA2-256` is an example hash function.
 
- * **`KDF(key, data)`**: Takes a `key` of 256 bits and some arbitrary-length
- `data` and returns a 256-bit output.  This function should implement a
- cryptographic "PRF" keyed by `key`.  This function should also be a
- cryptographically-secure collision-resistant hash function given a known `key`.
- `HMAC-SHA2-256` is an example KDF.
+ * **`HMAC-HASH(key, data)`**: Calculates `HMAC` using the above hash function.
+ Takes a 256-bit key, variable-length data, and produces a 256-bit output.
+
 
 4.2. The  `CipherState` object 
 -------------------------------
@@ -179,7 +177,7 @@ indicates concatentation of byte sequences.
    HASH(handshake_name)`.
 
  * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)` and `has_key
- = True`.  Otherwise sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0`.  This
+ = True`.  Otherwise sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
  will be called to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
@@ -481,7 +479,8 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.
+ value that doesn't leak information about the private key.  Implementations are
+ also allowed to abort on receiving or processing an invalid public key.
 
 8.2. The 448 DH parameters
 --------------------------
@@ -492,7 +491,8 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.
+ value that doesn't leak information about the private key.  Implementations are
+ also allowed to abort on receiving or processing an invalid public key.
 
 8.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
@@ -508,8 +508,6 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  `ENCRYPT()`, and the block count set to 1.  This is the same as calling
  `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
  32 bytes. 
-
- * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
@@ -529,8 +527,6 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  are concatenated into the 32-byte output.  This is the same as calling
  `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
  32 bytes.
-
- * **`KDF(kdf_key, input)`**: `HMAC-SHA2-256(kdf_key, input)`.  
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
@@ -652,6 +648,11 @@ Big-endian is preferred because:
  * The Noise length fields are likely to be handled by
  parsing code where big-endian "network byte order" is 
  traditional.
+
+The `MixKey()` design uses `HASH(),` then `HMAC-HASH(GETKEY(), ...)` because:
+
+ * The initial `MixKey()` uses `HASH()` to avoid unnecessary computation, since there's no previous key that needs to be mixed with the computation, or that could aid entropy extraction.  This is secure in the Random Oracle Model.
+ * Subsequent `MixKey()` calls use `GETKEY()` to produce a key that is independent from any previous ciphertext produced by `k`.  Then `HMAC-HASH()` uses that key to extract entropy from subsequent DH values.  This use of `HMAC` as a keyed extractor is similar to HKDF, so can leverage that analysis instead of the Random Oracle Model.  It also ensures that the output is a PRF from `k`, so `k` is not exposed, nor could the output be forged without knowledge of `k`.
 
 
 13. IPR
