@@ -80,7 +80,7 @@ To handle mixing inputs into `k` and `h` we introduce a
 **`SymmetricHandshakeState`** object which extends a `CipherState` with an `h`
 variable.  A `SymmetricHandshakeState` also supports initializing `k` with an
 optional **pre-shared key**, and initializing `h` with a **handshake name** to
-reduce the risk from accidental key reuse.  It also supports "splitting" into
+reduce risks from key reuse.  It also supports "splitting" into
 two `CipherState` objects which are used for transport messages once the
 handshake is complete.
 
