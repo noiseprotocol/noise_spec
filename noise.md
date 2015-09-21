@@ -201,7 +201,10 @@ indicates concatentation of byte sequences.
 5.  The handshake algorithm and `HandshakeState` objects
 =========================================================
 
-To send (or receive) a handshake message you iterate through the **tokens** that
+A descriptor for a handshake message is some sequence of **tokens** from "e, s,
+dhee, dhes, dhse, dhss".  
+
+To send (or receive) a handshake message you iterate through the tokens that
 comprise the message's descriptor.  For each token you will write (or read) the
 public key it specifies, or perform the DH operation it specifies.  While doing
 this you will call `MixKey()` on DH outputs and `MixHash()` on static public
@@ -589,21 +592,21 @@ This section collects various security considerations:
  reuse. This is one rationale behind the patterns in Section 6.
 
  * **Handshake names**:  The handshake name used with `Initialize()` must
- uniquely identify a single handshake pattern for every key it's used with
- (whether ephemeral key pair, static key pair, or pre-shared key).  This is
- because the pattern specifies the role of all cryptographic operations within a
- handshake.  If the same secret key was used in different protocol executions
- with the same handshake name but a different sequence of cryptographic
- operations then bad interactions could occur between the executions.
+ uniquely identify a single combination of handshake pattern, DH parameters, and
+ symmetric crypto parameters for every key it's used with (whether ephemeral key
+ pair, static key pair, or pre-shared key).  If the same secret key was used in
+ different protocol executions with the same handshake name but a different
+ sequence of cryptographic operations then bad interactions could occur between
+ the executions.
 
  * **Channel binding**:  Depending on the DH parameters, it might be possible
  for a malicious party to engage in multiple sessions that derive the same
  shared secret key (e.g. if setting her public keys to invalid values causes DH
- outputs of zero).  If a higher-level protocol wants a "channel binding" for the
- underlying Noise session it should not use `k`.  Instead it should use a value
- that identifies the remote party (like their static public key) or that is
- guaranteed unique to this session (like the local party's ephemeral public
- key).
+ outputs of zero).  If a higher-level protocol wants a unique "channel binding"
+ for referring to the underlying Noise session it should not use `k`.  Instead
+ it should use a value that identifies the remote party (like their static
+ public key) or that is guaranteed unique to this session (like the ephemeral
+ public keys).
 
 12. Rationale
 =============
