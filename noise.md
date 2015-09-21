@@ -178,8 +178,8 @@ indicates concatentation of byte sequences.
    to `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h =
    HASH(handshake_name)`.
 
- * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)`.  Otherwise
- sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0` and `has_key = True`.  This
+ * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)` and `has_key
+ = True`.  Otherwise sets `k = KDF(GETKEY(k, n), data)`.  Sets `n = 0`.  This
  will be called to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
@@ -558,8 +558,8 @@ An application built on Noise must consider several issues:
 
  * **Padding**:  Applications are recommended to use a data format for the
  payloads of all encrypted messages that allows padding, so that payload lengths
- don't leak information.  Using an extensible data format, per the previous
- bullet, will typically suffice.
+ can be padded to not leak information about message sizes.  Using an extensible
+ data format, per the previous bullet, will typically suffice.
 
  * **Termination**: Applications must consider that a sequence of Noise
  transport messages could be truncated by an attacker.  Applications should
