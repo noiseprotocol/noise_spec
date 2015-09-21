@@ -39,8 +39,10 @@ and extensibility.
 ===================
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
-processed without parsing (there are no length fields or type fields within the
-message). 
+processed without parsing.  There are no length fields or type fields within the
+message.  In some contexts, e.g. TCP, a Noise message might need to be preceded by
+some type or length fields, but that's an **application responsibility** - see
+Section 10. 
 
 A handshake message begins with a sequence of one or more DH public keys which
 are being sent to the other party.  Whether each public key is ephemeral or
