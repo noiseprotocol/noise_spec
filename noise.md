@@ -497,17 +497,17 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
 8.3. The ChaChaPoly symmetric crypto parameters 
 ------------------------------
 
- * **`ENCRYPT(k, n, ad, plainttext)` / `DECRYPT(k, n, ad, ciphertext)`**:
+ * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
  32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce).
 
- * **`GETKEY(k, n)`**:  Returns the first 32 bytes output from the ChaCha20
+ * **`GETKEY(k, n)`**:  Returns the first 32 bytes from calling `ENCRYPT(k, n,
+ ...)` with zero-length `ad` and 32 bytes of zeros for `plaintext`.  A more
+ optimized implementation can return the first 32 bytes output from the ChaCha20
  block function from RFC 7539 with key `k`, nonce `n` encoded as for
- `ENCRYPT()`, and the block count set to 1.  This is the same as calling
- `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
- 32 bytes. 
+ `ENCRYPT()`, and the block count set to 1.  
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
@@ -518,15 +518,16 @@ To distinguish these patterns, each handshake message will be preceded by a `typ
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by big-endian encoding of `n`.
  
- * **`GETKEY(k, n)`**: Returns 32 bytes from concatenating two encryption calls
- to AES256 using key `k`.  The input is defined by encoding `n` into a 96-bit
- value as for `ENCRYPT()`, then setting this as the first 96 bits of two 128-bit
- blocks `B1` and `B2`.  The final 4 bytes of `B1` are set to (0, 0, 0, 2).  The
- final 4 bytes of `B2` are set to (0, 0, 0, 3).  `B1` and `B2` are both
- encrypted with AES256 and key `k`, and the resulting ciphertexts `C1` and `C2`
- are concatenated into the 32-byte output.  This is the same as calling
- `ENCRYPT()` on a plaintext consisting of 32 bytes of zeros and taking the first
- 32 bytes.
+ * **`GETKEY(k, n)`**: Returns the first 32 bytes from calling `ENCRYPT(k, n,
+ ...)` with zero-length `ad` and 32 bytes of zeros for `plaintext`.  A more
+ optimized implementation can return 32 bytes from concatenating two encryption
+ calls to the AES256 block cipher using key `k`.  The 128-bit block cipher
+ inputs are defined by encoding `n` into a 96-bit value as for `ENCRYPT()`, then
+ setting this as the first 96 bits of two 128-bit blocks `B1` and `B2`.  The
+ final 4 bytes of `B1` are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are
+ set to (0, 0, 0, 3).  `B1` and `B2` are both encrypted with AES256 and key `k`,
+ and the resulting ciphertexts `C1` and `C2` are concatenated into the 32-byte
+ output.
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
