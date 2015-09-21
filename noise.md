@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-09-17
- * **Revision:** 04 (work in progress)
+ * **Date:** 2015-09-21
+ * **Revision:** 05 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
