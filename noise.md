@@ -39,14 +39,13 @@ message lengths, and specifying a format for payload data.
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
 processed without parsing, since there are no type or length fields within the
-message.  In some contexts a Noise message might need to be preceded by some
-type or length fields (e.g. TCP), but that's an **application responsibility** - see
-Section 10. 
+message.  In some contexts a Noise message might be preceded by some type or
+length fields but that's an **application responsibility** - see Section 10. 
 
 A handshake message begins with a sequence of one or more DH public keys.
 Whether each public key is ephemeral or static is specified by the message's
 descriptor.  Ephemeral public keys are sent in the clear.  Static public keys
-may be encrypted (to provide identity hiding).  
+may be encrypted to provide identity hiding.  
 
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data, and which may also be encrypted.
@@ -73,12 +72,12 @@ with every handshake ciphertext, to ensure these ciphertexts are bound to
 earlier messages.
 
 To handle `k` and its associated **nonce** `n` we introduce the notion of a
-**`CipherState`** object which contains `k` and `n` variables.  This object has
+**`CipherState`** which contains `k` and `n` variables.  This object has
 associated functions (or "methods") for performing encryption and decryption
 using its variables.
 
 To handle mixing inputs into `k` and `h` we introduce a
-**`SymmetricHandshakeState`** object which extends a `CipherState` with an `h`
+**`SymmetricHandshakeState`** which extends a `CipherState` with an `h`
 variable.  An implementation will create a `SymmetricHandshakeState` to handle a
 single Noise handshake, and can delete it once the handshake is finished.  
 
