@@ -419,21 +419,19 @@ exchange messages to agree on a shared key.
 
 A protocol may support handshake re-initialization.  In this case, the recipient
 of a handshake message must also receive some indication whether this is the
-next message in the current pattern, or whether to re-initialize the
-`HandshakeState` and execute a different pattern.
+next message in the current handshake, or whether to re-initialize the
+`HandshakeState` and do something different.
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
-or "zero-round-trip" handshake via `Noise_IS` if the initiator has pre-knowledge
-of the responder's static public key.  If the responder fails to decrypt the
-first `Noise_IS` message (perhaps due to changing her static key), she will use
-the `Noise_XXfallback` pattern to "fall back" to `Noise_XX` while re-using the
-initiator's ephemeral public key.
+handshake via `Noise_IS`.  The abbreviated handshake lets the initiator send
+some encrypted data in the first message if the initiator has pre-knowledge of
+the responder's static public key.  
 
-Encrypted data sent in the first `Noise_IS` message is susceptible to replay
-attacks, and also loses forward security and authentication if the responder's
-static private key is compromised. So a 0-RTT encrypted payload should only be
-used when this is acceptable.
+If the responder fails to decrypt the first `Noise_IS` message (perhaps due to
+changing her static key), she will use the `Noise_XXfallback` pattern to "fall
+back" to a handshake identical to `Noise_XX` except re-using the initiator's
+ephemeral public key as a pre-message.
 
 Below are the three patterns used for Noise Pipes:
 
@@ -454,7 +452,12 @@ Below are the three patterns used for Noise Pipes:
       <- e, dhee, s, dhse
       -> s, dhse
 
-To distinguish these patterns, each handshake message will be preceded by a `type` byte:
+Note that encrypted data sent in the first `Noise_IS` message is susceptible to
+replay attacks.  Also, if the responder's static private key is compromised,
+initial messages can be decrypted and/or forged.
+
+To distinguish these patterns, each handshake message will be preceded by a
+`type` byte:
 
  * If `type == 0` in the initiator's first message then the initiator is performing
  a `Noise_XX` handshake.
