@@ -4,7 +4,7 @@ Noise v0 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-09-21
- * **Revision:** 05 (work in progress)
+ * **Revision:** 06 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -44,18 +44,18 @@ message.  In some contexts a Noise message might need to be preceded by some
 type or length fields (e.g. TCP), but that's an **application responsibility** - see
 Section 10. 
 
-A handshake message begins with a sequence of one or more DH public keys which
-are being sent to the other party.  Whether each public key is ephemeral or
-static is specified by the message's descriptor.  Ephemeral public keys are sent
-in the clear.  Static public keys may be encrypted (to provide identity hiding).  
+A handshake message begins with a sequence of one or more DH public keys.
+Whether each public key is ephemeral or static is specified by the message's
+descriptor.  Ephemeral public keys are sent in the clear.  Static public keys
+may be encrypted (to provide identity hiding).  
 
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data, and which may also be encrypted.
 Encryption of static public keys and payloads will occur if a shared secret key
 has been established, either from a pre-shared key, or from previous DH
 calculations.  Note that zero-length payloads are allowed, and will result in
-non-zero-length payload ciphertext since encryption adds a 16-byte **authentication
-tag** to each ciphertext.
+non-zero-length payload ciphertexts since encryption adds a 16-byte
+**authentication tag** to each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
@@ -71,7 +71,7 @@ During a Noise handshake, the outputs from DH calculations will be sequentially
 mixed into a secret key variable (**`k`**).  This key is used to encrypt static
 public keys and handshake payloads.  
 
-During a Noise handshake, when static public keys and handshake payloads are
+During a Noise handshake, when public keys and handshake payloads are
 transmitted their plaintext will be mixed into a hash variable (**`h`**).  The
 current `h` value will be authenticated with every handshake ciphertext, to
 ensure that handshake ciphertexts are bound to context from earlier messages.
@@ -185,7 +185,7 @@ indicates concatentation of byte sequences.
  will be called to mix DH outputs into the key.
 
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
- static public keys and handshake payloads into the hash value.
+ public keys and handshake payloads into the hash value.
 
  * **`ConditionalEncrypt(plaintext)`**: If `has_key == True` returns
  `EncryptAndIncrement(h, plaintext)`, otherwise returns `plaintext`.
@@ -209,15 +209,15 @@ dhee, dhes, dhse, dhss".
 To send (or receive) a handshake message you iterate through the tokens that
 comprise the message's descriptor.  For each token you write (or read) the
 public key it specifies, or perform the DH operation it specifies.  While doing
-this you call `MixKey()` on DH outputs and `MixHash()` on static public
-keys and payloads.
+this you call `MixKey()` on DH outputs and `MixHash()` on public keys and
+payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
 variables.  
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
-`MixHash()` for any static public keys that were exchanged prior to the
+`MixHash()` for any public keys that were exchanged prior to the
 handshake (see Section 6).  Then you call `WriteHandshakeMessage()` and
 `ReadHandshakeMessage()` using successive descriptors from a handshake pattern.
 If a decryption error occurs the handshake has failed and the `HandshakeState`
@@ -261,7 +261,8 @@ A `HandshakeState` responds to the following methods:
  last handshake message, and a `payload` (which may be zero-length).
  
     * Processes each token in the descriptor sequentially:
-      * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to the buffer.  
+      * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to
+      the buffer.  Calls `MixHash(e.public_key)`.
 
       * For "s":  Appends `ConditionalEncrypt(s.public_key)` to the buffer.
       Calls `MixHash(s.public_key)`.
@@ -279,7 +280,8 @@ A `HandshakeState` responds to the following methods:
  decryption error occurs the error is signaled to the caller.
 
     * Processes each token in the descriptor sequentially:
-      * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  
+      * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  Calls
+      `MixHash(re.public_key)`.
 
       * For "s": If `has_key == True` sets `rs` to `ConditionalDecrypt()` on
       the next `DHLEN + 16` bytes, otherwise sets `rs` to the next `DHLEN`
@@ -311,7 +313,7 @@ Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
 These indicate an exchange of public keys was somehow performed prior to the
 handshake, so these key pairs and public keys should be inputs to
 `Initialize()`.  After `Initialize()` is called, `MixHash()` is called on any
-pre-message static public keys in the order they are listed.
+pre-message public keys in the order they are listed.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -604,10 +606,7 @@ This section collects various security considerations:
  for a malicious party to engage in multiple sessions that derive the same
  shared secret key (e.g. if setting her public keys to invalid values causes DH
  outputs of zero).  If a higher-level protocol wants a unique "channel binding"
- for referring to the underlying Noise session it should not use `k`.  Instead
- it should use a value that identifies the remote party (like their static
- public key) or that is guaranteed unique to this session (like the ephemeral
- public keys).
+ value for referring to a Noise session it should use `h`, not `k`.
 
 12. Rationale
 =============
