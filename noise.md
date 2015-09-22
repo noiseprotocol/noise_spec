@@ -32,8 +32,7 @@ specifies the sequence of descriptors that comprise a handshake.
 A handshake pattern can be instantiated by **DH parameters** and **symmetric
 crypto parameters** to give a concrete protocol.  An application using Noise
 must handle some **application responsibilities** on its own, such as indicating
-message lengths, and specifying a format for payload data that supports padding
-and extensibility.
+message lengths, and specifying a format for payload data.
 
 3.  Message format
 ===================
@@ -51,16 +50,15 @@ may be encrypted (to provide identity hiding).
 
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data, and which may also be encrypted.
-Encryption of static public keys and payloads will occur if a shared secret key
-has been established, either from a pre-shared key, or from previous DH
-calculations.  Note that zero-length payloads are allowed, and will result in
-non-zero-length payload ciphertexts since encryption adds a 16-byte
-**authentication tag** to each ciphertext.
+Encryption of static public keys and payloads will occur once a shared secret
+key has been established.  Zero-length payloads are allowed and will result in
+16-byte payload ciphertexts, since encryption adds a 16-byte **authentication
+tag** to each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
-4.  Crypto algorithms and objects
-================================================
+4.  Crypto algorithms
+======================
 
 A Noise protocol depends on **DH parameters** and **symmetric crypto
 parameters**.  The DH parameters specify the Diffie-Hellman function, which will
@@ -69,23 +67,25 @@ specify symmetric crypto algorithms (cipher and hash function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
 mixed into a secret key variable (**`k`**).  This key is used to encrypt static
-public keys and handshake payloads.  
+public keys and handshake payloads.  Public keys and handshake payloads will be
+mixed into a hash variable (**`h`**).  The `h` variable will be authenticated
+with every handshake ciphertext, to ensure these ciphertexts are bound to
+earlier messages.
 
-During a Noise handshake, when public keys and handshake payloads are
-transmitted their plaintext will be mixed into a hash variable (**`h`**).  The
-current `h` value will be authenticated with every handshake ciphertext, to
-ensure that handshake ciphertexts are bound to context from earlier messages.
-
-To handle `k` and its associated **nonce** we introduce the notion of a
-**`CipherState`** object which contains `k` and `n` variables.
+To handle `k` and its associated **nonce** `n` we introduce the notion of a
+**`CipherState`** object which contains `k` and `n` variables.  This object has
+associated functions (or "methods") for performing encryption and decryption
+using its variables.
 
 To handle mixing inputs into `k` and `h` we introduce a
 **`SymmetricHandshakeState`** object which extends a `CipherState` with an `h`
-variable.  A `SymmetricHandshakeState` also supports initializing `k` with an
-optional **pre-shared key**, and initializing `h` with a **handshake name** to
-reduce risks from key reuse.  It also supports "splitting" into
-two `CipherState` objects which are used for transport messages once the
-handshake is complete.
+variable.  An implementation will create a `SymmetricHandshakeState` to handle a
+single Noise handshake, and can delete it once the handshake is finished.  
+
+A `SymmetricHandshakeState` supports initializing `k` with an optional
+**pre-shared key**, and initializing `h` with a **handshake name** to reduce
+risks from key reuse.  It also supports "splitting" into two `CipherState`
+objects which are used for transport messages once the handshake is complete.
 
 The below sections describe the DH parameters, symmetric crypto parameters, and
 `CipherState` and `SymmetricHandshakeState` objects in more detail.
@@ -137,17 +137,15 @@ Noise depends on the following **symmetric crypto parameters**:
 4.2. The  `CipherState` object 
 -------------------------------
 
-A `CipherState` can encrypt and decrypt data based on its internal state.  A
-`CipherState` contains the following variables:
+A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
  * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
  the symmetric crypto parameters.
 
- * **`n`**: A 64-bit unsigned integer nonce.  This is used along with `k`
- for encryption.
+ * **`n`**: A 64-bit unsigned integer nonce.
 
 A `CipherState` responds to the following methods.  The `++` post-increment
-operator applied to `n` means "use the current value, then increment it".
+operator applied to `n` means "use the current `n` value, then increment it".
 
  * **`EncryptAndIncrement(ad, plaintext)`**:  Returns `ENCRYPT(k, n++, ad,
  plaintext)`.
@@ -160,7 +158,7 @@ operator applied to `n` means "use the current value, then increment it".
 -----------------------------------------
 
 A `SymmetricHandshakeState` object extends a `CipherState` with the following
-variables and methods used during the handshake phase:
+variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
 
@@ -200,17 +198,15 @@ indicates concatentation of byte sequences.
  `CipherState` objects for the send and receive directions.
 
 
-5.  The handshake algorithm and `HandshakeState` objects
-=========================================================
+5.  The handshake algorithm
+============================
 
 A descriptor for a handshake message is some sequence of **tokens** from "e, s,
-dhee, dhes, dhse, dhss".  
-
-To send (or receive) a handshake message you iterate through the tokens that
-comprise the message's descriptor.  For each token you write (or read) the
-public key it specifies, or perform the DH operation it specifies.  While doing
-this you call `MixKey()` on DH outputs and `MixHash()` on public keys and
-payloads.
+dhee, dhes, dhse, dhss".  To send (or receive) a handshake message you iterate
+through the tokens that comprise the message's descriptor.  For each token you
+write (or read) the public key it specifies, or perform the DH operation it
+specifies.  While doing this you call `MixKey()` on DH outputs and `MixHash()`
+on public keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
@@ -225,9 +221,10 @@ is deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
-second for messages in the other direction.  Transport messages are encrypted
-and decrypted by calling `EncryptAndIncrement()` and `DecryptAndIncrement()`
-with zero-length associated data.
+second for messages in the other direction.  At that point the `HandshakeState`
+may be deleted.  Transport messages are then encrypted and decrypted by calling
+`EncryptAndIncrement()` and `DecryptAndIncrement()` on the relevant
+`CipherState` with zero-length associated data.
 
 
 5.1. The `HandshakeState` object
