@@ -656,7 +656,13 @@ Big-endian is preferred because:
 The `MixKey()` design uses `HASH(),` then `HMAC-HASH(GETKEY(), ...)` because:
 
  * The initial `MixKey()` uses `HASH()` to avoid unnecessary computation, since there's no previous key that needs to be mixed with the computation, or that could aid entropy extraction.  This is secure in the Random Oracle Model.
- * Subsequent `MixKey()` calls use `GETKEY()` to produce a key that is independent from any previous ciphertext produced by `k`.  Then `HMAC-HASH()` uses that key to extract entropy from subsequent DH values.  This use of `HMAC` as a keyed extractor is similar to HKDF, so can leverage that analysis instead of the Random Oracle Model.  It also ensures that the output is a PRF from `k`, so `k` is not exposed, nor could the output be forged without knowledge of `k`.
+ * Subsequent `MixKey()` calls use `GETKEY()` to produce a key that is
+ independent from any previous ciphertext produced by `k`.  Then `HMAC-HASH()`
+ uses that key to extract entropy from subsequent DH values.  This use of `HMAC`
+ as a keyed extractor is similar to HKDF, so can leverage that analysis instead
+ of the Random Oracle Model.  It also ensures that the new `k` produced by
+ `MixKey()` is a PRF from the old `k`, so the old `k` is not exposed, and the
+ new `k` is indistinguishable from random without knowledge of old `k`.
 
 
 13. IPR
