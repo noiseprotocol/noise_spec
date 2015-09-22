@@ -39,10 +39,10 @@ and extensibility.
 ===================
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
-processed without parsing.  There are no length fields or type fields within the
-message.  In some contexts, e.g. TCP, a Noise message might need to be preceded by
-some type or length fields, but that's an **application responsibility** - see
-Section 10. 
+processed without parsing, since there are no length fields or type fields
+within the message.  In some contexts, e.g. TCP, a Noise message might need to
+be preceded by some type or length fields, but that's an **application
+responsibility** - see Section 10. 
 
 A handshake message begins with a sequence of one or more DH public keys which
 are being sent to the other party.  Whether each public key is ephemeral or
@@ -50,7 +50,7 @@ static is specified by the message's descriptor.
 
 Ephemeral public keys are sent in the clear.  Static public keys may be
 encrypted (to provide identity hiding).  Following the public keys will be a
-payload which could be used to convey certificates or other handshake data, and
+**payload** which could be used to convey certificates or other handshake data, and
 which may also be encrypted.  Encryption of static public keys and payloads will
 occur if a shared secret key has been established, either from a pre-shared key,
 or from previous DH calculations.  
@@ -63,7 +63,7 @@ A transport message consists solely of an encrypted payload.
 A Noise protocol depends on **DH parameters** and **symmetric crypto
 parameters**.  The DH parameters specify the Diffie-Hellman function, which will
 typically be ECDH over some elliptic curve.  The symmetric crypto parameters
-specify symmetric crypto algorithms (cipher, hash function).
+specify symmetric crypto algorithms (cipher and hash function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
 mixed into a secret key variable (**`k`**).  This key is used to encrypt static
