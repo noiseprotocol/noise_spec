@@ -39,21 +39,23 @@ and extensibility.
 ===================
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
-processed without parsing, since there are no length fields or type fields
-within the message.  In some contexts, e.g. TCP, a Noise message might need to
-be preceded by some type or length fields, but that's an **application
-responsibility** - see Section 10. 
+processed without parsing, since there are no type or length fields within the
+message.  In some contexts a Noise message might need to be preceded by some
+type or length fields (e.g. TCP), but that's an **application responsibility** - see
+Section 10. 
 
 A handshake message begins with a sequence of one or more DH public keys which
 are being sent to the other party.  Whether each public key is ephemeral or
-static is specified by the message's descriptor.
+static is specified by the message's descriptor.  Ephemeral public keys are sent
+in the clear.  Static public keys may be encrypted (to provide identity hiding).  
 
-Ephemeral public keys are sent in the clear.  Static public keys may be
-encrypted (to provide identity hiding).  Following the public keys will be a
-**payload** which could be used to convey certificates or other handshake data, and
-which may also be encrypted.  Encryption of static public keys and payloads will
-occur if a shared secret key has been established, either from a pre-shared key,
-or from previous DH calculations.  
+Following the public keys will be a **payload** which could be used to convey
+certificates or other handshake data, and which may also be encrypted.
+Encryption of static public keys and payloads will occur if a shared secret key
+has been established, either from a pre-shared key, or from previous DH
+calculations.  Note that zero-length payloads are allowed, and will result in
+non-zero-length payload ciphertext since encryption adds a 16-byte **authentication
+tag** to each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
