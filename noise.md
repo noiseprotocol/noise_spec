@@ -86,8 +86,7 @@ A `SymmetricHandshakeState` supports initializing `k` with an optional
 risks from key reuse.  It also supports "splitting" into two `CipherState`
 objects which are used for transport messages once the handshake is complete.
 
-The below sections describe the DH parameters, symmetric crypto parameters, and
-`CipherState` and `SymmetricHandshakeState` objects in more detail.
+The below sections describe these concepts in more detail.
 
 
 4.1. DH parameters and symmetric crypto parameters
