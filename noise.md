@@ -205,9 +205,9 @@ A descriptor for a handshake message is some sequence of **tokens** from "e, s,
 dhee, dhes, dhse, dhss".  
 
 To send (or receive) a handshake message you iterate through the tokens that
-comprise the message's descriptor.  For each token you will write (or read) the
+comprise the message's descriptor.  For each token you write (or read) the
 public key it specifies, or perform the DH operation it specifies.  While doing
-this you will call `MixKey()` on DH outputs and `MixHash()` on static public
+this you call `MixKey()` on DH outputs and `MixHash()` on static public
 keys and payloads.
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
@@ -281,7 +281,7 @@ A `HandshakeState` responds to the following methods:
 
       * For "s": If `has_key == True` sets `rs` to `ConditionalDecrypt()` on
       the next `DHLEN + 16` bytes, otherwise sets `rs` to the next `DHLEN`
-      bytes.  Calls `MixHash(rs)`.
+      bytes.  Calls `MixHash(rs.public_key)`.
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
