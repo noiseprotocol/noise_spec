@@ -171,8 +171,9 @@ indicates concatentation of byte sequences.
  `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
  = HASH(handshake_name)`.
 
- * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
- will be called to mix DH outputs into the key.
+ * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n =
+ * 0`.  Sets `has_key = True`.  This will be called to mix DH outputs into the
+ * key.
 
  * **`EncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
  EncryptAndIncrement(h, plaintext)`, sets `h = HASH(h || ciphertext)`, and
