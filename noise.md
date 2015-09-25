@@ -169,23 +169,22 @@ indicates concatentation of byte sequences.
  * **`InitializeSymmetric(preshared_key, handshake_name)`**:  Takes a `preshared_key`
  which is either empty or a 256-bit secret key, and an arbitrary-length
  `handshake_name`.  Performs the following steps: 
-   *  If `preshared_key` is empty leaves `k` and `n` uninitialized and sets
+   *  If `preshared_key` is empty sets `k` to all zeros, `n = 0` and 
    `has_key = False`.  Otherwise sets `k = preshared_key`, `n = 0`, and `has_key
    = True`.  
    * If `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal
    to `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h =
    HASH(handshake_name)`.
 
- * **`MixKey(data)`**:  If `has_key == False` sets `k = HASH(data)` and `has_key
- = True`.  Otherwise sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
+ * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
  will be called to mix DH outputs into the key.
 
- * **`ConditionalEncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
+ * **`EncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
  EncryptAndIncrement(h, plaintext)`, sets `h = HASH(h || ciphertext)`, and
  returns `ciphertext`.  Otherwise sets `h = HASH(h || plaintext)` and returns
  `plaintext`.
 
- * **`ConditionalDecryptAndHash(data)`**: If `has_key == True` sets `plaintext =
+ * **`DecryptAndHash(data)`**: If `has_key == True` sets `plaintext =
  DecryptAndIncrement(h, data)`, sets `h = HASH(h || data)`, and returns
  `plaintext`.  Otherwise sets `h = HASH(h || data)` and returns `data`.
 
@@ -256,14 +255,15 @@ A `HandshakeState` responds to the following methods:
  last handshake message, and a `payload` (which may be zero-length).
  
     * Processes each token in the descriptor sequentially:
-      * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
-      `ConditionalEncryptAndHash(e.public_key)` to the buffer.
 
-      * For "s":  Appends `ConditionalEncryptAndHash(s.public_key)` to the buffer.
+      * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
+      `EncryptAndHash(e.public_key)` to the buffer.
+
+      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.
       
       * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
 
-    * Appends `ConditionalEncryptAndHash(payload)` to the buffer.  
+    * Appends `EncryptAndHash(payload)` to the buffer.  
     
     * If `final == True` returns two new `CipherState` objects by calling
     `Split()`.
@@ -277,15 +277,15 @@ A `HandshakeState` responds to the following methods:
 
       * For "e": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
-      `ConditionalDecryptAndHash(data)`.
+      `DecryptAndHash(data)`.
 
       * For "s": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
-      `ConditionalDecryptAndHash(data)`.
+      `DecryptAndHash(data)`.
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
-    * Sets `payload = ConditionalDecryptAndHash(buffer)`.
+    * Sets `payload = DecryptAndHash(buffer)`.
   
     * If `final == True` returns the `payload` and two new `CipherState` objects
     created by calling `Split()`.  Otherwise returns the `payload`.
