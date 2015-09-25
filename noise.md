@@ -180,14 +180,14 @@ indicates concatentation of byte sequences.
  = True`.  Otherwise sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
  will be called to mix DH outputs into the key.
 
- * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to mix
- public keys and handshake payloads into the hash value.
+ * **`ConditionalEncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
+ EncryptAndIncrement(h, plaintext)`, sets `h = HASH(h || ciphertext)`, and
+ returns `ciphertext`.  Otherwise sets `h = HASH(h || plaintext)` and returns
+ `plaintext`.
 
- * **`ConditionalEncrypt(plaintext)`**: If `has_key == True` returns
- `EncryptAndIncrement(h, plaintext)`, otherwise returns `plaintext`.
-
- * **`ConditionalDecrypt(data)`**: If `has_key == True` returns
- `DecryptAndIncrement(h, data)`, otherwise returns `data`.
+ * **`ConditionalDecryptAndHash(data)`**: If `has_key == True` sets `plaintext =
+ DecryptAndIncrement(h, data)`, sets `h = HASH(h || data)`, and returns
+ `plaintext`.  Otherwise sets `h = HASH(h || data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `GETKEY(k,
  n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to get the
@@ -256,18 +256,17 @@ A `HandshakeState` responds to the following methods:
  last handshake message, and a `payload` (which may be zero-length).
  
     * Processes each token in the descriptor sequentially:
-      * For "e":  Sets `e = GENERATE_KEYPAIR()` and appends the public key to
-      the buffer.  Calls `MixHash(e.public_key)`.
+      * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
+      `ConditionalEncryptAndHash(e.public_key)` to the buffer.
 
-      * For "s":  Appends `ConditionalEncrypt(s.public_key)` to the buffer.
-      Calls `MixHash(s.public_key)`.
+      * For "s":  Appends `ConditionalEncryptAndHash(s.public_key)` to the buffer.
       
       * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
 
-    * Appends `ConditionalEncrypt(payload)` to the buffer.  
+    * Appends `ConditionalEncryptAndHash(payload)` to the buffer.  
     
     * If `final == True` returns two new `CipherState` objects by calling
-    `Split()`.  Otherwise calls `MixHash(payload)`.
+    `Split()`.
 
  * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
  containing a message, a descriptor, and a `final` boolean which indicates
@@ -275,20 +274,21 @@ A `HandshakeState` responds to the following methods:
  decryption error occurs the error is signaled to the caller.
 
     * Processes each token in the descriptor sequentially:
-      * For "e": Sets `re` to the next `DHLEN` bytes from `buffer`.  Calls
-      `MixHash(re.public_key)`.
 
-      * For "s": If `has_key == True` sets `rs` to `ConditionalDecrypt()` on
-      the next `DHLEN + 16` bytes, otherwise sets `rs` to the next `DHLEN`
-      bytes.  Calls `MixHash(rs.public_key)`.
+      * For "e": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
+      True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
+      `ConditionalDecryptAndHash(data)`.
+
+      * For "s": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
+      True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
+      `ConditionalDecryptAndHash(data)`.
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
-    * Sets `payload = ConditionalDecrypt(buffer)`.
+    * Sets `payload = ConditionalDecryptAndHash(buffer)`.
   
     * If `final == True` returns the `payload` and two new `CipherState` objects
-    created by calling `Split()`.  Otherwise calls `MixHash(payload)`
-    and returns the `payload`.
+    created by calling `Split()`.  Otherwise returns the `payload`.
     
 6. Handshake patterns 
 ======================
