@@ -80,10 +80,10 @@ To handle mixing inputs into `k` and `h` we introduce a
 variable.  An implementation will create a `SymmetricHandshakeState` to handle a
 single Noise handshake, and can delete it once the handshake is finished.  
 
-A `SymmetricHandshakeState` supports initializing `k` with an optional
-**pre-shared key**, and initializing `h` with a **handshake name** to reduce
-risks from key reuse.  It also supports "splitting" into two `CipherState`
-objects which are used for transport messages once the handshake is complete.
+A `SymmetricHandshakeState` supports initializing `h` with a **handshake name**
+to reduce risks from key reuse.  It also supports "splitting" into two
+`CipherState` objects which are used for transport messages once the handshake
+is complete.
 
 The below sections describe these concepts in more detail.
 
@@ -165,16 +165,11 @@ variables:
 A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
  
- * **`InitializeSymmetric(preshared_key, handshake_name)`**:  Takes a `preshared_key`
- which is either empty or a 256-bit secret key, and an arbitrary-length
- `handshake_name`.  Performs the following steps: 
-   *  If `preshared_key` is empty sets `k` to all zeros, `n = 0` and 
-   `has_key = False`.  Otherwise sets `k = preshared_key`, `n = 0`, and `has_key
-   = True`.  
-
-   * If `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal
-   to `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h =
-   HASH(handshake_name)`.
+ * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
+ `handshake_name`.  Sets `k` to all zeros, `n = 0` and `has_key = False`.  If
+ `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal to
+ `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
+ = HASH(handshake_name)`.
 
  * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  This
  will be called to mix DH outputs into the key.
@@ -240,12 +235,11 @@ A `HandshakeState` contain the following variables:
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(preshared_key, handshake_name, new_s, new_e, new_rs, new_re)`**: Takes a
- `preshared_key` which may be empty or 256 bits, and a `handshake_name` (see
- Section 9).  Also takes a set of DH keypairs and public keys for initializing
- local variables, any of which may be empty.
+ * **`Initialize(handshake_name, new_s, new_e, new_rs, new_re)`**: Takes a
+ `handshake_name` (see Section 9).  Also takes a set of DH keypairs and public
+ keys for initializing local variables, any of which may be empty.
  
-   * Calls `InitializeSymmetric(preshared_key, handshake_name)`.
+   * Calls `InitializeSymmetric(handshake_name)`.
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
@@ -595,7 +589,7 @@ This section collects various security considerations:
  * **Handshake names**:  The handshake name used with `Initialize()` must
  uniquely identify a single combination of handshake pattern, DH parameters, and
  symmetric crypto parameters for every key it's used with (whether ephemeral key
- pair, static key pair, or pre-shared key).  If the same secret key was used in
+ pair or static key pair).  If the same secret key was used in
  different protocol executions with the same handshake name but a different
  sequence of cryptographic operations then bad interactions could occur between
  the executions.
