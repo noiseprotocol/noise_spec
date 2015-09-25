@@ -44,15 +44,14 @@ length fields but that's an **application responsibility** - see Section 10.
 
 A handshake message begins with a sequence of one or more DH public keys.
 Whether each public key is ephemeral or static is specified by the message's
-descriptor.  Ephemeral public keys are sent in the clear.  Static public keys
-may be encrypted to provide identity hiding.  
+descriptor.  Public keys may be encrypted to provide identity hiding.  
 
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data, and which may also be encrypted.
-Encryption of static public keys and payloads will occur once a shared secret
-key has been established.  Zero-length payloads are allowed and will result in
-16-byte payload ciphertexts, since encryption adds a 16-byte **authentication
-tag** to each ciphertext.
+Encryption of public keys and payloads will occur once a shared secret key has
+been established.  Zero-length payloads are allowed and will result in 16-byte
+payload ciphertexts, since encryption adds a 16-byte **authentication tag** to
+each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
@@ -651,16 +650,14 @@ Big-endian is preferred because:
  parsing code where big-endian "network byte order" is 
  traditional.
 
-The `MixKey()` design uses `HASH(),` then `HMAC-HASH(GETKEY(), ...)` because:
+The `MixKey()` design uses `HMAC-HASH(GETKEY(), ...)` because:
 
- * The initial `MixKey()` uses `HASH()` to avoid unnecessary computation, since there's no previous key that needs to be mixed with the computation, or that could aid entropy extraction.  This is secure in the Random Oracle Model.
- * Subsequent `MixKey()` calls use `GETKEY()` to produce a key that is
- independent from any previous ciphertext produced by `k`.  Then `HMAC-HASH()`
- uses that key to extract entropy from subsequent DH values.  This use of `HMAC`
- as a keyed extractor is similar to HKDF, so can leverage that analysis instead
- of the Random Oracle Model.  It also ensures that the new `k` produced by
- `MixKey()` is a PRF from the old `k`, so the old `k` is not exposed, and the
- new `k` is indistinguishable from random without knowledge of old `k`.
+ * `HMAC-HASH()` uses the previous key to extract entropy from subsequent DH
+ values.  This use of `HMAC` as a keyed extractor is similar to HKDF, so if `k`
+ is secret this can leverage the `HKDF` analysis instead of the Random Oracle
+ Model.  It also ensures that the new `k` produced by `MixKey()` is a PRF from
+ the old `k`, so the old `k` is not exposed, and the new `k` is
+ indistinguishable from random without knowledge of old `k`.
 
 
 13. IPR
