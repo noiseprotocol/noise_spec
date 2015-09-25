@@ -171,6 +171,7 @@ indicates concatentation of byte sequences.
    *  If `preshared_key` is empty sets `k` to all zeros, `n = 0` and 
    `has_key = False`.  Otherwise sets `k = preshared_key`, `n = 0`, and `has_key
    = True`.  
+
    * If `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal
    to `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h =
    HASH(handshake_name)`.
