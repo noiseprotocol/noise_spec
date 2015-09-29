@@ -64,8 +64,8 @@ typically be ECDH over some elliptic curve.  The symmetric crypto parameters
 specify symmetric crypto algorithms (cipher and hash function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
-mixed into a secret key variable (**`k`**).  This key is used to encrypt static
-public keys and handshake payloads.  Public keys and handshake payloads will be
+mixed into a secret key variable (**`k`**).  This key is used to encrypt public
+keys and handshake payloads.  Public keys and handshake payloads will also be
 mixed into a hash variable (**`h`**).  The `h` variable will be authenticated
 with every handshake ciphertext, to ensure these ciphertexts are bound to
 earlier messages.
@@ -173,16 +173,18 @@ indicates concatentation of byte sequences.
 
  * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n =
   0`.  Sets `has_key = True`.  This will be called to mix DH outputs into the
-  key.
+  key.  
+  
+ * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to
+ mix public keys and handshake payloads into the hash.
 
  * **`EncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
- EncryptAndIncrement(h, plaintext)`, sets `h = HASH(h || ciphertext)`, and
- returns `ciphertext`.  Otherwise sets `h = HASH(h || plaintext)` and returns
- `plaintext`.
+ EncryptAndIncrement(h, plaintext)`, calls `MixHash(ciphertext)`, and returns
+ `ciphertext`.  Otherwise calls `MixHash(plaintext)` and returns `plaintext`.
 
  * **`DecryptAndHash(data)`**: If `has_key == True` sets `plaintext =
- DecryptAndIncrement(h, data)`, sets `h = HASH(h || data)`, and returns
- `plaintext`.  Otherwise sets `h = HASH(h || data)` and returns `data`.
+ DecryptAndIncrement(h, data)`, calls `MixHash(data)`, and returns `plaintext`.
+ Otherwise calls `MixHash(data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `GETKEY(k,
  n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to get the
@@ -198,8 +200,7 @@ A descriptor for a handshake message is some sequence of **tokens** from "e, s,
 dhee, dhes, dhse, dhss".  To send (or receive) a handshake message you iterate
 through the tokens that comprise the message's descriptor.  For each token you
 write (or read) the public key it specifies, or perform the DH operation it
-specifies.  While doing this you call `MixKey()` on DH outputs and `MixHash()`
-on public keys and payloads.
+specifies.  
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
