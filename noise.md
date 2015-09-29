@@ -597,10 +597,11 @@ This section collects various security considerations:
  the executions.
 
  * **Channel binding**:  Depending on the DH parameters, it might be possible
- for a malicious party to engage in multiple sessions that derive the same
- shared secret key (e.g. if setting her public keys to invalid values causes DH
- outputs of zero).  If a higher-level protocol wants a unique "channel binding"
- value for referring to a Noise session it should use `h`, not `k`.
+   for a malicious party to engage in multiple sessions that derive the same
+   shared secret key (e.g. if setting her public keys to invalid values causes
+   DH outputs of zero).  If a higher-level protocol wants a unique "channel
+   binding" value for referring to a Noise session it should use the value of
+   `h` after the final handshake message, not `k`.
 
 12. Rationale
 =============
