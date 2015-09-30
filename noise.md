@@ -160,7 +160,7 @@ variables:
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
 
  * **`h`**: A 256-bit hash output.  This is used as "associated data" for
- encryption.  
+ encryption.
 
 A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
@@ -581,20 +581,19 @@ This section collects various security considerations:
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key `k`
  for encryption would be catastrophic.  Implementations must carefully follow
- the rules for incrementing nonces.   
+ the rules for nonces.   
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
  ephemeral public key and perform a DH with it prior to sending any encrypted
- data.  Otherwise replay of a handshake message could trigger a catastrophic key
+ data.  Otherwise replay of a handshake message could trigger catastrophic key
  reuse. This is one rationale behind the patterns in Section 6.
 
  * **Handshake names**:  The handshake name used with `Initialize()` must
- uniquely identify a single combination of handshake pattern, DH parameters, and
- symmetric crypto parameters for every key it's used with (whether ephemeral key
- pair or static key pair).  If the same secret key was used in
- different protocol executions with the same handshake name but a different
- sequence of cryptographic operations then bad interactions could occur between
- the executions.
+   uniquely identify the combination of handshake pattern, DH parameters,
+   and symmetric crypto parameters for every key it's used with (whether
+   ephemeral key pair or static key pair).  If the same secret key was reused
+   with the same handshake name but a different set of cryptographic operations
+   then bad interactions could occur.
 
  * **Channel binding**:  Depending on the DH parameters, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
@@ -602,6 +601,11 @@ This section collects various security considerations:
    DH outputs of zero).  If a higher-level protocol wants a unique "channel
    binding" value for referring to a Noise session it should use the value of
    `h` after the final handshake message, not `k`.
+
+ * **Implementation fingerprinting**:  If this protocol is used in settings with
+   anonymous parties, care should be taken that implementations behave
+   identically in all cases.  This may require mandating exact behavior for
+   handling of invalid DH public keys.
 
 12. Rationale
 =============
@@ -677,5 +681,3 @@ earlier versions of the key derivation.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
-
-
