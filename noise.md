@@ -324,7 +324,7 @@ stream of data from a sender to a recipient.
 
 Following these one-way handshakes the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
-The second `HandshakeState` from `Split()` is discarded - the responder MUST
+The second `CipherState` from `Split()` is discarded - the responder MUST
 NOT send any messages using it.
 
 
