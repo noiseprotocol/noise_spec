@@ -167,10 +167,10 @@ A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
- `handshake_name`.  Sets `k` to all zeros, `n = 0` and `has_key = False`.  If
- `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal to
- `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
- = HASH(handshake_name)`.
+ `handshake_name`.  Sets `n = 0` and `has_key = False`.  If `handshake_name` is
+ less than or equal to 32 bytes in length, sets `h` equal to `handshake_name`
+ with zero bytes appended to make 32 bytes.  Otherwise sets `h =
+ HASH(handshake_name)`.  Sets `k = h`.
 
  * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n =
   0`.  Sets `has_key = True`.  This will be called to mix DH outputs into the
