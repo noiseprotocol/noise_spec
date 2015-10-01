@@ -172,9 +172,9 @@ indicates concatentation of byte sequences.
  with zero bytes appended to make 32 bytes.  Otherwise sets `h =
  HASH(handshake_name)`.  Sets `k = h`.
 
- * **`MixKey(data)`**:  Sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n =
-  0`.  Sets `has_key = True`.  This will be called to mix DH outputs into the
-  key.  
+ * **`MixKey(data)`**:  If `n == 0` sets `k = HMAC-HASH(k, data)`.  Otherwise
+   sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  Sets `has_key =
+   True`.  This will be called to mix DH outputs into the key.  
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to
  mix public keys and handshake payloads into the hash.
