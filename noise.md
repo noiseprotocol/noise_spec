@@ -324,7 +324,7 @@ stream of data from a sender to a recipient.
 
 Following these one-way handshakes the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
-The second `CipherState` from `Split()` is discarded - the responder MUST
+The second `CipherState` from `Split()` is discarded - the recipient MUST
 NOT send any messages using it.
 
 
@@ -587,14 +587,19 @@ An application built on Noise must consider several issues:
 
 This section collects various security considerations:
 
+ * **Termination**:  Preventing attackers from truncating a stream of transport
+   messages is an application responsibility.  See above.
+
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key `k`
  for encryption would be catastrophic.  Implementations must carefully follow
  the rules for nonces.   
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
- ephemeral public key and perform a DH with it prior to sending any encrypted
- data.  Otherwise replay of a handshake message could trigger catastrophic key
- reuse. This is one rationale behind the patterns in Section 6.
+   ephemeral public key and perform a DH with it prior to sending any encrypted
+   data.  Otherwise replay of a handshake message could trigger catastrophic
+   key reuse. This is one rationale behind the patterns in Section 6.  It's
+   also the reason why one-way handshakes only allow transport messages from
+   the sender, not the recipient.
 
  * **Handshake names**:  The handshake name used with `Initialize()` must
    uniquely identify the combination of handshake pattern, DH parameters,
@@ -623,22 +628,28 @@ This section collects various design rationale:
 Noise messages are <= 65535 bytes because:
 
  * This allows safe streaming decryption, and random access decryption of large files.
- * This simplifies testing and reduces likelihood of memory or overflow errors in handling large messages
- * This restricts length fields to a standard size of 16 bits, aiding interop 
- * The overhead of larger standard length fields (e.g. 32 or 64 bits) might cost something for small messages, but the overhead of smaller length fields is insignificant for large messages.
+ * This simplifies testing and reduces likelihood of memory or overflow errors in handling large messages.
+ * This restricts length fields to a standard size of 16 bits, aiding interop.
+ * The overhead of larger standard length fields (e.g. 32 or 64 bits) might
+   cost something for small messages, but the overhead of smaller length fields
+   is insignificant for large messages.
 
 Nonces are 64 bits in length because:
 
  * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
- * 64 bit nonces were used in the initial specification and implementations of ChaCha20, so Noise nonces can be used with these implementations.
+ * 64 bit nonces were used in the initial specification and implementations of
+   ChaCha20, so Noise nonces can be used with these implementations.
  * 64 bits allows the entire nonce to be treated as an integer and incremented.
- * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.
+ * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
+   random nonces are acceptable.
 
 The default symmetric crypto parameters use SHA2-256 because:
 
  * SHA2 is widely available
- * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized output (32 bytes).
- * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128 bytes), avoiding unnecessary calculation when processing smaller inputs.
+ * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized
+   output (32 bytes).
+ * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128
+   bytes), avoiding unnecessary calculation when processing smaller inputs.
 
 The cipher key must be 256 bits because:
 
@@ -647,7 +658,8 @@ The cipher key must be 256 bits because:
 The authentication tag is 128 bits because:
 
  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.
- * Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.
+ * Noise may be used in a wide variety of contexts, including where attackers
+   can receive rapid feedback on whether MAC guesses are correct.
  * A single fixed length is simpler than supporting variable-length tags.
 
 Big-endian is preferred because:
@@ -667,7 +679,7 @@ The `MixKey()` design uses `HMAC-HASH(GETKEY(), ...)` because:
  is secret this can leverage the `HKDF` analysis instead of the Random Oracle
  Model.  It also ensures that the new `k` produced by `MixKey()` is a PRF from
  the old `k`, so the old `k` is not exposed, and the new `k` is
- indistinguishable from random without knowledge of old `k`.
+ indistinguishable from random without knowledge of the old `k`.
 
 
 13. IPR
