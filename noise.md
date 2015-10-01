@@ -563,7 +563,7 @@ An application built on Noise must consider several issues:
 
  * **Padding**:  Applications are recommended to use a data format for the
    payloads of all encrypted messages that allows padding.  This allows
-   implementations to avoid leaking information about messages sizes.  Using an
+   implementations to avoid leaking information about message sizes.  Using an
    extensible data format, per the previous bullet, will typically suffice.
 
  * **Termination**: Applications must consider that a sequence of Noise
