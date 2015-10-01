@@ -319,8 +319,14 @@ responder's static public key as well as the responder's ephemeral:
 6.1. One-way patterns
 ----------------------
 
-The following patterns represent "one-way" messages from a sender to a
-recipient.
+The following patterns represent "one-way" handshakes supporting a one-way
+stream of data from a sender to a recipient.  
+
+Following these one-way handshakes the sender can send a stream of transport
+messages, encrypting them using the first `CipherState` returned by `Split()`.
+The second `HandshakeState` from `Split()` is discarded - the responder MUST
+NOT send any messages using it.
+
 
      N  = no static key for sender
      S  = static key for sender known to recipient
