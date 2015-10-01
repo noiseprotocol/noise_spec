@@ -43,8 +43,9 @@ message.  In some contexts a Noise message might be preceded by some type or
 length fields but that's an **application responsibility** - see Section 10. 
 
 A handshake message begins with a sequence of one or more DH public keys.
-Whether each public key is ephemeral or static is specified by the message's
-descriptor.  Public keys may be encrypted to provide identity hiding.  
+Whether each public key belongs to an ephemeral or static key pair is specified
+by the message's descriptor.  Public keys may be encrypted to provide identity
+hiding.  
 
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data, and which may also be encrypted.
@@ -550,13 +551,14 @@ symmetric crypto parameter names to the handshake pattern name.  For example:
 An application built on Noise must consider several issues:
 
  * **Extensibility**:  Applications are recommended to use an extensible data
- format for the payloads of all messages (e.g. JSON, Protocol Buffers) so that
- fields can be added in the future which are ignored by older implementations.
+   format for the payloads of all messages (e.g. JSON, Protocol Buffers).  This
+   ensures that fields can be added in the future which are ignored by older
+   implementations.
 
  * **Padding**:  Applications are recommended to use a data format for the
- payloads of all encrypted messages that allows padding, so that payload lengths
- can be padded to not leak information about message sizes.  Using an extensible
- data format, per the previous bullet, will typically suffice.
+   payloads of all encrypted messages that allows padding.  This allows
+   implementations to avoid leaking information about messages sizes.  Using an
+   extensible data format, per the previous bullet, will typically suffice.
 
  * **Termination**: Applications must consider that a sequence of Noise
  transport messages could be truncated by an attacker.  Applications should
