@@ -4,7 +4,7 @@ Noise v0 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-10-01
- * **Revision:** 07 (work in progress)
+ * **Revision:** 08 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
