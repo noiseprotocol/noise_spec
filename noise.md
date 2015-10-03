@@ -65,26 +65,25 @@ typically be ECDH over some elliptic curve.  The symmetric crypto parameters
 specify symmetric crypto algorithms (cipher and hash function).
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
-mixed into a secret key variable (**`k`**).  This key is used to encrypt public
-keys and handshake payloads.  Public keys and handshake payloads will also be
-mixed into a hash variable (**`h`**).  The `h` variable will be authenticated
-with every handshake ciphertext, to ensure these ciphertexts are bound to
-earlier messages.
+mixed into a secret **chaining key** (**`ck`**).  Cipher keys derived from the
+chaining key will be used to encrypt public keys and handshake payloads.  These
+ciphertexts will be mixed into a hash variable (**`h`**).  The previous `h`
+variable will be authenticated with every handshake ciphertext, to ensure these
+ciphertexts are bound to earlier data.
 
-To handle `k` and its associated **nonce** `n` we introduce the notion of a
-**`CipherState`** which contains `k` and `n` variables.  This object has
-associated functions (or "methods") for performing encryption and decryption
-using its variables.
+To represent a cipher key and its associated **nonce** we introduce the notion
+of a **`CipherState`** which contains `k` and `n` variables.
 
-To handle mixing inputs into `k` and `h` we introduce a
-**`SymmetricHandshakeState`** which extends a `CipherState` with an `h`
-variable.  An implementation will create a `SymmetricHandshakeState` to handle a
-single Noise handshake, and can delete it once the handshake is finished.  
+To handle symmetric-key crypto during the handshake we introduce a
+**`SymmetricHandshakeState`** which extends a `CipherState` with an `h` variable
+and a chaining key `ck`.  An implementation will create a
+`SymmetricHandshakeState` to handle a single Noise handshake, and can delete it
+once the handshake is finished.  
 
-A `SymmetricHandshakeState` supports initializing `h` with a **handshake name**
-to reduce risks from key reuse.  It also supports "splitting" into two
-`CipherState` objects which are used for transport messages once the handshake
-is complete.
+A `SymmetricHandshakeState` supports initializing `ck` and `h` with a
+**handshake name** to reduce risks from key reuse.  It also supports "splitting"
+into two `CipherState` objects which are used for transport messages once the
+handshake is complete.
 
 The below sections describe these concepts in more detail.
 
@@ -117,12 +116,6 @@ Noise depends on the following **symmetric crypto parameters**:
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
  data `ad`.  If the authentication fails an error is signaled to the caller.
-
- * **`GETKEY(k, n)`**:  Calls the `ENCRYPT()` function with cipher key `k`,
- nonce `n`, and zero-length `ad` to encrypt a block of 256 zero bits.  Returns
- the first 256 bits from the encrypted output.  This function can usually be
- implemented more efficiently than by calling `ENCRYPT` (e.g.  by skipping the
- authentication tag calculation).
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
  cryptographically-secure collision-resistant hash function and returns an
@@ -159,7 +152,9 @@ A `SymmetricHandshakeState` object extends a `CipherState` with the following
 variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
-
+ 
+ * **`ck`**: A 256-bit bit "chaining key".
+ 
  * **`h`**: A 256-bit hash output.  This is used as "associated data" for
  encryption.
 
@@ -167,14 +162,15 @@ A `SymmetricHandshakeState` responds to the following methods. The `||` operator
 indicates concatentation of byte sequences.  
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
- `handshake_name`.  Sets `n = 0` and `has_key = False`.  If `handshake_name` is
- less than or equal to 32 bytes in length, sets `h` equal to `handshake_name`
- with zero bytes appended to make 32 bytes.  Otherwise sets `h =
- HASH(handshake_name)`.  Sets `k = h`.
+ `handshake_name`.  Sets `k` to all zeros, `n = 0`, and `has_key = False`.  If
+ `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal to
+ `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
+ = HASH(handshake_name)`.  Sets `ck = h`.
 
- * **`MixKey(data)`**:  If `n == 0` sets `k = HMAC-HASH(k, data)`.  Otherwise
-   sets `k = HMAC-HASH(GETKEY(k, n), data)`.  Sets `n = 0`.  Sets `has_key =
-   True`.  This will be called to mix DH outputs into the key.  
+ * **`MixKey(data)`**:  Sets `temp_key = HMAC-HASH(ck, data)`.  Sets `ck =
+ HMAC-HASH(temp_key, 0x01)`.  Sets `k = HMAC-HASH(temp_key, ck || 0x02)`.
+ (Equivalently: this is `HKDF` with an empty label, `ck` as salt, and 64 bytes
+ bytes output). This will be called to mix DH outputs into the key.  
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to
  mix public keys and handshake payloads into the hash.
@@ -187,11 +183,11 @@ indicates concatentation of byte sequences.
  DecryptAndIncrement(h, data)`, calls `MixHash(data)`, and returns `plaintext`.
  Otherwise calls `MixHash(data)` and returns `data`.
 
- * **`Split()`**:  Creates two child `CipherState` objects by calling `GETKEY(k,
- n++)` to get the first child's `k`, then calling `GETKEY(k, n++)` to get the
- second child's `k`.  The children have `n` set to zero.  The two children are
- returned.  This will be called at the end of a handshake to get separate
- `CipherState` objects for the send and receive directions.
+ * **`Split()`**:  Creates two child `CipherState` objects by calling `k1 =
+ HMAC-HASH(ck, 0x01)` to get the first child's `k`, then calling `HMAC-HASH(ck,
+ k1 || 0x02)` to get the second child's `k`.  The children have `n` set to zero.
+ The two children are returned.  This will be called at the end of a handshake
+ to get separate `CipherState` objects for the send and receive directions.
 
 
 5.  The handshake algorithm
@@ -510,12 +506,6 @@ To distinguish these patterns, each handshake message will be preceded by a
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce).
 
- * **`GETKEY(k, n)`**:  Returns the first 32 bytes from calling `ENCRYPT(k, n,
- ...)` with zero-length `ad` and 32 bytes of zeros for `plaintext`.  A more
- optimized implementation can return the first 32 bytes output from the ChaCha20
- block function from RFC 7539 with key `k`, nonce `n` encoded as for
- `ENCRYPT()`, and the block count set to 1.  
-
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 8.4. The AESGCM symmetric crypto parameters 
@@ -525,17 +515,6 @@ To distinguish these patterns, each handshake message will be preceded by a
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by big-endian encoding of `n`.
  
- * **`GETKEY(k, n)`**: Returns the first 32 bytes from calling `ENCRYPT(k, n,
- ...)` with zero-length `ad` and 32 bytes of zeros for `plaintext`.  A more
- optimized implementation can return 32 bytes from concatenating two encryption
- calls to the AES256 block cipher using key `k`.  The 128-bit block cipher
- inputs are defined by encoding `n` into a 96-bit value as for `ENCRYPT()`, then
- setting this as the first 96 bits of two 128-bit blocks `B1` and `B2`.  The
- final 4 bytes of `B1` are set to (0, 0, 0, 2).  The final 4 bytes of `B2` are
- set to (0, 0, 0, 3).  `B1` and `B2` are both encrypted with AES256 and key `k`,
- and the resulting ciphertexts `C1` and `C2` are concatenated into the 32-byte
- output.
-
  * **`HASH(input)`**: `SHA2-256(input)` 
 
 
@@ -672,14 +651,9 @@ Big-endian is preferred because:
  parsing code where big-endian "network byte order" is 
  traditional.
 
-The `MixKey()` design uses `HMAC-HASH(GETKEY(), ...)` because:
+The `MixKey()` design uses `HMAC-HASH(ck, ...)` because:
 
- * `HMAC-HASH()` uses the previous key to extract entropy from subsequent DH
- values.  This use of `HMAC` as a keyed extractor is similar to HKDF, so if `k`
- is secret this can leverage the `HKDF` analysis instead of the Random Oracle
- Model.  It also ensures that the new `k` produced by `MixKey()` is a PRF from
- the old `k`, so the old `k` is not exposed, and the new `k` is
- indistinguishable from random without knowledge of the old `k`.
+ * This is the same as HKDF, everyone else is using HKDF.
 
 
 13. IPR
