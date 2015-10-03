@@ -43,6 +43,7 @@ message.
 
 A handshake message begins with a sequence of one or more DH public keys.
 Whether each public key belongs to an ephemeral or static key pair is specified
+by the message's descriptor.
 
 
 Following the public keys will be a **payload** which could be used to convey
