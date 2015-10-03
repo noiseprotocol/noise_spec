@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-10-01
- * **Revision:** 08 (work in progress)
+ * **Date:** 2015-10-02
+ * **Revision:** 09 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -32,27 +32,24 @@ specifies the sequence of descriptors that comprise a handshake.
 A handshake pattern can be instantiated by **DH parameters** and **symmetric
 crypto parameters** to give a concrete protocol.  An application using Noise
 must handle some **application responsibilities** on its own, such as indicating
-message lengths, and specifying a format for payload data.
+message lengths.
 
 3.  Message format
 ===================
 
 All Noise messages are less than or equal to 65535 bytes in length, and can be
 processed without parsing, since there are no type or length fields within the
-message.  In some contexts a Noise message might be preceded by some type or
-length fields but that's an **application responsibility** - see Section 10. 
+message.  
 
 A handshake message begins with a sequence of one or more DH public keys.
 Whether each public key belongs to an ephemeral or static key pair is specified
-by the message's descriptor.  Public keys may be encrypted to provide identity
-hiding.  
+
 
 Following the public keys will be a **payload** which could be used to convey
-certificates or other handshake data, and which may also be encrypted.
-Encryption of public keys and payloads will occur once a shared secret key has
-been established.  Zero-length payloads are allowed and will result in 16-byte
-payload ciphertexts, since encryption adds a 16-byte **authentication tag** to
-each ciphertext.
+certificates or other handshake data.  Encryption of public keys and payloads
+will occur once a shared secret key has been established.  Zero-length payloads
+are allowed and will result in 16-byte payload ciphertexts, since encryption
+adds a 16-byte **authentication tag** to each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
@@ -60,30 +57,24 @@ A transport message consists solely of an encrypted payload.
 ======================
 
 A Noise protocol depends on **DH parameters** and **symmetric crypto
-parameters**.  The DH parameters specify the Diffie-Hellman function, which will
-typically be ECDH over some elliptic curve.  The symmetric crypto parameters
-specify symmetric crypto algorithms (cipher and hash function).
+parameters**.  The DH parameters specify the Diffie-Hellman function (typically
+ECDH over some curve).  The symmetric crypto parameters specify cipher and hash
+functions.
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
-mixed into a secret **chaining key** (**`ck`**).  Cipher keys derived from the
+mixed into a secret **chaining key (`ck`)**.  Cipher keys derived from the
 chaining key will be used to encrypt public keys and handshake payloads.  These
-ciphertexts will be mixed into a hash variable (**`h`**).  The previous `h`
-variable will be authenticated with every handshake ciphertext, to ensure these
+ciphertexts will also be sequentially mixed into a **hash variable (`h`)**.  The
+`h` variable will be authenticated with every handshake ciphertext, to ensure
 ciphertexts are bound to earlier data.
 
 To represent a cipher key and its associated **nonce** we introduce the notion
 of a **`CipherState`** which contains `k` and `n` variables.
 
 To handle symmetric-key crypto during the handshake we introduce a
-**`SymmetricHandshakeState`** which extends a `CipherState` with an `h` variable
-and a chaining key `ck`.  An implementation will create a
-`SymmetricHandshakeState` to handle a single Noise handshake, and can delete it
-once the handshake is finished.  
-
-A `SymmetricHandshakeState` supports initializing `ck` and `h` with a
-**handshake name** to reduce risks from key reuse.  It also supports "splitting"
-into two `CipherState` objects which are used for transport messages once the
-handshake is complete.
+**`SymmetricHandshakeState`** which extends a `CipherState` with `ck` and `h`
+variables.  An implementation will create a `SymmetricHandshakeState` to handle
+a single Noise handshake, and can delete it once the handshake is finished.  
 
 The below sections describe these concepts in more detail.
 
@@ -117,10 +108,16 @@ Noise depends on the following **symmetric crypto parameters**:
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
  cryptographically-secure collision-resistant hash function and returns an
- output of 256 bits. `SHA2-256` is an example hash function.
+ output of 256 bits. 
 
- * **`HMAC-HASH(key, data)`**: Calculates `HMAC` using the above hash function.
- Takes a 256-bit key, variable-length data, and produces a 256-bit output.
+Noise defines an additional function based on the `HASH` function.  The `||`
+operator indicates concatentation of byte sequences:
+
+ * **`HKDF(chaining_key, data)`**:  Sets the 256-bit value `temp_key =
+ HMAC-HASH(chaining_key, data)`.  Sets the 256-bit value `output1 =
+ HMAC-HASH(temp_key, 0x01)`.  Sets the 256-bit value `output2 =
+ HMAC-HASH(temp_key, output1 || 0x02)`.  Returns the pair (`output1`,
+ `output2`).
 
 
 4.2. The  `CipherState` object 
@@ -128,8 +125,7 @@ Noise depends on the following **symmetric crypto parameters**:
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A symmetric key of 256 bits for the cipher algorithm specified in
- the symmetric crypto parameters.
+ * **`k`**: A symmetric key of 256 bits.
 
  * **`n`**: A 64-bit unsigned integer nonce.
 
@@ -151,13 +147,11 @@ variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
  
- * **`ck`**: A 256-bit bit "chaining key".
+ * **`ck`**: A 256-bit bit chaining key.
  
- * **`h`**: A 256-bit hash output.  This is used as "associated data" for
- encryption.
+ * **`h`**: A 256-bit hash output.  
 
-A `SymmetricHandshakeState` responds to the following methods. The `||` operator
-indicates concatentation of byte sequences.  
+A `SymmetricHandshakeState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
  `handshake_name`.  Sets `k` to all zeros, `n = 0`, and `has_key = False`.  If
@@ -165,13 +159,10 @@ indicates concatentation of byte sequences.
  `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
  = HASH(handshake_name)`.  Sets `ck = h`.
 
- * **`MixKey(data)`**:  Sets `temp_key = HMAC-HASH(ck, data)`.  Sets `ck =
- HMAC-HASH(temp_key, 0x01)`.  Sets `k = HMAC-HASH(temp_key, ck || 0x02)`.
- (Equivalently: this is `HKDF` with an empty label, `ck` as salt, and 64 bytes
- bytes output). This will be called to mix DH outputs into the key.  
+ * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  Sets `has_key
+ = True`.
   
- * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.  This will be called to
- mix public keys and handshake payloads into the hash.
+ * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
  * **`EncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
  EncryptAndIncrement(h, plaintext)`, calls `MixHash(ciphertext)`, and returns
@@ -181,11 +172,10 @@ indicates concatentation of byte sequences.
  DecryptAndIncrement(h, data)`, calls `MixHash(data)`, and returns `plaintext`.
  Otherwise calls `MixHash(data)` and returns `data`.
 
- * **`Split()`**:  Creates two child `CipherState` objects by calling `k1 =
- HMAC-HASH(ck, 0x01)` to get the first child's `k`, then calling `HMAC-HASH(ck,
- k1 || 0x02)` to get the second child's `k`.  The children have `n` set to zero.
- The two children are returned.  This will be called at the end of a handshake
- to get separate `CipherState` objects for the send and receive directions.
+ * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
+ empty)` where `empty` is a zero-length sequence.  The first child's `k` is set
+ to the first output from `HKDF()`, and the second child's `k` is set to the
+ second output from `HKDF()`.
 
 
 5.  The handshake algorithm
@@ -649,9 +639,10 @@ Big-endian is preferred because:
  parsing code where big-endian "network byte order" is 
  traditional.
 
-The `MixKey()` design uses `HMAC-HASH(ck, ...)` because:
+The `MixKey()` design uses `HKDF` because:
 
- * This is the same as HKDF, everyone else is using HKDF.
+ * HKDF is a conservative and widely used design.
+
 
 
 13. IPR
