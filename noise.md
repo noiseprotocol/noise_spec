@@ -109,9 +109,7 @@ Noise depends on the following **symmetric crypto parameters**:
  key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
  unique for the key `k`.  Encryption must be done with an "AEAD" encryption
  mode with the associated data `ad` and must add a 128-bit authentication tag
- to the end of the message.  This must be a deterministic function (i.e.  it
- shall not add a random IV; this ensures the `GETKEY()` function is
- deterministic).
+ to the end of the message.  
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
