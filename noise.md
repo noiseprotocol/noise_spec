@@ -3,7 +3,7 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-10-02
+ * **Date:** 2015-10-10
  * **Revision:** 09 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
@@ -94,10 +94,10 @@ Noise depends on the following **DH parameters**:
 Noise depends on the following **symmetric crypto parameters**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
- key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
- unique for the key `k`.  Encryption must be done with an "AEAD" encryption
- mode with the associated data `ad` and must add a 128-bit authentication tag
- to the end of the message.  
+   key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
+   unique for the key `k`.  Encryption must be done with an "AEAD" encryption
+   mode with the associated data `ad` and must return a ciphertext that is the
+   same size as the plaintext plus 128 bits for an authentication tag.
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
