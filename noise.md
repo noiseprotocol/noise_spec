@@ -42,10 +42,6 @@ processed without parsing, since there are no type or length fields within the
 message.  
 
 A handshake message begins with a sequence of one or more DH public keys.
-Whether each public key belongs to an ephemeral or static key pair is specified
-by the message's descriptor.
-
-
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data.  Encryption of public keys and payloads
 will occur once a shared secret key has been established.  Zero-length payloads
@@ -63,13 +59,13 @@ ECDH over some curve).  The symmetric crypto parameters specify cipher and hash
 functions.
 
 During a Noise handshake, the outputs from DH calculations will be sequentially
-mixed into a secret **chaining key (`ck`)**.  Cipher keys derived from the
+mixed into a secret **chaining key (`ck`)**.  Cipher keys **(`k`)** derived from the
 chaining key will be used to encrypt public keys and handshake payloads.  These
 ciphertexts will also be sequentially mixed into a **hash variable (`h`)**.  The
 `h` variable will be authenticated with every handshake ciphertext, to ensure
 ciphertexts are bound to earlier data.
 
-To represent a cipher key and its associated **nonce** we introduce the notion
+To represent a **cipher key** and its associated **nonce** we introduce the notion
 of a **`CipherState`** which contains `k` and `n` variables.
 
 To handle symmetric-key crypto during the handshake we introduce a
@@ -174,7 +170,7 @@ A `SymmetricHandshakeState` responds to the following methods:
  Otherwise calls `MixHash(data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
- empty)` where `empty` is a zero-length sequence.  The first child's `k` is set
+ empty)` where `empty` is a zero-length byte sequence.  The first child's `k` is set
  to the first output from `HKDF()`, and the second child's `k` is set to the
  second output from `HKDF()`.
 
