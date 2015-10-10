@@ -104,8 +104,7 @@ Noise depends on the following **symmetric crypto parameters**:
  data `ad`.  If the authentication fails an error is signaled to the caller.
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
- cryptographically-secure collision-resistant hash function and returns an
- output of 256 bits. 
+   collision-resistant hash function and returns an output of 256 bits. 
 
 Noise defines an additional function based on the `HASH` function.  The `||`
 operator indicates concatentation of byte sequences:
@@ -541,10 +540,10 @@ An application built on Noise must consider several issues:
  length field prior to each message.
 
  * **Type fields**:  Applications are recommended to include a single-byte type
- field prior to each Noise handshake message (and prior to the length field, if
- one is included).  This allows extending the handshake with handshake
- re-initialization or other alternative messages in the future.
-
+   field prior to each Noise handshake message (and prior to the length field,
+   if one is included).  Applications would reject messages with unknown type.
+   This allows extending the handshake with handshake re-initialization or
+   other alternative messages in the future.
 
 11. Security considerations
 ===========================
@@ -603,7 +602,7 @@ Nonces are 64 bits in length because:
  * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
  * 64 bit nonces were used in the initial specification and implementations of
    ChaCha20, so Noise nonces can be used with these implementations.
- * 64 bits allows the entire nonce to be treated as an integer and incremented.
+ * 64 bits makes it easy for the entire nonce to be treated as an integer and incremented.
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
    random nonces are acceptable.
 
@@ -615,9 +614,13 @@ The default symmetric crypto parameters use SHA2-256 because:
  * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128
    bytes), avoiding unnecessary calculation when processing smaller inputs.
 
-The cipher key must be 256 bits because:
+Chaining keys and cipher keys are 256 bits because:
 
- * The cipher key accumulates the DH output, so collision-resistance is desirable.
+ * The chaining keys accumulate the DH output, so collision-resistance is desirable.
+ * Having chaining keys and cipher keys the same length makes it possible to
+   use a single, fixed-output `HKDF()` function for `MixKey()` and `Split()`.
+ * 256-bits is a conservative length for cipher keys when considering cryptanalytic
+   safety margins, time/memory tradeoffs, multi-key attacks, and quantum attacks.
 
 The authentication tag is 128 bits because:
 
