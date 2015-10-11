@@ -143,7 +143,7 @@ variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
  
- * **`ck`**: A 256-bit bit chaining key.
+ * **`ck`**: A 256-bit chaining key.
  
  * **`h`**: A 256-bit hash output.  
 
@@ -680,4 +680,4 @@ Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
 earlier versions of the key derivation.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
-v ersions.
+versions.
