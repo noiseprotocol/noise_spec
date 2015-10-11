@@ -652,6 +652,14 @@ The `MixKey()` design uses `HKDF` because:
 
  * HKDF is a conservative and widely used design.
 
+`MixHash()` is called instead of `MixKey()` because:
+
+ * `MixHash()` is more efficient than `MixKey()`.
+ * `MixHash()` avoids any IPR concerns regarding mixing identity data into
+   session keys (see KEA+).
+ * `MixHash()` produces a non-secret `h` value that might be useful to
+   higher-level protocols, e.g. for channel-binding.
+
 
 
 13. IPR
