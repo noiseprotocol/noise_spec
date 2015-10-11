@@ -150,13 +150,13 @@ variables:
 A `SymmetricHandshakeState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
- `handshake_name`.  Sets `k` to all zeros, `n = 0`, and `has_key = False`.  If
- `handshake_name` is less than or equal to 32 bytes in length, sets `h` equal to
- `handshake_name` with zero bytes appended to make 32 bytes.  Otherwise sets `h
- = HASH(handshake_name)`.  Sets `ck = h`.
+   `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_key
+   = False`.  If `handshake_name` is less than or equal to 32 bytes in length,
+   sets `h` equal to `handshake_name` with zero bytes appended to make 32
+   bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
 
- * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  Sets `has_key
- = True`.
+ * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  Sets `n = 0`
+   and `has_key = True`.
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
@@ -278,19 +278,27 @@ sent in order.
 
 The following pattern describes an unauthenticated DH handshake:
 
+    Noise_NN():
       -> e
       <- e, dhee
 
+The pattern name is `Noise_NN`.  The empty parentheses indicate that neither
+party is initialized with any key pairs.  The tokens "e" and/or "s" in
+parentheses indicate that the initatior is initialized with the corresponding
+key pairs.  The tokens "re" and/or "rs" indicate the same thing for the
+responder.
+
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
 These indicate an exchange of public keys was somehow performed prior to the
-handshake, so these key pairs and public keys should be inputs to
-`Initialize()`.  After `Initialize()` is called, `MixHash()` is called on any
-pre-message public keys in the order they are listed.
+handshake, so these public keys should also be inputs to `Initialize()`.  After
+`Initialize()` is called, `MixHash()` is called on any pre-message public keys
+in the order they are listed.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral:
 
+    Noise_NS(rs):
       <- s
       ------
       -> e, dhes 
@@ -312,18 +320,18 @@ NOT send any messages using it.
      S  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
-    Noise_N:
+    Noise_N(rs):
       <- s
       ------
       -> e, dhes
 
-    Noise_S:
+    Noise_S(s, rs):
       <- s
       -> s
       ------
       -> e, dhes, dhss
 
-    Noise_X:
+    Noise_X(s, rs):
       <- s
       ------
       -> e, dhes, s, dhss
@@ -345,53 +353,53 @@ exchange messages to agree on a shared key.
      _X = static key for responder transmitted to initiator
 
 
-    Noise_NN:                        Noise_SN:                 
+    Noise_NN():                      Noise_SN(s):              
       -> e                             -> s                       
       <- e, dhee                       ------                     
                                        -> e                       
                                        <- e, dhee, dhes           
                                              
-    Noise_NS:                        Noise_SS:                 
+    Noise_NS(rs):                    Noise_SS(s, rs):
       <- s                             <- s                       
       ------                           -> s                       
       -> e, dhes                       ------                     
       <- e, dhee                       -> e, dhes, dhss           
                                        <- e, dhee, dhes           
                                               
-    Noise_NE:                        Noise_SE:                 
+    Noise_NE(rs, re):                Noise_SE(s, rs, re):      
       <- s, e                          <- s, e                    
       ------                           -> s                       
       -> e, dhee, dhes                 ------                     
       <- e, dhee                       -> e, dhee, dhes, dhse     
                                        <- e, dhee, dhes           
                                                                      
-    Noise_NX:                        Noise_SX:                 
+    Noise_NX(rs):                    Noise_SX(s, rs):          
       -> e                             -> s                       
       <- e, dhee, s, dhse              ------                     
                                        -> e                       
                                        <- e, dhee, dhes, s, dhse  
                             
 
-    Noise_XN:                        Noise_IN:                   
+    Noise_XN(s):                     Noise_IN(s):
       -> e                             -> e, s                      
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    Noise_XS:                        Noise_IS:                   
+    Noise_XS(s, rs):                 Noise_IS(s, rs):            
       <- s                             <- s                         
       ------                           ------                       
       -> e, dhes                       -> e, dhes, s, dhss          
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
-    Noise_XE:                        Noise_IE:                   
+    Noise_XE(s, rs, re):             Noise_IE(s, rs, re):
       <- s, e                          <- s, e                      
       ------                           ------                       
       -> e, dhee, dhes                 -> e, dhee, dhes, s, dhse    
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                        
-    Noise_XX:                        Noise_IX:                  
+    Noise_XX(s, rs):                 Noise_IX(s, rs):
       -> e                             -> e, s                     
       <- e, dhee, s, dhse              <- e, dhee, dhes, dhse                                
       -> s, dhse
@@ -417,18 +425,18 @@ ephemeral public key as a pre-message.
 
 Below are the three patterns used for Noise Pipes:
 
-    Noise_XX:  
+    Noise_XX(s, rs):  
       -> e
       <- e, dhee, s, dhse  
       -> s, dhse
 
-    Noise_IS:                   
+    Noise_IS(s, rs):                   
       <- s                         
       ------
       -> e, dhes, s, dhss          
       <- e, dhee, dhes             
                                         
-    Noise_XXfallback:                   
+    Noise_XXfallback(s, e, rs):                   
       -> e
       ------
       <- e, dhee, s, dhse
@@ -576,7 +584,7 @@ This section collects various security considerations:
    shared secret key (e.g. if setting her public keys to invalid values causes
    DH outputs of zero).  If a higher-level protocol wants a unique "channel
    binding" value for referring to a Noise session it should use the value of
-   `h` after the final handshake message, not `k`.
+   `h` after the final handshake message, not `ck`.
 
  * **Implementation fingerprinting**:  If this protocol is used in settings with
    anonymous parties, care should be taken that implementations behave
@@ -608,7 +616,7 @@ Nonces are 64 bits in length because:
 
 The default symmetric crypto parameters use SHA2-256 because:
 
- * SHA2 is widely available
+ * SHA2 is widely available.
  * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized
    output (32 bytes).
  * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128
@@ -619,7 +627,7 @@ Chaining keys and cipher keys are 256 bits because:
  * The chaining keys accumulate the DH output, so collision-resistance is desirable.
  * Having chaining keys and cipher keys the same length makes it possible to
    use a single, fixed-output `HKDF()` function for `MixKey()` and `Split()`.
- * 256-bits is a conservative length for cipher keys when considering cryptanalytic
+ * 256 bits is a conservative length for cipher keys when considering cryptanalytic
    safety margins, time/memory tradeoffs, multi-key attacks, and quantum attacks.
 
 The authentication tag is 128 bits because:
