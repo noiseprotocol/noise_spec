@@ -169,9 +169,10 @@ A `SymmetricHandshakeState` responds to the following methods:
  Otherwise calls `MixHash(data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
- empty)` where `empty` is a zero-length byte sequence.  The first child's `k` is set
- to the first output from `HKDF()`, and the second child's `k` is set to the
- second output from `HKDF()`.
+   empty)` where `empty` is a zero-length byte sequence.  The first child's `k`
+   is set to the first output from `HKDF()`, and the second child's `k` is set
+   to the second output from `HKDF()`.  Both children's `n` value is set to
+   zero.  Both children are returned.
 
 
 5.  The handshake algorithm
@@ -284,8 +285,8 @@ The following pattern describes an unauthenticated DH handshake:
 
 The pattern name is `Noise_NN`.  The empty parentheses indicate that neither
 party is initialized with any key pairs.  The tokens "e" and/or "s" in
-parentheses indicate that the initatior is initialized with the corresponding
-key pairs.  The tokens "re" and/or "rs" indicate the same thing for the
+parentheses would indicate that the initatior is initialized with the corresponding
+key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
 responder.
 
 Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
@@ -671,4 +672,4 @@ Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
 earlier versions of the key derivation.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
-versions.
+v ersions.
