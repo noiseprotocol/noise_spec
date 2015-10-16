@@ -652,7 +652,7 @@ The `MixKey()` design uses `HKDF` because:
 
  * HKDF is a conservative and widely used design.
 
-`MixHash()` is called instead of `MixKey()` because:
+`MixHash()` is used instead of `MixKey()` because:
 
  * `MixHash()` is more efficient than `MixKey()`.
  * `MixHash()` avoids any IPR concerns regarding mixing identity data into
