@@ -92,21 +92,24 @@ Noise depends on the following **DH functions** (and an associated constant):
 Noise depends on the following **cipher functions**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
-   key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
+   key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
    unique for the key `k`.  Encryption must be done with an "AEAD" encryption
    mode with the associated data `ad` and must return a ciphertext that is the
-   same size as the plaintext plus 128 bits for an authentication tag.
+   same size as the plaintext plus 16 bytes for an authentication tag.
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
- key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
+ key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
  data `ad`.  If the authentication fails an error is signaled to the caller.
 
-Noise depends on the following **hash function** (and an associated constant):
+Noise depends on the following **hash function** (and associated constants):
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
-   collision-resistant hash function and returns an output of 256 bits. 
+   collision-resistant hash function and returns an output of `HASHLEN` bytes.
 
- * **`BLOCKLEN`**: A constant specifying the size in bytes that the hash
+ * **`HASHLEN`** = A constant specifying the size in bytes of the hash output.
+ Must be 32 or 64.
+
+ * **`BLOCKLEN`** = A constant specifying the size in bytes that the hash
  function uses internally to divide its input for iterative processing.  This is
  needed to use the hash function within the HMAC construct (`BLOCKLEN` is `B` in
  RFC 2104).
@@ -114,11 +117,11 @@ Noise depends on the following **hash function** (and an associated constant):
 Noise defines an additional function based on the above `HASH` function.  The
 `||` operator indicates concatentation of byte sequences:
 
- * **`HKDF(chaining_key, data)`**:  Sets the 256-bit value `temp_key =
- HMAC-HASH(chaining_key, data)`.  Sets the 256-bit value `output1 =
- HMAC-HASH(temp_key, 0x01)`.  Sets the 256-bit value `output2 =
- HMAC-HASH(temp_key, output1 || 0x02)`.  Returns the pair (`output1`,
- `output2`).
+ * **`HKDF(chaining_key, data)`**:  Sets the value `temp_key =
+ HMAC-HASH(chaining_key, data)`.  Sets the value `output1 = HMAC-HASH(temp_key,
+ 0x01)`.  Sets the value `output2 = HMAC-HASH(temp_key, output1 || 0x02)`.
+ These three values are all `HASHLEN` bytes in length.  Returns the pair
+ (`output1`, `output2`).
 
 
 4.2. The  `CipherState` object 
@@ -126,9 +129,9 @@ Noise defines an additional function based on the above `HASH` function.  The
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A cipher key of 256 bits.
+ * **`k`**: A cipher key of 32 bytes.
 
- * **`n`**: A 64-bit unsigned integer nonce.
+ * **`n`**: An 8-byte unsigned integer nonce.
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
@@ -148,20 +151,21 @@ variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
  
- * **`ck`**: A 256-bit chaining key.
+ * **`ck`**: A chaining key of `HASHLEN` bytes.
  
- * **`h`**: A 256-bit hash output.  
+ * **`h`**: A hash output of `HASHLEN` bytes.
 
 A `SymmetricHandshakeState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
-   `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_key
-   = False`.  If `handshake_name` is less than or equal to 32 bytes in length,
-   sets `h` equal to `handshake_name` with zero bytes appended to make 32
-   bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
+ `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_key =
+ False`.  If `handshake_name` is less than or equal to `HASHLEN` bytes in
+ length, sets `h` equal to `handshake_name` with zero bytes appended to make
+ `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
 
- * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  Sets `n = 0`
-   and `has_key = True`.
+ * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  If `HASHLEN`
+ is not 32, then the second output from `HKDF()` is truncated to 32 bytes to match
+ `k`.  Sets `n = 0` and `has_key = True`.
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
@@ -174,10 +178,11 @@ A `SymmetricHandshakeState` responds to the following methods:
  Otherwise calls `MixHash(data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
-   empty)` where `empty` is a zero-length byte sequence.  The first child's `k`
-   is set to the first output from `HKDF()`, and the second child's `k` is set
-   to the second output from `HKDF()`.  Both children's `n` value is set to
-   zero.  Both children are returned.
+ empty)` where `empty` is a zero-length byte sequence.  The first child's `k` is
+ set to the first output from `HKDF()`, and the second child's `k` is set to the
+ second output from `HKDF()`.  If `HASHLEN` is not 32, then both outputs from
+ `HKDF()` are truncated to 32 bytes to match `k`.  Both children's `n` value is set to
+ zero.  Both children are returned.
 
 
 5.  The handshake algorithm
@@ -516,25 +521,50 @@ To distinguish these patterns, each handshake message will be preceded by a
 
  * **`HASH(input)`**: `SHA2-256(input)` 
 
+ * **`HASHLEN`** = 32
+
  * **`BLOCKLEN`** = 64
+
+8.5. The SHA512 hash function
+------------------------------
+
+ * **`HASH(input)`**: `SHA2-512(input)` 
+ 
+ * **`HASHLEN`** = 64
+
+ * **`BLOCKLEN`** = 128
 
 8.6. The BLAKE2s hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
 
+ * **`HASHLEN`** = 32
+
  * **`BLOCKLEN`** = 64
+
+8.6. The BLAKE2b hash function
+-------------------------------
+
+ * **`HASH(input)`**: `BLAKE2b(input)` with digest length 64.
+
+ * **`HASHLEN`** = 64
+
+ * **`BLOCKLEN`** = 128
 
 9. Handshake names 
 =========================
 
 To produce a **handshake name** for `Initialize()` you add the names for the DH functions, cipher functions, and hash function to the handshake pattern name.  For example: 
 
- * `Noise_N_25519_ChaChaPoly_BLAKE2s`
- 
- * `Noise_IS_448_AESGCM_SHA256`
+ * `Noise_XX_25519_AESGCM_SHA256`
 
- * `Noise_XXfallback_25519_AESGCM_SHA256`
+ * `Noise_N_25519_ChaChaPoly_BLAKE2s`
+
+ * `Noise_XXfallback_448_AESGCM_SHA512`
+
+ * `Noise_IS_448_ChaChaPoly_BLAKE2b`
+
 
 10. Application responsibilities
 ================================
@@ -617,6 +647,7 @@ Noise messages are <= 65535 bytes because:
  * The overhead of larger standard length fields (e.g. 32 or 64 bits) might
    cost something for small messages, but the overhead of smaller length fields
    is insignificant for large messages.
+ * This discourage mis-use of handshake payloads for large data transfers.
 
 Nonces are 64 bits in length because:
 
@@ -627,22 +658,22 @@ Nonces are 64 bits in length because:
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
    random nonces are acceptable.
 
-The recommended hash functions are SHA2-256 and BLAKE2s because:
+The recommended hash function families are SHA2 and BLAKE2 because:
 
- * SHA2-256 is widely available.
- * SHA2-256 is often used alongside AES-256.
- * BLAKE2s is similar to ChaCha20.
- * SHA2-256 and BLAKE2s require less state than SHA2-512 and BLAKE2b and
- produce a sufficient-sized output (32 bytes).
- * SHA2-256 and BLAKE2s process smaller input blocks than SHA2-512 or
- BLAKE2b (64 bytes vs 128 bytes), avoiding unnecessary calculation when
- processing smaller inputs.
+ * SHA2 is widely available.
+ * SHA2 is often used alongside AES.
+ * BLAKE2 is similar to ChaCha20.
 
-Chaining keys and cipher keys are 256 bits because:
+Hash output lengths of 32 are supported because:
 
- * The chaining keys accumulate the DH output, so collision-resistance is desirable.
- * Having chaining keys and cipher keys the same length makes it possible to
-   use a single, fixed-output `HKDF()` function for `MixKey()` and `Split()`.
+ * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit security level.
+ * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing
+ smaller inputs (due to smaller block size), then their larger brethren
+ (SHA2-512 and BLAKE2b).
+ * SHA2-256 and BLAKE2s are faster on 32-bit processors than their larger brethren.
+
+Cipher keys are 256 bits because:
+
  * 256 bits is a conservative length for cipher keys when considering cryptanalytic
    safety margins, time/memory tradeoffs, multi-key attacks, and quantum attacks.
 
