@@ -29,10 +29,10 @@ the DH public keys that comprise a handshake message, and the DH operations
 that are performed when sending or receiving that message.  A **pattern**
 specifies the sequence of descriptors that comprise a handshake.
 
-A handshake pattern can be instantiated by **DH parameters** and **symmetric
-crypto parameters** to give a concrete protocol.  An application using Noise
-must handle some **application responsibilities** on its own, such as indicating
-message lengths.
+A handshake pattern can be instantiated by **DH functions**, **cipher
+functions**, and a **hash function** to give a concrete protocol.  An
+application using Noise must handle some **application responsibilities** on its
+own, such as indicating message lengths.
 
 3.  Message format
 ===================
@@ -53,12 +53,10 @@ A transport message consists solely of an encrypted payload.
 4.  Crypto algorithms
 ======================
 
-A Noise protocol depends on **DH parameters** and **symmetric crypto
-parameters**.  The DH parameters specify the Diffie-Hellman function (typically
-ECDH over some curve).  The symmetric crypto parameters specify cipher and hash
-functions.
+A Noise protocol depends on **DH functions**, **cipher functions**, and a **hash
+function**.
 
-During a Noise handshake, the outputs from DH calculations will be sequentially
+During a Noise handshake, the outputs from DH functions will be sequentially
 mixed into a secret **chaining key (`ck`)**.  Cipher keys **(`k`)** derived from the
 chaining key will be used to encrypt public keys and handshake payloads.  These
 ciphertexts will also be sequentially mixed into a **hash variable (`h`)**.  The
@@ -76,13 +74,11 @@ a single Noise handshake, and can delete it once the handshake is finished.
 The below sections describe these concepts in more detail.
 
 
-4.1. DH parameters and symmetric crypto parameters
-------------------------------------------
+4.1. DH functions, cipher functions, and hash functions
+--------------------------------------------------------
 
-Noise depends on the following **DH parameters**:
+Noise depends on the following **DH functions** (and an associated constant):
 
- * **`DHLEN`** = A constant specifying the size of public keys in bytes.
- 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
@@ -91,7 +87,9 @@ Noise depends on the following **DH parameters**:
  key.  Implementations are also allowed to abort on receiving or processing an
  invalid public key.
 
-Noise depends on the following **symmetric crypto parameters**:
+ * **`DHLEN`** = A constant specifying the size of public keys in bytes.
+
+Noise depends on the following **cipher functions**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
    key `k` of 256 bits and a 64-bit unsigned integer nonce `n` which must be
@@ -103,11 +101,18 @@ Noise depends on the following **symmetric crypto parameters**:
  key `k` of 256 bits, a 64-bit unsigned integer nonce `n`, and associated
  data `ad`.  If the authentication fails an error is signaled to the caller.
 
+Noise depends on the following **hash function** (and an associated constant):
+
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
    collision-resistant hash function and returns an output of 256 bits. 
 
-Noise defines an additional function based on the `HASH` function.  The `||`
-operator indicates concatentation of byte sequences:
+ * **`BLOCKLEN`**: A constant specifying the size in bytes that the hash
+ function uses internally to divide its input for iterative processing.  This is
+ needed to use the hash function within the HMAC construct (`BLOCKLEN` is `B` in
+ RFC 2104).
+
+Noise defines an additional function based on the above `HASH` function.  The
+`||` operator indicates concatentation of byte sequences:
 
  * **`HKDF(chaining_key, data)`**:  Sets the 256-bit value `temp_key =
  HMAC-HASH(chaining_key, data)`.  Sets the 256-bit value `output1 =
@@ -121,7 +126,7 @@ operator indicates concatentation of byte sequences:
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A symmetric key of 256 bits.
+ * **`k`**: A cipher key of 256 bits.
 
  * **`n`**: A 64-bit unsigned integer nonce.
 
@@ -463,14 +468,12 @@ To distinguish these patterns, each handshake message will be preceded by a
 
  * In all other cases, `type` will be 0.
 
-8. DH parameters and symmetric crypto parameters 
-===============================
+8. DH functions, cipher functions, and hash functions
+======================================================
 
-8.1. The 25519 DH parameters
+8.1. The 25519 DH functions
 ----------------------------
 
- * **`DHLEN`** = 32
- 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
@@ -478,11 +481,11 @@ To distinguish these patterns, each handshake message will be preceded by a
  value that doesn't leak information about the private key.  Implementations are
  also allowed to abort on receiving or processing an invalid public key.
 
-8.2. The 448 DH parameters
+ * **`DHLEN`** = 32
+
+8.2. The 448 DH functions
 --------------------------
 
- * **`DHLEN`** = 56
- 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
@@ -490,7 +493,9 @@ To distinguish these patterns, each handshake message will be preceded by a
  value that doesn't leak information about the private key.  Implementations are
  also allowed to abort on receiving or processing an invalid public key.
 
-8.3. The ChaChaPoly symmetric crypto parameters 
+ * **`DHLEN`** = 56
+
+8.3. The ChaChaPoly cipher functions
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -499,29 +504,37 @@ To distinguish these patterns, each handshake message will be preceded by a
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce).
 
- * **`HASH(input)`**: `SHA2-256(input)` 
-
-8.4. The AESGCM symmetric crypto parameters 
+8.4. The AESGCM cipher functions
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by big-endian encoding of `n`.
- 
+
+8.5. The SHA256 hash function
+------------------------------
+
  * **`HASH(input)`**: `SHA2-256(input)` 
 
+ * **`BLOCKLEN`** = 64
+
+8.6. The BLAKE2s hash function
+-------------------------------
+
+ * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
+
+ * **`BLOCKLEN`** = 64
 
 9. Handshake names 
 =========================
 
-To produce a **handshake name** for `Initialize()` you add the DH parameter and
-symmetric crypto parameter names to the handshake pattern name.  For example: 
+To produce a **handshake name** for `Initialize()` you add the names for the DH functions, cipher functions, and hash function to the handshake pattern name.  For example: 
 
- * `Noise_N_25519_ChaChaPoly`
+ * `Noise_N_25519_ChaChaPoly_BLAKE2s`
  
- * `Noise_XXfallback_25519_AESGCM`
- 
- * `Noise_IS_448_AESGCM`
+ * `Noise_IS_448_AESGCM_SHA256`
+
+ * `Noise_XXfallback_25519_AESGCM_SHA256`
 
 10. Application responsibilities
 ================================
@@ -574,13 +587,12 @@ This section collects various security considerations:
    the sender, not the recipient.
 
  * **Handshake names**:  The handshake name used with `Initialize()` must
-   uniquely identify the combination of handshake pattern, DH parameters,
-   and symmetric crypto parameters for every key it's used with (whether
-   ephemeral key pair or static key pair).  If the same secret key was reused
-   with the same handshake name but a different set of cryptographic operations
-   then bad interactions could occur.
+ uniquely identify the combination of handshake pattern and crypto functions for
+ every key it's used with (whether ephemeral key pair or static key pair).  If
+ the same secret key was reused with the same handshake name but a different set
+ of cryptographic operations then bad interactions could occur.
 
- * **Channel binding**:  Depending on the DH parameters, it might be possible
+ * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key (e.g. if setting her public keys to invalid values causes
    DH outputs of zero).  If a higher-level protocol wants a unique "channel
@@ -615,13 +627,16 @@ Nonces are 64 bits in length because:
  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
    random nonces are acceptable.
 
-The default symmetric crypto parameters use SHA2-256 because:
+The recommended hash functions are SHA2-256 and BLAKE2s because:
 
- * SHA2 is widely available.
- * SHA2-256 requires less state than SHA2-512 and produces a sufficient-sized
-   output (32 bytes).
- * SHA2-256 processes smaller input blocks than SHA2-512 (64 bytes vs 128
-   bytes), avoiding unnecessary calculation when processing smaller inputs.
+ * SHA2-256 is widely available.
+ * SHA2-256 is often used alongside AES-256.
+ * BLAKE2s is similar to ChaCha20.
+ * SHA2-256 and BLAKE2s require less state than SHA2-512 and BLAKE2b and
+ produce a sufficient-sized output (32 bytes).
+ * SHA2-256 and BLAKE2s process smaller input blocks than SHA2-512 or
+ BLAKE2b (64 bytes vs 128 bytes), avoiding unnecessary calculation when
+ processing smaller inputs.
 
 Chaining keys and cipher keys are 256 bits because:
 
