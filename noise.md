@@ -571,6 +571,11 @@ To produce a **handshake name** for `Initialize()` you add the names for the DH 
 
 An application built on Noise must consider several issues:
 
+ * **Choosing crypto functions**:  The `25519` DH functions are recommended for
+ most uses, along with either `AESGCM_SHA256` or `ChaChaPoly_BLAKE2s`.  For an
+ extreme security margin, you could use the `448` DH functions with either
+ `AESGCM_SHA512` or `ChaChaPoly_BLAKE2b`.
+
  * **Extensibility**:  Applications are recommended to use an extensible data
    format for the payloads of all messages (e.g. JSON, Protocol Buffers).  This
    ensures that fields can be added in the future which are ignored by older
@@ -588,8 +593,8 @@ An application built on Noise must consider several issues:
 
  * **Length fields**:  Applications must handle any framing or additional length
  fields for Noise messages, considering that a Noise message may be up to 65535
- bytes in length.  Applications are recommended to add a 16-bit big-endian
- length field prior to each message.
+ bytes in length.  If an explicit length field is needed, applications are
+ recommended to add a 16-bit big-endian length field prior to each message.
 
  * **Type fields**:  Applications are recommended to include a single-byte type
    field prior to each Noise handshake message (and prior to the length field,
