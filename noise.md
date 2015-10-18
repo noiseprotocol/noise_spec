@@ -309,7 +309,7 @@ The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral:
 
-    Noise_NS(rs):
+    Noise_NK(rs):
       <- s
       ------
       -> e, dhes 
@@ -328,7 +328,7 @@ NOT send any messages using it.
 
 
      N  = no static key for sender
-     S  = static key for sender known to recipient
+     K  = static key for sender known to recipient
      X  = static key for sender transmitted to recipient
 
     Noise_N(rs):
@@ -336,7 +336,7 @@ NOT send any messages using it.
       ------
       -> e, dhes
 
-    Noise_S(s, rs):
+    Noise_K(s, rs):
       <- s
       -> s
       ------
@@ -354,37 +354,37 @@ The following 16 patterns represent protocols where the initiator and responder
 exchange messages to agree on a shared key.
 
      N_ = no static key for initiator
-     S_ = static key for initiator known to responder
+     K_ = static key for initiator known to responder
      X_ = static key for initiator transmitted to responder
-     I_ = static key for inititiator immediately transmitted to responder
+     I_ = static key for initiator immediately transmitted to responder
  
      _N = no static key for responder
-     _S = static key for responder known to initiator
+     _K = static key for responder known to initiator
      _E = static key plus a semi-ephemeral key for responder known to initiator
      _X = static key for responder transmitted to initiator
 
 
-    Noise_NN():                      Noise_SN(s):              
+    Noise_NN():                      Noise_KN(s):              
       -> e                             -> s                       
       <- e, dhee                       ------                     
                                        -> e                       
                                        <- e, dhee, dhes           
                                              
-    Noise_NS(rs):                    Noise_SS(s, rs):
+    Noise_NK(rs):                    Noise_KK(s, rs):
       <- s                             <- s                       
       ------                           -> s                       
       -> e, dhes                       ------                     
       <- e, dhee                       -> e, dhes, dhss           
                                        <- e, dhee, dhes           
                                               
-    Noise_NE(rs, re):                Noise_SE(s, rs, re):      
+    Noise_NE(rs, re):                Noise_KE(s, rs, re):      
       <- s, e                          <- s, e                    
       ------                           -> s                       
       -> e, dhee, dhes                 ------                     
       <- e, dhee                       -> e, dhee, dhes, dhse     
                                        <- e, dhee, dhes           
                                                                      
-    Noise_NX(rs):                    Noise_SX(s, rs):          
+    Noise_NX(rs):                    Noise_KX(s, rs):          
       -> e                             -> s                       
       <- e, dhee, s, dhse              ------                     
                                        -> e                       
@@ -396,7 +396,7 @@ exchange messages to agree on a shared key.
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
-    Noise_XS(s, rs):                 Noise_IS(s, rs):            
+    Noise_XK(s, rs):                 Noise_IK(s, rs):            
       <- s                             <- s                         
       ------                           ------                       
       -> e, dhes                       -> e, dhes, s, dhss          
@@ -425,11 +425,11 @@ next message in the current handshake, or whether to re-initialize the
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
-handshake via `Noise_IS`.  The abbreviated handshake lets the initiator send
+handshake via `Noise_IK`.  The abbreviated handshake lets the initiator send
 some encrypted data in the first message if the initiator has pre-knowledge of
 the responder's static public key.  
 
-If the responder fails to decrypt the first `Noise_IS` message (perhaps due to
+If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
 changing her static key), she will use the `Noise_XXfallback` pattern to "fall
 back" to a handshake identical to `Noise_XX` except re-using the initiator's
 ephemeral public key as a pre-message.
@@ -441,7 +441,7 @@ Below are the three patterns used for Noise Pipes:
       <- e, dhee, s, dhse  
       -> s, dhse
 
-    Noise_IS(s, rs):                   
+    Noise_IK(s, rs):                   
       <- s                         
       ------
       -> e, dhes, s, dhss          
@@ -453,7 +453,7 @@ Below are the three patterns used for Noise Pipes:
       <- e, dhee, s, dhse
       -> s, dhse
 
-Note that encrypted data sent in the first `Noise_IS` message is susceptible to
+Note that encrypted data sent in the first `Noise_IK` message is susceptible to
 replay attacks.  Also, if the responder's static private key is compromised,
 initial messages can be decrypted and/or forged.
 
@@ -464,10 +464,10 @@ To distinguish these patterns, each handshake message will be preceded by a
  a `Noise_XX` handshake.
 
  * If `type == 1` in the initiator's first message then the initiator
- is performing a `Noise_IS` handshake.
+ is performing a `Noise_IK` handshake.
 
- * If `type == 1` in the responder's first `Noise_IS` response then the
- responder failed to authenticate the initiator's `Noise_IS` message and is
+ * If `type == 1` in the responder's first `Noise_IK` response then the
+ responder failed to authenticate the initiator's `Noise_IK` message and is
  performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
  public key as a pre-message.
 
@@ -563,7 +563,7 @@ To produce a **handshake name** for `Initialize()` you add the names for the DH 
 
  * `Noise_XXfallback_448_AESGCM_SHA512`
 
- * `Noise_IS_448_ChaChaPoly_BLAKE2b`
+ * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
 
 10. Application responsibilities
