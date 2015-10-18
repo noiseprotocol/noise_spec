@@ -4,7 +4,7 @@ Noise v0 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-10-17
- * **Revision:** 13 (work in progress)
+ * **Revision:** 14 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -392,7 +392,7 @@ exchange messages to agree on a shared key.
                             
 
     Noise_XN(s):                     Noise_IN(s):
-      -> e                             -> e, s                      
+      -> e                             -> s, e
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
@@ -411,7 +411,7 @@ exchange messages to agree on a shared key.
       -> s, dhse                                                     
                                        
     Noise_XX(s, rs):                 Noise_IX(s, rs):
-      -> e                             -> e, s                     
+      -> e                             -> s, e
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
