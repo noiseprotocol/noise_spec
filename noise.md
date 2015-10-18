@@ -412,7 +412,7 @@ exchange messages to agree on a shared key.
                                        
     Noise_XX(s, rs):                 Noise_IX(s, rs):
       -> e                             -> e, s                     
-      <- e, dhee, s, dhse              <- e, dhee, dhes, dhse                                
+      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
 7. Handshake re-initialization and "Noise Pipes"
