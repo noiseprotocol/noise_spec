@@ -426,10 +426,10 @@ next message in the current handshake, or whether to re-initialize the
 `HandshakeState` and do something different.
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
-protocol uses `Noise_XX` for a full handshake but also provides an abbreviated
-handshake via `Noise_IK`.  The abbreviated handshake lets the initiator send
-some encrypted data in the first message if the initiator has pre-knowledge of
-the responder's static public key.  
+protocol uses two patterns defined in the previous section: `Noise_XX` is used
+for a full handshake.  `Noise_IK` is used for an abbreviated handshake that
+allows the initiator to send some encrypted data in the first message if the
+initiator has pre-knowledge of the responder's static public key.  
 
 If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
 changing her static key), she will use the `Noise_XXfallback` pattern to "fall
