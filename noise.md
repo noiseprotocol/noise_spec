@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-10-17
- * **Revision:** 14 (work in progress)
+ * **Date:** 2015-10-30
+ * **Revision:** 15 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -731,6 +731,8 @@ Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
 
 Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
 earlier versions of the key derivation.
+
+Thanks to Karthikeyan Bhargavan for some editorial feedback.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
