@@ -117,11 +117,11 @@ Noise depends on the following **hash function** (and associated constants):
 Noise defines an additional function based on the above `HASH` function.  The
 `||` operator indicates concatentation of byte sequences:
 
- * **`HKDF(chaining_key, data)`**:  Sets the value `temp_key =
- HMAC-HASH(chaining_key, data)`.  Sets the value `output1 = HMAC-HASH(temp_key,
- 0x01)`.  Sets the value `output2 = HMAC-HASH(temp_key, output1 || 0x02)`.
- These three values are all `HASHLEN` bytes in length.  Returns the pair
- (`output1`, `output2`).
+ * **`HKDF(chaining_key, input_key_material)`**:  Sets the value `temp_key =
+   HMAC-HASH(chaining_key, input_key_material)`.  Sets the value `output1 =
+   HMAC-HASH(temp_key, 0x01)`.  Sets the value `output2 = HMAC-HASH(temp_key,
+   output1 || 0x02)`.  These three values are all `HASHLEN` bytes in length.
+   Returns the pair (`output1`, `output2`).
 
 
 4.2. The  `CipherState` object 
