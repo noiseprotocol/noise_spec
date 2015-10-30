@@ -178,11 +178,13 @@ A `SymmetricHandshakeState` responds to the following methods:
  Otherwise calls `MixHash(data)` and returns `data`.
 
  * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
- empty)` where `empty` is a zero-length byte sequence.  The first child's `k` is
- set to the first output from `HKDF()`, and the second child's `k` is set to the
- second output from `HKDF()`.  If `HASHLEN` is not 32, then both outputs from
- `HKDF()` are truncated to 32 bytes to match `k`.  Both children's `n` value is set to
- zero.  Both children are returned.
+   empty)` where `empty` is a zero-length byte sequence.  The first child's `k`
+   is set to the first output from `HKDF()`, and the second child's `k` is set
+   to the second output from `HKDF()`.  If `HASHLEN` is not 32, then each
+   output from `HKDF()` is truncated to 32 bytes to match `k`.  Both children's
+   `n` value is set to zero.  Both children are returned.  The caller will use
+   the child `CipherState` objects to encrypt transport messages, as described
+   in the next section.
 
 
 5.  The handshake algorithm
