@@ -218,7 +218,7 @@ may be deleted.  Transport messages are then encrypted and decrypted by calling
 5.1. The `HandshakeState` object
 ---------------------------------
 
-A `HandshakeState` contain the following variables:
+A `HandshakeState` contain the following variables, any of which may be empty:
 
  * **`s`**: The local static key pair 
 
@@ -297,7 +297,7 @@ The following pattern describes an unauthenticated DH handshake:
 
 The pattern name is `Noise_NN`.  The empty parentheses indicate that neither
 party is initialized with any key pairs.  The tokens "e" and/or "s" in
-parentheses would indicate that the initatior is initialized with the corresponding
+parentheses would indicate that the initiator is initialized with the corresponding
 key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
 responder.
 
@@ -557,7 +557,9 @@ To distinguish these patterns, each handshake message will be preceded by a
 9. Handshake names 
 =========================
 
-To produce a **handshake name** for `Initialize()` you add the names for the DH functions, cipher functions, and hash function to the handshake pattern name.  For example: 
+To produce a **handshake name** for `Initialize()` you concatenate the names
+for the handshake pattern, the DH functions, the cipher functions, and the hash
+function.  For example: 
 
  * `Noise_XX_25519_AESGCM_SHA256`
 
