@@ -83,10 +83,9 @@ Noise depends on the following **DH functions** (and an associated constant):
  * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
 
  * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
- sequence of bytes.  If the public key is invalid the output of this calculation
- is up to the implementation but must not leak information about the private
- key.  Implementations are also allowed to abort on receiving or processing an
- invalid public key.
+   sequence of bytes.  If the function detects an invalid public key, the
+   output may be set to all zeros or any other value that doesn't leak
+   information about the private key.
 
  * **`DHLEN`** = A constant specifying the size of public keys in bytes.
 
@@ -496,8 +495,7 @@ To distinguish these patterns, each handshake message will be preceded by a
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.  Implementations are
- also allowed to abort on receiving or processing an invalid public key.
+ value that doesn't leak information about the private key.
 
  * **`DHLEN`** = 32
 
@@ -508,8 +506,7 @@ To distinguish these patterns, each handshake message will be preceded by a
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
  detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.  Implementations are
- also allowed to abort on receiving or processing an invalid public key.
+ value that doesn't leak information about the private key.
 
  * **`DHLEN`** = 56
 
