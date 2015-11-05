@@ -24,10 +24,10 @@ phase each party can send **transport messages** encrypted with the shared key.
 
 The Noise framework can support any DH-based handshake where each party has a
 long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
-is described by **descriptors** and **patterns**.  A **descriptor** specifies
+is described by **patterns**:  A **message pattern** specifies
 the DH public keys that comprise a handshake message, and the DH operations
-that are performed when sending or receiving that message.  A **pattern**
-specifies the sequence of descriptors that comprise a handshake.
+that are performed when sending or receiving that message.  A **handshake pattern** 
+specifies the message patterns that comprise a handshake.
 
 A handshake pattern can be instantiated by **DH functions**, **cipher
 functions**, and a **hash function** to give a concrete protocol.  An
@@ -44,9 +44,10 @@ message.
 A handshake message begins with a sequence of one or more DH public keys.
 Following the public keys will be a **payload** which could be used to convey
 certificates or other handshake data.  Encryption of public keys and payloads
-will occur once a shared secret key has been established.  Zero-length payloads
-are allowed and will result in 16-byte payload ciphertexts, since encryption
-adds a 16-byte **authentication tag** to each ciphertext.
+will occur after a DH operation establishes a shared secret key between the two
+parties.  Zero-length payloads are allowed.  If encrypted, a zero-length payload
+will result in a 16-byte payload ciphertext, since encryption adds a 16-byte
+**authentication tag** to each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
@@ -190,9 +191,9 @@ A `SymmetricHandshakeState` responds to the following methods:
 5.  The handshake algorithm
 ============================
 
-A descriptor for a handshake message is some sequence of **tokens** from "e, s,
+A pattern for a handshake message is some sequence of **tokens** from "e, s,
 dhee, dhes, dhse, dhss".  To send (or receive) a handshake message you iterate
-through the tokens that comprise the message's descriptor.  For each token you
+through the tokens that comprise the message's pattern.  For each token you
 write (or read) the public key it specifies, or perform the DH operation it
 specifies.  
 
@@ -201,11 +202,11 @@ object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
 variables.  
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
-`MixHash()` for any public keys that were exchanged prior to the
-handshake (see Section 6).  Then you call `WriteHandshakeMessage()` and
-`ReadHandshakeMessage()` using successive descriptors from a handshake pattern.
-If a decryption error occurs the handshake has failed and the `HandshakeState`
-is deleted without sending further messages.
+`MixHash()` for any public keys that were exchanged prior to the handshake (see
+"pre-messages" in Section 6).  Then you call `WriteHandshakeMessage()` and
+`ReadHandshakeMessage()` using successive message patterns from a handshake
+pattern.  If a decryption error occurs the handshake has failed and the
+`HandshakeState` is deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
@@ -244,7 +245,7 @@ A `HandshakeState` responds to the following methods:
  dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is the
  last handshake message, and a `payload` (which may be zero-length).
  
-    * Processes each token in the descriptor sequentially:
+    * Sequentially processes each token in the message pattern:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
       `EncryptAndHash(e.public_key)` to the buffer.
@@ -263,7 +264,7 @@ A `HandshakeState` responds to the following methods:
  whether this is the last handshake message.  Returns a payload.  If a
  decryption error occurs the error is signaled to the caller.
 
-    * Processes each token in the descriptor sequentially:
+    * Sequentially processes each token in the message pattern:
 
       * For "e": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
@@ -283,13 +284,24 @@ A `HandshakeState` responds to the following methods:
 6. Handshake patterns 
 ======================
 
-A descriptor is some sequence of tokens from "e, s, dhee, dhes, dhse, dhss".  A
-pattern is a sequence of descriptors. The first descriptor describes the first
-message sent from the initiator to the responder; the next descriptor describes
-the response message, and so on.  All messsages described by the pattern must be
-sent in order.  
+A message pattern is some sequence of tokens from "e, s, dhee, dhes, dhse,
+dhss".  A handshake pattern consists of:
 
-The following pattern describes an unauthenticated DH handshake:
+ * A message pattern for the initiator's "pre-message" that only contains "s" and/or "e" tokens
+
+ * A message pattern for the responder's "pre-message" that only contains "s" and/or "e" tokens
+
+ * A sequence of message patterns for the actual handshake messages
+
+The pre-messages indicate an exchange of public keys was somehow performed
+prior to the handshake, so these public keys should be inputs to
+`Initialize()`.  
+
+The first actual handshake message in the sequence is sent from the initiator
+to the responder; the next is sent by the responder, and so on. All messsages
+described by the handshake pattern must be sent in order.  
+
+The following handshake pattern describes an unauthenticated DH handshake:
 
     Noise_NN():
       -> e
@@ -301,11 +313,10 @@ parentheses would indicate that the initiator is initialized with the correspond
 key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
 responder.
 
-Pre-messages are shown as descriptors prior to the delimiter "\-\-\-\-\-\-".
-These indicate an exchange of public keys was somehow performed prior to the
-handshake, so these public keys should also be inputs to `Initialize()`.  After
-`Initialize()` is called, `MixHash()` is called on any pre-message public keys
-in the order they are listed.
+Pre-messages are shown as message patterns prior to the delimiter "\-\-\-\-\-\-".
+After `Initialize()` is called, `MixHash()` is called on any pre-message public
+keys in the order they are listed (by convention, the initiator's public keys -
+if any - are processed first).
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -325,8 +336,8 @@ stream of data from a sender to a recipient.
 
 Following these one-way handshakes the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
-The second `CipherState` from `Split()` is discarded - the recipient MUST
-NOT send any messages using it.
+The second `CipherState` from `Split()` is discarded - the recipient must not
+send any messages using it.
 
 
      N  = no static key for sender
@@ -673,7 +684,7 @@ The recommended hash function families are SHA2 and BLAKE2 because:
  * SHA2 is often used alongside AES.
  * BLAKE2 is similar to ChaCha20.
 
-Hash output lengths of 32 are supported because:
+Hash output lengths of 256 bits are supported because:
 
  * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit security level.
  * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing
