@@ -68,8 +68,8 @@ To represent a **cipher key** and its associated **nonce** we introduce the noti
 of a **`CipherState`** which contains `k` and `n` variables.
 
 To handle symmetric-key crypto during the handshake we introduce a
-**`SymmetricHandshakeState`** which extends a `CipherState` with `ck` and `h`
-variables.  An implementation will create a `SymmetricHandshakeState` to handle
+**`SymmetricState`** which extends a `CipherState` with `ck` and `h`
+variables.  An implementation will create a `SymmetricState` to handle
 a single Noise handshake, and can delete it once the handshake is finished.  
 
 The below sections describe these concepts in more detail.
@@ -143,10 +143,10 @@ operator applied to `n` means "use the current `n` value, then increment it".
  ciphertext)`.  If an authentication failure occurs the error is signaled to the
  caller.
 
-4.3. The `SymmetricHandshakeState` object
+4.3. The `SymmetricState` object
 -----------------------------------------
 
-A `SymmetricHandshakeState` object extends a `CipherState` with the following
+A `SymmetricState` object extends a `CipherState` with the following
 variables:
 
  * **`has_key`**: A boolean that records whether key `k` is a secret value.
@@ -155,7 +155,7 @@ variables:
  
  * **`h`**: A hash output of `HASHLEN` bytes.
 
-A `SymmetricHandshakeState` responds to the following methods:   
+A `SymmetricState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
  `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_key =
@@ -197,8 +197,7 @@ write (or read) the public key it specifies, or perform the DH operation it
 specifies.  
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
-object.  A `HandshakeState` extends a `SymmetricHandshakeState` with DH
-variables.  
+object.  A `HandshakeState` extends a `SymmetricState` with DH variables.  
 
 To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
 `MixHash()` for any public keys that were exchanged prior to the handshake (see
