@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2015-10-30
- * **Revision:** 15 (work in progress)
+ * **Date:** 2015-11-4
+ * **Revision:** 16 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -190,21 +190,19 @@ A `SymmetricState` responds to the following methods:
 5.  The handshake algorithm
 ============================
 
-A pattern for a handshake message is some sequence of **tokens** from "e, s,
-dhee, dhes, dhse, dhss".  To send (or receive) a handshake message you iterate
-through the tokens that comprise the message's pattern.  For each token you
-write (or read) the public key it specifies, or perform the DH operation it
-specifies.  
+A pattern for a handshake message is some sequence of **tokens** from the set
+("e", "s", "dhee", "dhes", "dhse", "dhss").  To send (or receive) a handshake
+message you iterate through the tokens that comprise the message's pattern.
+For each token you write (or read) the public key it specifies, or perform the
+DH operation it specifies.  
 
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricState` with DH variables.  
 
-To execute a Noise protocol you `Initialize()` a `HandshakeState`, then call
-`MixHash()` for any public keys that were exchanged prior to the handshake (see
-"pre-messages" in Section 6).  Then you call `WriteHandshakeMessage()` and
-`ReadHandshakeMessage()` using successive message patterns from a handshake
-pattern.  If a decryption error occurs the handshake has failed and the
-`HandshakeState` is deleted without sending further messages.
+To execute a Noise protocol you `Initialize()` a `HandshakeState`.  Then you
+call `WriteMessage()` and `ReadMessage()` to process each handshake message.
+If a decryption error occurs the handshake has failed and the `HandshakeState`
+is deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
@@ -217,7 +215,8 @@ may be deleted.  Transport messages are then encrypted and decrypted by calling
 5.1. The `HandshakeState` object
 ---------------------------------
 
-A `HandshakeState` contain the following variables, any of which may be empty:
+A `HandshakeState` object extends a `SymmetricState` with the following
+variables, any of which may be empty:
 
  * **`s`**: The local static key pair 
 
@@ -227,23 +226,32 @@ A `HandshakeState` contain the following variables, any of which may be empty:
 
  * **`re`**: The remote party's ephemeral public key 
 
+ * **`handshake_pattern`**: A sequence of message patterns.  Each message pattern is a
+   sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss).
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(handshake_name, new_s, new_e, new_rs, new_re)`**: Takes a
- `handshake_name` (see Section 9).  Also takes a set of DH keypairs and public
- keys for initializing local variables, any of which may be empty.
+ * **`Initialize(new_handshake_pattern, initiator, new_s, new_e, new_rs, new_re)`**:
+   Takes a handshake pattern (see Section 6), and an `initiator` boolean
+   specifying this party's role.  Also takes a set of DH keypairs and public
+   keys for initializing local variables, any of which may be empty.
  
-   * Calls `InitializeSymmetric(handshake_name)`.
+   * Derives a `handshake_name` byte sequence by combining the names for the 
+   handshake pattern and crypto functions, as specified in Section 9. Calls 
+   `InitializeSymmetric(handshake_name)`.
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
- * **`WriteHandshakeMessage(buffer, descriptor, final, payload)`**: Takes an
- empty byte buffer, a descriptor which is some sequence using tokens from "e, s,
- dhee, dhes, dhse, dhss", a `final` boolean which indicates whether this is the
- last handshake message, and a `payload` (which may be zero-length).
+   * Calls `MixHash()` once for each public key listed in the pattern's
+     pre-messages (see Section 6).
+
+   * Sets `pattern` to the handshake message patterns in `new_pattern`.
+
+ * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
+   which may be zero-length, and a `message_buffer` to write the output into.
  
-    * Sequentially processes each token in the message pattern:
+    * Fetches the next message pattern in the handshake pattern, and
+      sequentially processes each token in the message pattern:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
       `EncryptAndHash(e.public_key)` to the buffer.
@@ -257,27 +265,27 @@ A `HandshakeState` responds to the following methods:
     * If `final == True` returns two new `CipherState` objects by calling
     `Split()`.
 
- * **`ReadHandshakeMessage(buffer, descriptor, final)`**: Takes a byte buffer
- containing a message, a descriptor, and a `final` boolean which indicates
- whether this is the last handshake message.  Returns a payload.  If a
- decryption error occurs the error is signaled to the caller.
+ * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence containing
+   a Noise handshake message, and a `payload_buffer` to write the message's
+   plaintext payload into.
 
-    * Sequentially processes each token in the message pattern:
+    * Fetches the next message pattern in the handshake pattern, and
+      sequentially processes each token in the message pattern:
 
-      * For "e": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
+      * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
       `DecryptAndHash(data)`.
 
-      * For "s": Sets `data` to the next `DHLEN + 16` bytes of buffer if `has_key ==
+      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
       `DecryptAndHash(data)`.
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
-    * Sets `payload = DecryptAndHash(buffer)`.
+    * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
-    * If `final == True` returns the `payload` and two new `CipherState` objects
-    created by calling `Split()`.  Otherwise returns the `payload`.
+    * If `final == True` returns two new `CipherState` objects
+    created by calling `Split()`.
     
 6. Handshake patterns 
 ======================
@@ -305,15 +313,15 @@ The following handshake pattern describes an unauthenticated DH handshake:
       -> e
       <- e, dhee
 
-The pattern name is `Noise_NN`.  The empty parentheses indicate that neither
+The handshake pattern name is `Noise_NN`.  The empty parentheses indicate that neither
 party is initialized with any key pairs.  The tokens "e" and/or "s" in
 parentheses would indicate that the initiator is initialized with the corresponding
 key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
 responder.
 
 Pre-messages are shown as message patterns prior to the delimiter "\-\-\-\-\-\-".
-After `Initialize()` is called, `MixHash()` is called on any pre-message public
-keys in the order they are listed (by convention, the initiator's public keys -
+During `Initialize()`, `MixHash()` is called on any pre-message public
+keys in the order they are listed (the initiator's public keys -
 if any - are processed first).
 
 The following pattern describes a handshake where the initiator has
