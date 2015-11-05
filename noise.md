@@ -339,8 +339,8 @@ NOT send any messages using it.
       -> e, dhes
 
     Noise_K(s, rs):
-      <- s
       -> s
+      <- s
       ------
       -> e, dhes, dhss
 
@@ -373,15 +373,15 @@ exchange messages to agree on a shared key.
                                        <- e, dhee, dhes           
                                              
     Noise_NK(rs):                    Noise_KK(s, rs):
-      <- s                             <- s                       
-      ------                           -> s                       
+      <- s                             -> s                       
+      ------                           <- s                       
       -> e, dhes                       ------                     
       <- e, dhee                       -> e, dhes, dhss           
                                        <- e, dhee, dhes           
                                               
     Noise_NE(rs, re):                Noise_KE(s, rs, re):      
-      <- s, e                          <- s, e                    
-      ------                           -> s                       
+      <- s, e                          -> s
+      ------                           <- s, e
       -> e, dhee, dhes                 ------                     
       <- e, dhee                       -> e, dhee, dhes, dhse     
                                        <- e, dhee, dhes           
