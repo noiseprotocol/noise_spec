@@ -226,7 +226,7 @@ variables, any of which may be empty:
 
  * **`re`**: The remote party's ephemeral public key 
 
- * **`handshake_pattern`**: A sequence of message patterns.  Each message pattern is a
+ * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
    sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss).
 
 A `HandshakeState` responds to the following methods:
@@ -242,16 +242,17 @@ A `HandshakeState` responds to the following methods:
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
-   * Calls `MixHash()` once for each public key listed in the pattern's
-     pre-messages (see Section 6).
+   * Calls `MixHash()` once for each public key listed in the pre-messages from
+     `new_handshake_pattern`, passing in that public key as input (see Section
+     6).  If both initiator and responder have pre-messages, the initiator's
+     public keys are hashed first.
 
-   * Sets `pattern` to the handshake message patterns in `new_pattern`.
+   * Sets `message_patterns` to the handshake message patterns from `new_handshake_pattern`.
 
  * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
  
-    * Fetches the next message pattern in the handshake pattern, and
-      sequentially processes each token in the message pattern:
+    * Fetches the next message pattern and sequentially processes each token:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
       `EncryptAndHash(e.public_key)` to the buffer.
@@ -262,15 +263,14 @@ A `HandshakeState` responds to the following methods:
 
     * Appends `EncryptAndHash(payload)` to the buffer.  
     
-    * If `final == True` returns two new `CipherState` objects by calling
-    `Split()`.
+    * If there are no more message patterns returns two new `CipherState`
+      objects by calling `Split()`.
 
  * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence containing
    a Noise handshake message, and a `payload_buffer` to write the message's
    plaintext payload into.
 
-    * Fetches the next message pattern in the handshake pattern, and
-      sequentially processes each token in the message pattern:
+    * Fetches the next message pattern and sequentially processes each token:
 
       * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
@@ -284,23 +284,25 @@ A `HandshakeState` responds to the following methods:
 
     * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
-    * If `final == True` returns two new `CipherState` objects
-    created by calling `Split()`.
+    * If there are no more message patterns returns two new `CipherState`
+      objects by calling `Split()`.
     
 6. Handshake patterns 
 ======================
 
-A message pattern is some sequence of tokens from "e, s, dhee, dhes, dhse,
-dhss".  A handshake pattern consists of:
+A message pattern is some sequence of tokens from the set ("e, s, dhee, dhes, dhse,
+dhss").  A handshake pattern consists of:
 
- * A message pattern for the initiator's "pre-message" that only contains "s" and/or "e" tokens
+ * A pattern for the initiator's "pre-message" that is either "s", "e",
+   "s, e", or empty.
 
- * A message pattern for the responder's "pre-message" that only contains "s" and/or "e" tokens
+ * A pattern for the responder's "pre-message" that is either "s", "e",
+   "s, e", or empty.
 
  * A sequence of message patterns for the actual handshake messages
 
-The pre-messages indicate an exchange of public keys was somehow performed
-prior to the handshake, so these public keys should be inputs to
+The pre-messages represent an exchange of public keys that was somehow
+performed prior to the handshake, so these public keys should be inputs to
 `Initialize()`.  
 
 The first actual handshake message in the sequence is sent from the initiator
@@ -321,8 +323,7 @@ responder.
 
 Pre-messages are shown as message patterns prior to the delimiter "\-\-\-\-\-\-".
 During `Initialize()`, `MixHash()` is called on any pre-message public
-keys in the order they are listed (the initiator's public keys -
-if any - are processed first).
+keys in the order they are listed.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
