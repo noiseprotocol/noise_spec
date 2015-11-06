@@ -231,16 +231,21 @@ variables, any of which may be empty:
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(new_handshake_pattern, initiator, new_s, new_e, new_rs, new_re)`**:
-   Takes a handshake pattern (see Section 6), and an `initiator` boolean
-   specifying this party's role.  Also takes a set of DH keypairs and public
-   keys for initializing local variables, any of which may be empty.
+ * **`Initialize(new_handshake_pattern, initiator, prologue, new_s, new_e, new_rs,
+   new_re)`**: Takes a handshake pattern (see Section 6), and an `initiator`
+   boolean specifying this party's role.  Takes a `prologue` byte sequence
+   which may be zero-length, or which may contain context information that both
+   parties want to confirm is identical, such as protocol or version negotiation
+   messages sent previously.  Takes a set of DH keypairs and public keys
+   for initializing local variables, any of which may be empty.
  
    * Derives a `handshake_name` byte sequence by combining the names for the 
    handshake pattern and crypto functions, as specified in Section 9. Calls 
    `InitializeSymmetric(handshake_name)`.
    
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
+
+   * Calls `MixHash(prologue)`.
 
    * Calls `MixHash()` once for each public key listed in the pre-messages from
      `new_handshake_pattern`, passing in that public key as input (see Section
