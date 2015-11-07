@@ -458,8 +458,8 @@ responder's static public key.
 
 If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
 changing her static key), the responder will initiate a new `Noise_XXfallback`
-identical to `Noise_XX` except re-using the ephemeral public key from the first
-`Noise_IK` message as a pre-message public key.
+handshake identical to `Noise_XX` except re-using the ephemeral public key from
+the first `Noise_IK` message as a pre-message public key.
 
 Below are the three patterns used for Noise Pipes:
 
@@ -475,10 +475,10 @@ Below are the three patterns used for Noise Pipes:
       <- e, dhee, dhes             
                                         
     Noise_XXfallback(s, rs, re):                   
-      -> e
+      <- e
       ------
-      <- e, dhee, s, dhse
-      -> s, dhse
+      -> e, dhee, s, dhse
+      <- s, dhse
 
 Note that in the fallback case, the initiator and responder roles are switched:
 If Alice inititates a `Noise_IK` handshake with Bob, Bob might 
@@ -486,7 +486,7 @@ initiate a `Noise_XX_fallback` handshake.
 
 Note also that encrypted data sent in the first `Noise_IK` message is
 susceptible to replay attacks.  Also, if the responder's static private key is
-compromised, initial messages can be decrypted and/or forged.
+compromised, `Noise_IK` initial messages can be decrypted and/or forged.
 
 To distinguish these patterns, each handshake message will be preceded by a
 `type` byte:
