@@ -295,8 +295,8 @@ A `HandshakeState` responds to the following methods:
 6. Handshake patterns 
 ======================
 
-A message pattern is some sequence of tokens from the set ("e, s, dhee, dhes, dhse,
-dhss").  A handshake pattern consists of:
+A message pattern is some sequence of tokens from the set ("e", "s", "dhee", "dhes", "dhse",
+"dhss").  A handshake pattern consists of:
 
  * A pattern for the initiator's "pre-message" that is either "s", "e",
    "s, e", or empty.
@@ -443,21 +443,23 @@ exchange messages to agree on a shared key.
 7. Handshake re-initialization and "Noise Pipes"
 ===============================================
 
-A protocol may support handshake re-initialization.  In this case, the recipient
-of a handshake message must also receive some indication whether this is the
-next message in the current handshake, or whether to re-initialize the
-`HandshakeState` and do something different.
+A protocol may support **handshake re-initialization**.  In this case, the
+recipient of a handshake message must also receive some indication whether this
+is the next message in the current handshake, or whether to re-initialize the
+`HandshakeState` and perform a different handshake (see discussion on "Type
+fields" in Section 10).
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses two patterns defined in the previous section: `Noise_XX` is used
 for a full handshake.  `Noise_IK` is used for an abbreviated handshake that
-allows the initiator to send some encrypted data in the first message if the
-initiator has pre-knowledge of the responder's static public key.  
+allows the initiator to send some encrypted data in the first message.  The
+abbreviated handshake can be used if the initiator has pre-knowledge of the
+responder's static public key.  
 
 If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
-changing her static key), she will use the `Noise_XXfallback` pattern to "fall
-back" to a handshake identical to `Noise_XX` except re-using the initiator's
-ephemeral public key as a pre-message.
+changing her static key), the responder will initiate a new `Noise_XXfallback`
+identical to `Noise_XX` except re-using the ephemeral public key from the first
+`Noise_IK` message as a pre-message public key.
 
 Below are the three patterns used for Noise Pipes:
 
@@ -472,15 +474,19 @@ Below are the three patterns used for Noise Pipes:
       -> e, dhes, s, dhss          
       <- e, dhee, dhes             
                                         
-    Noise_XXfallback(s, e, rs):                   
+    Noise_XXfallback(s, rs, re):                   
       -> e
       ------
       <- e, dhee, s, dhse
       -> s, dhse
 
-Note that encrypted data sent in the first `Noise_IK` message is susceptible to
-replay attacks.  Also, if the responder's static private key is compromised,
-initial messages can be decrypted and/or forged.
+Note that in the fallback case, the initiator and responder roles are switched:
+If Alice inititates a `Noise_IK` handshake with Bob, Bob might 
+initiate a `Noise_XX_fallback` handshake.
+
+Note also that encrypted data sent in the first `Noise_IK` message is
+susceptible to replay attacks.  Also, if the responder's static private key is
+compromised, initial messages can be decrypted and/or forged.
 
 To distinguish these patterns, each handshake message will be preceded by a
 `type` byte:
@@ -497,6 +503,11 @@ To distinguish these patterns, each handshake message will be preceded by a
  public key as a pre-message.
 
  * In all other cases, `type` will be 0.
+
+So that Noise pipes can be used with arbitrary lower-level protocols, handshake
+messages are sent with the `type` byte followed by a 2-byte big-endian length
+field, followed by the Noise handshake message.  Transport messages are sent
+with only the 2-byte length field, followed by the Noise tranport message.
 
 8. DH functions, cipher functions, and hash functions
 ======================================================
