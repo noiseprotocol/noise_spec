@@ -326,9 +326,9 @@ parentheses would indicate that the initiator is initialized with the correspond
 key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
 responder.
 
-Pre-messages are shown as message patterns prior to the delimiter "\-\-\-\-\-\-".
-During `Initialize()`, `MixHash()` is called on any pre-message public
-keys in the order they are listed.
+Pre-messages are shown as patterns prior to the delimiter "\-\-\-\-\-\-".
+During `Initialize()`, `MixHash()` is called on any pre-message public keys in
+the order they are listed.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -454,7 +454,9 @@ protocol uses two patterns defined in the previous section: `Noise_XX` is used
 for a full handshake.  `Noise_IK` is used for an abbreviated handshake that
 allows the initiator to send some encrypted data in the first message.  The
 abbreviated handshake can be used if the initiator has pre-knowledge of the
-responder's static public key.  
+responder's static public key; for example, the initiator might cache the
+responder's static public key after a full handshake, and attempt the
+abbreviated handshake in the future.
 
 If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
 changing her static key), the responder will initiate a new `Noise_XXfallback`
@@ -517,9 +519,10 @@ with only the 2-byte length field, followed by the Noise tranport message.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 function.  If the function
- detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 function (aka "X25519").
+   If the function detects an invalid public key, the output may be set to all
+   zeros or any other value that doesn't leak information about the private
+   key.
 
  * **`DHLEN`** = 32
 
@@ -528,9 +531,10 @@ with only the 2-byte length field, followed by the Noise tranport message.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve448 function.  If the function
- detects an invalid public key, the output may be set to all zeros or any other
- value that doesn't leak information about the private key.
+ * **`DH(privkey, pubkey)`**: Executes the Curve448 function (aka "X448").  If
+   the function detects an invalid public key, the output may be set to all
+   zeros or any other value that doesn't leak information about the private
+   key.
 
  * **`DHLEN`** = 56
 
