@@ -532,10 +532,10 @@ field, followed by the Noise tranport message.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve448 function (aka "X448").  If
-   the function detects an invalid public key, the output may be set to all
-   zeros or any other value that doesn't leak information about the private
-   key.
+ * **`DH(privkey, pubkey)`**: Executes the Curve448 DH function (aka "X448" in
+   some other specifications).  If the function detects an invalid public key,
+   the output may be set to all zeros or any other value that doesn't leak
+   information about the private key.
 
  * **`DHLEN`** = 56
 
