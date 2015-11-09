@@ -508,8 +508,9 @@ To distinguish these patterns, each handshake message will be preceded by a
 
 So that Noise pipes can be used with arbitrary lower-level protocols, handshake
 messages are sent with the `type` byte followed by a 2-byte big-endian length
-field, followed by the Noise handshake message.  Transport messages are sent
-with only the 2-byte length field, followed by the Noise tranport message.
+field denoting the length of the following Noise message, followed by a Noise
+handshake message.  Transport messages are sent with only the 2-byte length
+field, followed by the Noise tranport message.
 
 8. DH functions, cipher functions, and hash functions
 ======================================================
