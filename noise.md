@@ -520,10 +520,10 @@ field, followed by the Noise tranport message.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 function (aka "X25519").
-   If the function detects an invalid public key, the output may be set to all
-   zeros or any other value that doesn't leak information about the private
-   key.
+ * **`DH(privkey, pubkey)`**: Executes the Curve25519 DH function (aka "X25519"
+   in some other specifications).  If the function detects an invalid public
+   key, the output may be set to all zeros or any other value that doesn't leak
+   information about the private key.
 
  * **`DHLEN`** = 32
 
