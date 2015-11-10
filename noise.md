@@ -241,58 +241,58 @@ A `HandshakeState` responds to the following methods:
    messages sent previously.  Takes a set of DH keypairs and public keys
    for initializing local variables, any of which may be empty.
  
-   * Derives a `handshake_name` byte sequence by combining the names for the 
-   handshake pattern and crypto functions, as specified in Section 9. Calls 
-   `InitializeSymmetric(handshake_name)`.
+     * Derives a `handshake_name` byte sequence by combining the names for the 
+     handshake pattern and crypto functions, as specified in Section 9. Calls 
+     `InitializeSymmetric(handshake_name)`.
    
-   * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
+     * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
-   * Calls `MixHash(prologue)`.
+     * Calls `MixHash(prologue)`.
 
-   * Calls `MixHash()` once for each public key listed in the pre-messages from
-     `new_handshake_pattern`, passing in that public key as input (see Section
-     6).  If both initiator and responder have pre-messages, the initiator's
-     public keys are hashed first.
+     * Calls `MixHash()` once for each public key listed in the pre-messages from
+       `new_handshake_pattern`, passing in that public key as input (see Section
+       6).  If both initiator and responder have pre-messages, the initiator's
+       public keys are hashed first.
 
-   * Sets `message_patterns` to the handshake message patterns from `new_handshake_pattern`.
+     * Sets `message_patterns` to the handshake message patterns from `new_handshake_pattern`.
 
  * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
  
-    * Fetches the next message pattern and sequentially processes each token:
+     * Fetches the next message pattern and sequentially processes each token:
 
-      * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
-      `EncryptAndHash(e.public_key)` to the buffer.
+         * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
+           `EncryptAndHash(e.public_key)` to the buffer.
 
-      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.
+         * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.
       
-      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
+         * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
 
-    * Appends `EncryptAndHash(payload)` to the buffer.  
+     * Appends `EncryptAndHash(payload)` to the buffer.  
     
-    * If there are no more message patterns returns two new `CipherState`
-      objects by calling `Split()`.
+     * If there are no more message patterns returns two new `CipherState`
+       objects by calling `Split()`.
 
  * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence containing
    a Noise handshake message, and a `payload_buffer` to write the message's
    plaintext payload into.
 
-    * Fetches the next message pattern and sequentially processes each token:
+     * Fetches the next message pattern and sequentially processes each token:
 
-      * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
-      True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
-      `DecryptAndHash(data)`.
+         * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
+           True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
+           `DecryptAndHash(data)`.
 
-      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
-      True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
-      `DecryptAndHash(data)`.
+         * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
+           True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
+           `DecryptAndHash(data)`.
       
-      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
+         * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
-    * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
+     * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
-    * If there are no more message patterns returns two new `CipherState`
-      objects by calling `Split()`.
+     * If there are no more message patterns returns two new `CipherState`
+       objects by calling `Split()`.
     
 6. Handshake patterns 
 ======================
