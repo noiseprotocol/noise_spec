@@ -5,7 +5,7 @@ Noise is a framework for crypto protocols based on Diffie-Hellman key agreement.
 
 Specifications
 ---------------
-<https://github.com/trevp/noise/noise.md>
+<https://github.com/trevp/noise/blob/master/noise.md>
 
 Implementations
 ----------------
