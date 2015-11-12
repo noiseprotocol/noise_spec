@@ -7,6 +7,10 @@ Specifications
 ---------------
 <https://github.com/trevp/noise/blob/master/noise.md>
 
+Mailing List
+-------------
+<https://moderncrypto.org/mailman/listinfo/noise>
+
 Implementations
 ----------------
 
