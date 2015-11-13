@@ -4,7 +4,7 @@ Noise v0 (draft)
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2015-11-8
- * **Revision:** 17 (work in progress)
+ * **Revision:** 18 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -261,10 +261,12 @@ A `HandshakeState` responds to the following methods:
  
     * Fetches the next message pattern and sequentially processes each token:
 
-      * For "e":  Sets `e = GENERATE_KEYPAIR()`.  Appends
-      `EncryptAndHash(e.public_key)` to the buffer.
+      * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
+        value for `e`.  Appends `EncryptAndHash(e.public_key)` to the buffer.
 
-      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.
+      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  On
+        encountering this token `s` must be non-empty, otherwise the pattern is
+        invalid and this function aborts.
       
       * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
 
@@ -281,11 +283,12 @@ A `HandshakeState` responds to the following methods:
 
       * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
-      `DecryptAndHash(data)`.
+      `DecryptAndHash(data)`, overwriting any previous value for `re`.
 
-      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
-      True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
-      `DecryptAndHash(data)`.
+      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
+        `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
+        to `DecryptAndHash(data)`.  On encountering this token `rs` must be
+        empty, otherwise the pattern is invalid and this function aborts.
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
 
