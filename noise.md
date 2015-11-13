@@ -268,7 +268,9 @@ A `HandshakeState` responds to the following methods:
         encountering this token `s` must be non-empty, otherwise the pattern is
         invalid and this function aborts.
       
-      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
+      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.  On encountering this token the 
+      relevant DH key pair and public key variables must be non-empty, otherwise the
+      pattern is invalid and this function aborts.
 
     * Appends `EncryptAndHash(payload)` to the buffer.  
     
@@ -290,7 +292,9 @@ A `HandshakeState` responds to the following methods:
         to `DecryptAndHash(data)`.  On encountering this token `rs` must be
         empty, otherwise the pattern is invalid and this function aborts.
       
-      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.
+      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  On encountering this token the 
+      relevant DH key pair and public key variables must be non-empty, otherwise the
+      pattern is invalid and this function aborts.
 
     * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
