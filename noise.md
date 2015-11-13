@@ -117,13 +117,13 @@ Noise depends on the following **hash function** (and associated constants):
 Noise defines an additional function based on the above `HASH` function.  The
 `||` operator indicates concatentation of byte sequences:
 
- * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` which
-   is `HASHLEN` bytes in length, and an `input_key_material` byte sequence
-   which is either `DHLEN` bytes in length or zero bytes in length.  Sets the
-   value `temp_key = HMAC-HASH(chaining_key, input_key_material)`.  Sets the
-   value `output1 = HMAC-HASH(temp_key, 0x01)`.  Sets the value `output2 =
-   HMAC-HASH(temp_key, output1 || 0x02)`.  These three values are all `HASHLEN`
-   bytes in length.  Returns the pair (`output1`, `output2`).
+ * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
+   sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
+   arbitrary length.  Sets the value `temp_key = HMAC-HASH(chaining_key,
+   input_key_material)`.  Sets the value `output1 = HMAC-HASH(temp_key, 0x01)`.
+   Sets the value `output2 = HMAC-HASH(temp_key, output1 || 0x02)`.  These
+   three values are all `HASHLEN` bytes in length.  Returns the pair
+   (`output1`, `output2`).
 
 
 4.2. The  `CipherState` object 
@@ -165,9 +165,10 @@ A `SymmetricState` responds to the following methods:
  length, sets `h` equal to `handshake_name` with zero bytes appended to make
  `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
 
- * **`MixKey(dh_output)`**:  Sets `ck, k = HKDF(ck, dh_output)`.  If `HASHLEN`
- is not 32, then the second output from `HKDF()` is truncated to 32 bytes to match
- `k`.  Sets `n = 0` and `has_key = True`.
+ * **`MixKey(input_key_material)`**:  Sets `ck, k = HKDF(ck,
+   input_key_material)`.  If `HASHLEN` is not 32, then the second output from
+   `HKDF()` is truncated to 32 bytes to match `k`.  Sets `n = 0` and `has_key =
+   True`.
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
@@ -201,10 +202,16 @@ DH operation it specifies.
 To provide a rigorous description we introduce the notion of a `HandshakeState`
 object.  A `HandshakeState` extends a `SymmetricState` with DH variables.  
 
-To execute a Noise protocol you `Initialize()` a `HandshakeState`.  Then you
-call `WriteMessage()` and `ReadMessage()` to process each handshake message.
-If a decryption error occurs the handshake has failed and the `HandshakeState`
-is deleted without sending further messages.
+To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
+initialization you specify any local key pairs, and any public keys for the
+remote party you have knowledge of.  You may optionally specify **prologue**
+data that both parties will confirm is identical (such as previously exchanged
+version negotiation messages), and/or a **pre-shared key** that will be used to
+encrypt and authenticate all traffic.  
+
+After `Initialize()` you call `WriteMessage()` and `ReadMessage()` to process
+each handshake message.  If a decryption error occurs the handshake has failed
+and the `HandshakeState` is deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
@@ -228,38 +235,58 @@ variables, any of which may be empty:
 
  * **`re`**: The remote party's ephemeral public key 
 
+A `HandshakeState` also has the following variables:
+
  * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
    sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss).
 
+ * **`message_index`**: An integer indicating the next pattern to fetch from
+ `message_patterns` (0 is the first, 1 the second, etc).
+
+ * **`psk`**:  A boolean specifying whether a `preshared_key` is in use.
+
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(new_handshake_pattern, initiator, prologue, new_s, new_e, new_rs,
-   new_re)`**: Takes a handshake pattern (see Section 6), and an `initiator`
-   boolean specifying this party's role.  Takes a `prologue` byte sequence
-   which may be zero-length, or which may contain context information that both
-   parties want to confirm is identical, such as protocol or version negotiation
-   messages sent previously.  Takes a set of DH keypairs and public keys
-   for initializing local variables, any of which may be empty.
+ * **`Initialize(handshake_pattern, initiator, prologue, preshared_key, new_s,
+ new_e, new_rs, new_re)`**: Takes a handshake pattern (see Section 6), and an
+ `initiator` boolean specifying this party's role.  Takes a `prologue` byte
+ sequence which may be zero-length, or which may contain context information
+ that both parties want to confirm is identical, such as protocol or version
+ negotiation messages sent previously.  Takes a `preshared_key` which may be
+ empty, or a byte sequence containing secret data known only to the initiator
+ and responder.  Takes a set of DH keypairs and public keys for initializing
+ local variables, any of which may be empty.
  
    * Derives a `handshake_name` byte sequence by combining the names for the 
    handshake pattern and crypto functions, as specified in Section 9. Calls 
    `InitializeSymmetric(handshake_name)`.
-   
-   * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
 
    * Calls `MixHash(prologue)`.
 
-   * Calls `MixHash()` once for each public key listed in the pre-messages from
-     `new_handshake_pattern`, passing in that public key as input (see Section
-     6).  If both initiator and responder have pre-messages, the initiator's
-     public keys are hashed first.
+   * If `preshared_key` is non-empty, calls `MixKey(preshared_key)`, then
+     `MixHash(k)`, and sets `psk = True`.  Otherwise sets `psk = False`.
 
-   * Sets `message_patterns` to the handshake message patterns from `new_handshake_pattern`.
+   * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
+   
+   * Calls `MixHash()` once for each public key listed in the pre-messages from
+   `handshake_pattern`, passing in that public key as input (see Section 6).  If
+   both initiator and responder have pre-messages, the initiator's public keys
+   are hashed first.
+
+   * Sets `message_patterns` to the message patterns from `handshake_pattern`.
+
+   * Sets `message_index = 0`.
 
  * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
- 
-    * Fetches the next message pattern and sequentially processes each token:
+
+    * If `psk` is `True` and `message_index` is 0 or 1, sets `explicit_random`
+    to 32 cryptographically-secure random bytes, writes `explicit_random` to the
+    buffer, and calls `MixKey(explicit_random)`.
+
+    * Fetches the next message pattern from `message_patterns[message_index]`,
+      increments `message_index`, and sequentially processes each token from 
+      the fetched message pattern:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
         value for `e`.  Appends `EncryptAndHash(e.public_key)` to the buffer.
@@ -281,7 +308,12 @@ A `HandshakeState` responds to the following methods:
    a Noise handshake message, and a `payload_buffer` to write the message's
    plaintext payload into.
 
-    * Fetches the next message pattern and sequentially processes each token:
+    * If `psk` is `True` and `message_index` is 0 or 1, sets `explicit_random`
+    to the first 32 bytes from the message and calls `MixKey(explicit_random)`.
+
+    * Fetches the next message pattern from `message_patterns[message_index]`,
+      increments `message_index`, and sequentially processes each token from 
+      the fetched message pattern:
 
       * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
       True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
@@ -615,6 +647,16 @@ function.  For example:
 
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
+If a pre-shared key is in use, then `NoisePSK` is used instead of `Noise`:
+
+ * `NoisePSK_XX_25519_AESGCM_SHA256`
+
+ * `NoisePSK_N_25519_ChaChaPoly_BLAKE2s` 
+ 
+ * `NoisePSK_XXfallback_448_AESGCM_SHA512`
+
+ * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
+
 
 10. Application responsibilities
 ================================
@@ -676,6 +718,9 @@ This section collects various security considerations:
  every key it's used with (whether ephemeral key pair or static key pair).  If
  the same secret key was reused with the same handshake name but a different set
  of cryptographic operations then bad interactions could occur.
+
+ * **Pre-shared keys**:  Pre-shared keys should be secret values with 256 bits
+ of entropy (or more).
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
