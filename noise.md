@@ -43,11 +43,12 @@ message.
 
 A handshake message begins with a sequence of one or more DH public keys.
 Following the public keys will be a **payload** which could be used to convey
-certificates or other handshake data.  Encryption of public keys and payloads
-will occur after a DH operation establishes a shared secret key between the two
-parties.  Zero-length payloads are allowed.  If encrypted, a zero-length payload
-will result in a 16-byte payload ciphertext, since encryption adds a 16-byte
-**authentication tag** to each ciphertext.
+certificates or other handshake data.  Encryption of static public keys and
+payloads will occur after a DH operation establishes a shared secret key between
+the two parties.  Ephemeral public keys aren't encrypted.  Zero-length payloads
+are allowed.  If encrypted, a zero-length payload will result in a 16-byte
+payload ciphertext, since encryption adds a 16-byte **authentication tag** to
+each ciphertext.
 
 A transport message consists solely of an encrypted payload. 
 
@@ -207,7 +208,7 @@ initialization you specify any local key pairs, and any public keys for the
 remote party you have knowledge of.  You may optionally specify **prologue**
 data that both parties will confirm is identical (such as previously exchanged
 version negotiation messages), and/or a **pre-shared key** that will be used to
-encrypt and authenticate all traffic.  
+encrypt and authenticate.  
 
 After `Initialize()` you call `WriteMessage()` and `ReadMessage()` to process
 each handshake message.  If a decryption error occurs the handshake has failed
@@ -241,15 +242,15 @@ A `HandshakeState` also has the following variables:
    sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss).
 
  * **`message_index`**: An integer indicating the next pattern to fetch from
- `message_patterns` (0 is the first, 1 the second, etc).
+ `message_patterns`.
 
  * **`psk`**:  A boolean specifying whether a `preshared_key` is in use.
 
 A `HandshakeState` responds to the following methods:
 
  * **`Initialize(handshake_pattern, initiator, prologue, preshared_key, new_s,
- new_e, new_rs, new_re)`**: Takes a handshake pattern (see Section 6), and an
- `initiator` boolean specifying this party's role.  Takes a `prologue` byte
+ new_e, new_rs, new_re)`**: Takes a valid handshake pattern (see Section 6), and
+ an `initiator` boolean specifying this party's role.  Takes a `prologue` byte
  sequence which may be zero-length, or which may contain context information
  that both parties want to confirm is identical, such as protocol or version
  negotiation messages sent previously.  Takes a `preshared_key` which may be
@@ -275,29 +276,22 @@ A `HandshakeState` responds to the following methods:
 
    * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
-   * Sets `message_index = 0`.
+   * Sets `message_index = 0` (i.e. the first message pattern).
 
  * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
 
-    * If `psk` is `True` and `message_index` is 0 or 1, sets `explicit_random`
-    to 32 cryptographically-secure random bytes, writes `explicit_random` to the
-    buffer, and calls `MixKey(explicit_random)`.
-
     * Fetches the next message pattern from `message_patterns[message_index]`,
-      increments `message_index`, and sequentially processes each token from 
-      the fetched message pattern:
+    increments `message_index`, and sequentially processes each token from the
+    message pattern:
 
-      * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
-        value for `e`.  Appends `EncryptAndHash(e.public_key)` to the buffer.
+      * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
+      for `e`.  Appends `e.public_key` to the buffer.  If `psk` is true, calls
+      `MixKey(e.public_key)`.
 
-      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  On
-        encountering this token `s` must be non-empty, otherwise the pattern is
-        invalid and this function aborts.
+      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
-      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.  On encountering this token the 
-      relevant DH key pair and public key variables must be non-empty, otherwise the
-      pattern is invalid and this function aborts.
+      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
 
     * Appends `EncryptAndHash(payload)` to the buffer.  
     
@@ -308,25 +302,18 @@ A `HandshakeState` responds to the following methods:
    a Noise handshake message, and a `payload_buffer` to write the message's
    plaintext payload into.
 
-    * If `psk` is `True` and `message_index` is 0 or 1, sets `explicit_random`
-    to the first 32 bytes from the message and calls `MixKey(explicit_random)`.
+    * Fetches the message pattern from `message_patterns[message_index]`,
+    increments `message_index`, and sequentially processes each token from the
+    message pattern:
 
-    * Fetches the next message pattern from `message_patterns[message_index]`,
-      increments `message_index`, and sequentially processes each token from 
-      the fetched message pattern:
-
-      * For "e": Sets `data` to the next `DHLEN + 16` bytes of the message if `has_key ==
-      True`, or to the next `DHLEN` bytes otherwise.  Sets `re` to
-      `DecryptAndHash(data)`, overwriting any previous value for `re`.
-
-      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
-        `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
-        to `DecryptAndHash(data)`.  On encountering this token `rs` must be
-        empty, otherwise the pattern is invalid and this function aborts.
+      * For "e": Sets `re` to the next `DHLEN` bytes from the buffer.  If `psk`
+      is true, calls `MixKey(e.public_key)`.
       
-      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  On encountering this token the 
-      relevant DH key pair and public key variables must be non-empty, otherwise the
-      pattern is invalid and this function aborts.
+      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
+      `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
+      `DecryptAndHash(data)`.  
+      
+      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  
 
     * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
@@ -381,7 +368,24 @@ responder's static public key as well as the responder's ephemeral:
       -> e, dhes 
       <- e, dhee
 
-6.1. One-way patterns
+6.1 Pattern validity 
+----------------------
+
+Noise patterns must be **valid** in two senses:
+
+ * Parties can only send static public keys they possess, or perform DH between
+ keys they possess.
+
+ * Because Noise uses ephemeral public keys as nonces, parties must send an
+ ephemeral public key as the first token of the first message they send.  Also,
+ after sending an ephemeral public key, parties must never send encrypted data
+ unless they have performed DH between their current ephemeral and all of the
+ other party's key pairs.  
+
+Patterns failing the first check will obviously abort the program.  Patterns
+failing the second check could result in subtle but catastrophic security flaws.
+
+6.2. One-way patterns 
 ----------------------
 
 The following patterns represent "one-way" handshakes supporting a one-way
@@ -413,7 +417,7 @@ send any messages using it.
       ------
       -> e, dhes, s, dhss
 
-6.2. Interactive patterns 
+6.3. Interactive patterns 
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
@@ -458,7 +462,7 @@ exchange messages to agree on a shared key.
                             
 
     Noise_XN(s):                     Noise_IN(s):
-      -> e                             -> s, e
+      -> e                             -> e, s
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                          
@@ -477,7 +481,7 @@ exchange messages to agree on a shared key.
       -> s, dhse                                                     
                                        
     Noise_XX(s, rs):                 Noise_IX(s, rs):
-      -> e                             -> s, e
+      -> e                             -> e, s
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
