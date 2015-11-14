@@ -286,8 +286,8 @@ A `HandshakeState` responds to the following methods:
     message pattern:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
-      for `e`.  Appends `e.public_key` to the buffer.  If `psk` is true, calls
-      `MixKey(e.public_key)`.
+      for `e`.  Appends `e.public_key` to the buffer.  Calls
+      `MixHash(e.public_key)`.  If `psk` is true, calls `MixKey(e.public_key)`.
 
       * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
@@ -306,8 +306,8 @@ A `HandshakeState` responds to the following methods:
     increments `message_index`, and sequentially processes each token from the
     message pattern:
 
-      * For "e": Sets `re` to the next `DHLEN` bytes from the buffer.  If `psk`
-      is true, calls `MixKey(e.public_key)`.
+      * For "e": Sets `re` to the next `DHLEN` bytes from the buffer. Calls
+      `MixHash(e.public_key)`.  If `psk` is true, calls `MixKey(e.public_key)`.
       
       * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
       `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
