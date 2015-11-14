@@ -239,7 +239,7 @@ variables, any of which may be empty:
 A `HandshakeState` also has the following variables:
 
  * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
-   sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss).
+   sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss").
 
  * **`message_index`**: An integer indicating the next pattern to fetch from
  `message_patterns`.
