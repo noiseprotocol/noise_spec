@@ -307,7 +307,7 @@ A `HandshakeState` responds to the following methods:
     message pattern:
 
       * For "e": Sets `re` to the next `DHLEN` bytes from the buffer. Calls
-      `MixHash(e.public_key)`.  If `psk` is true, calls `MixKey(e.public_key)`.
+      `MixHash(re.public_key)`.  If `psk` is true, calls `MixKey(re.public_key)`.
       
       * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
       `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
