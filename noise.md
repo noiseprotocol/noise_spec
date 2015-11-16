@@ -152,7 +152,9 @@ operator applied to `n` means "use the current `n` value, then increment it".
 A `SymmetricState` object extends a `CipherState` with the following
 variables:
 
- * **`has_key`**: A boolean that records whether key `k` is a secret value.
+ * **`has_k`**: A boolean that records whether `k` has been initialized to a secret value.
+
+ * **`has_psk`**:  A boolean that records whether a preshared key was mixed in.
  
  * **`ck`**: A chaining key of `HASHLEN` bytes.
  
@@ -161,23 +163,26 @@ variables:
 A `SymmetricState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
- `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_key =
- False`.  If `handshake_name` is less than or equal to `HASHLEN` bytes in
+ `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_k` and `has_psk` to
+ `False`.  If `handshake_name` is less than or equal to `HASHLEN` bytes in
  length, sets `h` equal to `handshake_name` with zero bytes appended to make
  `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
 
  * **`MixKey(input_key_material)`**:  Sets `ck, k = HKDF(ck,
    input_key_material)`.  If `HASHLEN` is not 32, then the second output from
-   `HKDF()` is truncated to 32 bytes to match `k`.  Sets `n = 0` and `has_key =
+   `HKDF()` is truncated to 32 bytes to match `k`.  Sets `n = 0` and `has_k =
    True`.
   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
- * **`EncryptAndHash(plaintext)`**: If `has_key == True` sets `ciphertext =
+ * **`MixPresharedKey(preshared_key)`**:  Sets `ck, temp = HKDF(ck,
+   preshared_key)`.  Calls `MixHash(temp)`.  Sets `has_psk = True`.
+
+ * **`EncryptAndHash(plaintext)`**: If `has_k == True` sets `ciphertext =
  EncryptAndIncrement(h, plaintext)`, calls `MixHash(ciphertext)`, and returns
  `ciphertext`.  Otherwise calls `MixHash(plaintext)` and returns `plaintext`.
 
- * **`DecryptAndHash(data)`**: If `has_key == True` sets `plaintext =
+ * **`DecryptAndHash(data)`**: If `has_k == True` sets `plaintext =
  DecryptAndIncrement(h, data)`, calls `MixHash(data)`, and returns `plaintext`.
  Otherwise calls `MixHash(data)` and returns `data`.
 
@@ -244,7 +249,6 @@ A `HandshakeState` also has the following variables:
  * **`message_index`**: An integer indicating the next pattern to fetch from
  `message_patterns`.
 
- * **`psk`**:  A boolean specifying whether a `preshared_key` is in use.
 
 A `HandshakeState` responds to the following methods:
 
@@ -264,8 +268,7 @@ A `HandshakeState` responds to the following methods:
 
    * Calls `MixHash(prologue)`.
 
-   * If `preshared_key` is non-empty, calls `MixKey(preshared_key)`, then
-     `MixHash(k)`, and sets `psk = True`.  Otherwise sets `psk = False`.
+   * If `preshared_key` is non-empty, calls `MixPresharedKey(preshared_key)`.
 
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
    
@@ -286,8 +289,9 @@ A `HandshakeState` responds to the following methods:
     message pattern:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
-      for `e`.  Appends `e.public_key` to the buffer.  Calls
-      `MixHash(e.public_key)`.  If `psk` is true, calls `MixKey(e.public_key)`.
+        for `e`.  Appends `e.public_key` to the buffer.  Calls
+        `MixHash(e.public_key)`.  If `has_psk == True`, calls
+        `MixKey(e.public_key)`.
 
       * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
@@ -307,10 +311,11 @@ A `HandshakeState` responds to the following methods:
     message pattern:
 
       * For "e": Sets `re` to the next `DHLEN` bytes from the buffer. Calls
-      `MixHash(re.public_key)`.  If `psk` is true, calls `MixKey(re.public_key)`.
+        `MixHash(re.public_key)`.  If `has_psk == True`, calls
+        `MixKey(re.public_key)`.
       
       * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
-      `has_key == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
+      `has_k == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
       `DecryptAndHash(data)`.  
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  
