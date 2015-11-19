@@ -20,3 +20,4 @@ There are in-progress implementations at:
 
 <https://github.com/trevp/screech> 
 
+<https://github.com/titanous/noise>
