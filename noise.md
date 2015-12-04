@@ -116,7 +116,7 @@ Noise depends on the following **hash function** (and associated constants):
  RFC 2104).
 
 Noise defines an additional function based on the above `HASH` function.  The
-`||` operator indicates concatentation of byte sequences:
+`||` operator indicates concatenation of byte sequences:
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
