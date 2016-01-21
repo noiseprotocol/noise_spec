@@ -28,7 +28,7 @@ with the shared key.
 
 The Noise framework supports handshakes where each party has a
 long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
-is described by **patterns**:  A **message pattern** is a sequence of
+is described by **patterns**.  A **message pattern** is a sequence of
 **tokens** than specifies the DH public keys that comprise a handshake message,
 and the DH operations that are performed when sending or receiving that
 message.  A **handshake pattern** specifies the sequence of message patterns
@@ -41,7 +41,10 @@ own, such as indicating message lengths.
 
 2.2. Handshake state machine
 -----------------------------
-The core of Noise is a set of variables maintained by each party during a handshake, and rules for sending and receiving handshake messages by sequentially processing the tokens from a message pattern.
+
+The core of Noise is a set of variables maintained by each party during a
+handshake, and rules for sending and receiving handshake messages by
+sequentially processing the tokens from a message pattern.
 
 Each party to a handshake maintains the following variables:
 
@@ -51,31 +54,56 @@ Each party to a handshake maintains the following variables:
 
  * **h**: A value that hashes all the handshake data that's been sent and received.
 
- * **ck**: A "chaining key" that hashes all previous DH outputs.  Once the handshake completes, the chaining key will be used to derive the encryption keys for transport messages.
+ * **ck**: A "chaining key" that hashes all previous DH outputs.  Once the
+   handshake completes, the chaining key will be used to derive the encryption
+   keys for transport messages.
  
- * **k, n**: A encryption key `k` (which may be empty) and counter-based nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a new `k` is calculated from the same inputs.  The key `k` is used to encrypt static public keys and handshake payloads, incrementing `n` with each encryption.  Encryptions with `k` use an "AEAD" cipher mode and include the current `h` value as "additional authenticated data".  This encryption provides some confidentiality to values exchanged during the handshake phase, and also provides confirmation to the other party that the correct key was derived, and that the other party has the same view of transmitted handshake data.
+ * **k, n**: A encryption key `k` (which may be empty) and counter-based nonce
+   `n`.  Whenever a new DH output causes a new `ck` to be calculated, a new `k`
+   is calculated from the same inputs.  The key `k` is used to encrypt static
+   public keys and handshake payloads, incrementing `n` with each encryption.
+   Encryptions with `k` use an "AEAD" cipher mode and include the current `h`
+   value as "additional authenticated data".  Encryption of static public keys
+   and payloads provides some confidentiality during the handshake phase,
+   confirms to the other party that the correct key was derived, and confirms
+   to the other party that the sender has a matching view of transmitted
+   handshake data.
 
-To send a handshake message, the sender sequentially processes each token from a message pattern.  The possible tokens are:
+To send a handshake message, the sender sequentially processes each token from
+a message pattern.  The possible tokens are:
 
- * **"e"**: The sending party generates an ephemeral key pair and store it in the `e` variable, writes the ephemeral public key in clear into the message buffer, and hashes the public key into `h`.
+ * **"e"**: The sending party generates an ephemeral key pair and store it in
+   the `e` variable, writes the ephemeral public key in clear into the message
+   buffer, and hashes the public key along with the old `h` to derive a new `h`.
 
- * **"s"**: The party writes its static public key from the `s` variable into the message buffer, encrypting it if `k` is non-empty, and hashes the output along with the old `h` to derive a new `h`.
+ * **"s"**: The party writes its static public key from the `s` variable into
+   the message buffer, encrypting it if `k` is non-empty, and hashes the output
+   along with the old `h` to derive a new `h`.
 
- * **"dhee", "dhse", "dhes", "dhss"**: The party performs a DH between its corresponding local key pair (the first letter) and the remote public key (the second letter).  The result is hashed along with the old `ck` to derive a new `ck` and `k`, and `n` is set to zero.
+ * **"dhee", "dhse", "dhes", "dhss"**: The party performs a DH between its
+   corresponding local key pair (the first letter) and the remote public key
+   (the second letter).  The result is hashed along with the old `ck` to derive
+   a new `ck` and `k`, and `n` is set to zero.
 
-After processing the final token in a handshake message, the sender then writes the payload (which may be zero-length) into the message buffer, encrypting it if `k` is non-empty, and hashing the output along with the old `h` to derive a new `h`.
+After processing the final token in a handshake message, the sender then writes
+the payload (which may be zero-length) into the message buffer, encrypting it
+if `k` is non-empty, and hashing the output along with the old `h` to derive a
+new `h`.
 
-As a simple example, an unauthenticated DH handshake is described by the handshake pattern:
+As a simple example, an unauthenticated DH handshake is described by the
+handshake pattern:
 
       -> e
       <- e, dhee    
 
-The responder can sends its static public key (under encryption) and authenticate itself via a slightly different pattern:
+The responder can sends its static public key (under encryption) and
+authenticate itself via a slightly different pattern:
 
       -> e
       <- e, dhee, s, dhse
 
-The initiator can send *its* static public key (under encryption), and authenticate itself, using a pattern with one additional message:
+The initiator can send *its* static public key (under encryption), and
+authenticate itself, using a pattern with one additional message:
 
       -> e
       <- e, dhee, s, dhse
