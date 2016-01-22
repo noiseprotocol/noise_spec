@@ -60,20 +60,20 @@ Each party to a handshake maintains the following variables:
  
  * **`k, n`**: A encryption key `k` (which may be empty) and a counter-based
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
-   new `k` is also calculated from the same inputs.  The key `k` is used to
-   encrypt static public keys and handshake payloads, incrementing `n` with
-   each encryption.  Encryption with `k` uses an "AEAD" cipher mode and
-   includes the current `h` value as "associated data" which is covered by the
-   AEAD authentication tag.  Encryption of static public keys and payloads provides
-   some confidentiality during the handshake phase, confirms to the other party
-   that the correct key was derived, and confirms to the other party that the
-   sender has a matching view of transmitted handshake data.
+   new `k` is also calculated from the same inputs.  The key `k` and nonce `n`
+   are used to encrypt static public keys and handshake payloads, incrementing
+   `n` with each encryption.  Encryption with `k` uses an "AEAD" cipher mode
+   and includes the current `h` value as "associated data" which is covered by
+   the AEAD authentication tag.  Encryption of static public keys and payloads
+   provides some confidentiality during the handshake phase.  It also confirms
+   to the other party that the correct key was derived, and also confirms that
+   the sender has a matching view of transmitted handshake data.
 
 To send a handshake message, the sender sequentially processes each token from
 a message pattern.  The possible tokens are:
 
  * **`"e"`**: The sending party generates a new ephemeral key pair and stores it in
-   the `e` variable, writes the ephemeral public key in clear into the message
+   the `e` variable, writes the ephemeral public key as cleartext into the message
    buffer, and hashes the public key along with the old `h` to derive a new `h`.
 
  * **`"s"`**: The sending party writes its static public key from the `s`
@@ -104,7 +104,7 @@ and the output is hashed into `ck`, which is the final shared key from the
 handshake.  Note that a cleartext payload can be sent in the first handshake
 message, and an encrypted payload can be sent in the response handshake message.  
 
-The responder can sends its static public key (under encryption) and
+The responder can send its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
 
       -> e
@@ -143,7 +143,8 @@ Restricting message size has several advantages:
 
  * Reduces the likelihood of errors in memory handling, or integer overflow. 
 
- * Enables support for streaming and random-access decryption of large data streams.
+ * Enables support for streaming decryption and random-access decryption of
+   large data streams.
 
  * Enables higher-level protocols that encapsulate Noise messages to use an efficient
  standard length field of 16 bits.
@@ -154,21 +155,22 @@ higher-level protocol that contains type and length information.  Noise
 messages might also encapsulate payloads that require parsing of some sort, but
 the payloads are opaque to Noise.
 
-A Noise transport message is simply an AEAD ciphertext that is less than or
+A Noise **transport message** is simply an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of some encrypted payload
 plus a 16-byte authentication tag.  The details depend on the AEAD cipher
 function, e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication
 tag typically occurs at the end of the ciphertext.
 
-A Noise handshake message begins with a sequence of one or more DH public keys,
-as determined by its message pattern.  Following the public keys will be a
-payload which can be used to convey certificates or other handshake data.
-Static public keys and payloads will be in cleartext if they occur in a
-handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
-they occur after a DH operation.  (If Noise is being used with pre-shared keys,
-this rule is different: *all* static public keys and payloads will be
-encrypted; see Section 6).  Like transport messages, AEAD ciphertexts will
-expand each encrypted field by 16 bytes for an authentication tag.
+A Noise **handshake message** is also less than 65535 bytes.  It begins with a
+sequence of one or more DH public keys, as determined by its message pattern.
+Following the public keys will be a payload which can be used to convey
+certificates or other handshake data.  Static public keys and payloads will be
+in cleartext if they occur in a handshake pattern prior to a DH operation, and
+will be an AEAD ciphertext if they occur after a DH operation.  (If Noise is
+being used with pre-shared keys, this rule is different: *all* static public
+keys and payloads will be encrypted; see Section 6).  Like transport messages,
+AEAD ciphertexts will expand each encrypted field by 16 bytes for an
+authentication tag.
 
 For an example, consider the handshake pattern:
 
