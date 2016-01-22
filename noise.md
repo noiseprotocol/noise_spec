@@ -167,7 +167,7 @@ Static public keys and payloads will be in cleartext if they occur in a
 handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
 they occur after a DH operation.  (If Noise is being used with pre-shared keys,
 this rule is different: *all* static public keys and payloads will be
-encrypted; see Section 5).  Like transport messages, AEAD ciphertexts will
+encrypted; see Section 6).  Like transport messages, AEAD ciphertexts will
 expand each encrypted field by 16 bytes for an authentication tag.
 
 For an example, consider the handshake pattern:
@@ -195,7 +195,7 @@ bytes, since the first payload becomes encrypted.
 A Noise protocol must be instantiated with a concrete set of **DH functions**,
 **cipher functions**, and a **hash function**.  The signature for these
 functions is defined below.  Some concrete example functions are defined in
-Section 8.
+Section 9.
 
 Noise depends on the following **DH functions** (and an associated constant):
 
@@ -328,7 +328,7 @@ variables:
 A `SymmetricState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
-   `handshake_name` byte sequence (see Section 9).  If `handshake_name` is less
+   `handshake_name` byte sequence (see Section 10).  If `handshake_name` is less
    than or equal to `HASHLEN` bytes in length, sets `h` equal to
    `handshake_name` with zero bytes appended to make `HASHLEN` bytes.
    Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
@@ -378,7 +378,7 @@ A `HandshakeState` also has the following variables:
 A `HandshakeState` responds to the following methods:
 
  * **`Initialize(handshake_pattern, initiator, prologue, new_s, new_e, new_rs,
-   new_re)`**: Takes a valid handshake pattern (see Section 6), and an
+   new_re)`**: Takes a valid handshake pattern (see Section 7), and an
    `initiator` boolean specifying this party's role.  Takes a `prologue` byte
    sequence which may be zero-length, or which may contain context information
    that both parties want to confirm is identical, such as protocol or version
@@ -386,7 +386,7 @@ A `HandshakeState` responds to the following methods:
    keys for initializing local variables, any of which may be empty.
  
    * Derives a `handshake_name` byte sequence by combining the names for the 
-   handshake pattern and crypto functions, as specified in Section 9. Calls 
+   handshake pattern and crypto functions, as specified in Section 10. Calls 
    `InitializeSymmetric(handshake_name)`.
 
    * Calls `MixHash(prologue)`.
@@ -394,9 +394,9 @@ A `HandshakeState` responds to the following methods:
    * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding arguments.
    
    * Calls `MixHash()` once for each public key listed in the pre-messages from
-   `handshake_pattern`, with the specified public key as input (see Section 6).  If
-   both initiator and responder have pre-messages, the initiator's public keys
-   are hashed first.
+     `handshake_pattern`, with the specified public key as input (see Section 7
+     for an explanation of pre-messages).  If both initiator and responder have
+     pre-messages, the initiator's public keys are hashed first.
 
    * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
@@ -451,7 +451,7 @@ Noise provides an optional "pre-shared key" or "PSK" mode to support protocols
 where both parties already have a shared secret key.  When using pre-shared
 keys, the following changes are made:
 
- * Handshake names (Section 9) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
+ * Handshake names (Section 10) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
 
  * `Initialize()` takes an additional `psk` argument, which is a sequence of
    bytes.  Immediately after `MixHash(prologue)`, you set `ck, temp = HKDF(ck,
@@ -462,7 +462,7 @@ keys, the following changes are made:
  * `WriteMessage()` and `ReadMessage()` are modified when processing the `"e"`
    token to call `MixKey(e.public_key)` as the final step.  Because the initial
    messages in a handshake pattern are required to start with `"e"` (Section
-   6.1), this ensures `k` is initialized from the pre-shared key.  This also
+   7.1), this ensures `k` is initialized from the pre-shared key.  This also
    uses the ephemeral public key's value as a random nonce to prevent
    re-using the same `k` and `n` for different messages.
 
@@ -478,8 +478,8 @@ A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee"
    * `"s, e"`
    * empty
 
- * A pattern for the responder's pre-message that takes one of the same
-   values as the initiator's pre-message.
+ * A pattern for the responder's pre-message that takes the same
+   range of values as the initiator's pre-message.
 
  * A sequence of message patterns for the actual handshake messages
 
@@ -514,7 +514,9 @@ initiator's is listed first (and hashed first).  During `Initialize()`,
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
-responder's static public key as well as the responder's ephemeral:
+responder's static public key as well as the responder's ephemeral.  Note that
+this pre-knowledge allows an encrypted payload to be sent in the first message,
+although full forward secrecy is only achieved with the second message.
 
     Noise_NK(rs):
       <- s
@@ -531,10 +533,10 @@ Noise patterns must be **valid** in two senses:
  keys they possess.
 
  * Because Noise uses ephemeral public keys as nonces, parties must send an
- ephemeral public key as the first token of the first message they send.  Also,
- after sending an ephemeral public key, parties must never send encrypted data
- unless they have performed DH between their current ephemeral and all of the
- other party's key pairs.  
+   ephemeral public key as the first token of the first message they send.
+   Also, after sending an ephemeral public key, parties must not send encrypted
+   data (i.e. static public keys and payloads) until they have performed DH
+   between their current ephemeral and all of the other party's key pairs.  
 
 Patterns failing the first check will obviously abort the program.  Patterns
 failing the second check could result in subtle but catastrophic security flaws.
@@ -542,8 +544,9 @@ failing the second check could result in subtle but catastrophic security flaws.
 7.2. One-way patterns 
 ----------------------
 
-The following patterns represent "one-way" handshakes supporting a one-way
-stream of data from a sender to a recipient.  
+The following handshake patterns represent "one-way" handshakes supporting a
+one-way stream of data from a sender to a recipient.  These patterns could be
+used to encrypt files, database records, or other non-interactive data streams.
 
 Following these one-way handshakes the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
@@ -571,11 +574,16 @@ send any messages using it.
       ...
       -> e, dhes, s, dhss
 
+Note that `Noise_N` represents a conventional "public-key encryption".  The
+other patterns add sender authentication, where the sender's public key is
+either known to the recipient beforehand (`Noise_K`) or transmitted under
+encryption (`Noise_X`).
+
 7.3. Interactive patterns 
 --------------------------
 
-The following 16 patterns represent protocols where the initiator and responder
-exchange messages to agree on a shared key.
+The following 16 handshake patterns represent interactive protocols where the
+initiator and responder exchange messages to agree on a shared key.
 
      N_ = no static key for initiator
      K_ = static key for initiator known to responder
@@ -646,7 +654,7 @@ A protocol may support **handshake re-initialization**.  In this case, the
 recipient of a handshake message must also receive some indication whether this
 is the next message in the current handshake, or whether to re-initialize the
 `HandshakeState` and perform a different handshake (see discussion on "Type
-fields" in Section 10).
+fields" in Section 11).
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses two patterns defined in the previous section: `Noise_XX` is used
@@ -858,7 +866,7 @@ An application built on Noise must consider several issues:
 This section collects various security considerations:
 
  * **Termination**:  Preventing attackers from truncating a stream of transport
-   messages is an application responsibility.  See above.
+   messages is an application responsibility.  See previous section.
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key `k`
  for encryption would be catastrophic.  Implementations must carefully follow
@@ -867,7 +875,7 @@ This section collects various security considerations:
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
    ephemeral public key and perform a DH with it prior to sending any encrypted
    data.  Otherwise replay of a handshake message could trigger catastrophic
-   key reuse. This is one rationale behind the patterns in Section 6.  It's
+   key reuse. This is one rationale behind the patterns in Section 7.  It's
    also the reason why one-way handshakes only allow transport messages from
    the sender, not the recipient.
 
