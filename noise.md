@@ -485,7 +485,7 @@ A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee"
 
 The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
-`Initialize()`.  
+`Initialize()` for the recipient of the pre-message.  
 
 The first actual handshake message is sent from the initiator to the responder,
 the next is sent by the responder, the next from the initiator, and so on in
@@ -728,7 +728,7 @@ field, followed by the Noise tranport message.
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 DH function (aka "X25519"
-   in some other specifications).  If the function detects an invalid public
+   in some specifications).  If the function detects an invalid public
    key, the output may be set to all zeros or any other value that doesn't leak
    information about the private key.
 
