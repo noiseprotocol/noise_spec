@@ -20,7 +20,7 @@ interactive protocols.
 2.1. Terminology
 -----------------
 
-A Noise protocol begins with two parties sending **handshake messages**.
+A Noise protocol begins with two parties exchanging **handshake messages**.
 During this **handshake phase** the parties exchange DH public keys and perform
 a sequence of DH operations, hashing the DH results into a shared secret key.
 After the handshake phase each party can send **transport messages** encrypted
@@ -29,7 +29,7 @@ with the shared key.
 The Noise framework supports handshakes where each party has a
 long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
 is described by **patterns**.  A **message pattern** is a sequence of
-**tokens** than specifies the DH public keys that comprise a handshake message,
+**tokens** that specifies the DH public keys that comprise a handshake message,
 and the DH operations that are performed when sending or receiving that
 message.  A **handshake pattern** specifies the sequence of message patterns
 that comprise a handshake.
@@ -58,32 +58,34 @@ Each party to a handshake maintains the following variables:
    handshake completes, the chaining key will be used to derive the encryption
    keys for transport messages.
  
- * **k, n**: A encryption key `k` (which may be empty) and counter-based nonce
-   `n`.  Whenever a new DH output causes a new `ck` to be calculated, a new `k`
-   is calculated from the same inputs.  The key `k` is used to encrypt static
-   public keys and handshake payloads, incrementing `n` with each encryption.
-   Encryptions with `k` use an "AEAD" cipher mode and include the current `h`
-   value as "additional authenticated data".  Encryption of static public keys
-   and payloads provides some confidentiality during the handshake phase,
-   confirms to the other party that the correct key was derived, and confirms
-   to the other party that the sender has a matching view of transmitted
-   handshake data.
+ * **k, n**: A encryption key `k` (which may be empty) and a counter-based
+   nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
+   new `k` is also calculated from the same inputs.  The key `k` is used to
+   encrypt static public keys and handshake payloads, incrementing `n` with
+   each encryption.  Encryption with `k` uses an "AEAD" cipher mode and
+   includes the current `h` value as "associated data" which is covered by the
+   AEAD authentication tag.  Encryption of static public keys and payloads provides
+   some confidentiality during the handshake phase, confirms to the other party
+   that the correct key was derived, and confirms to the other party that the
+   sender has a matching view of transmitted handshake data.
 
 To send a handshake message, the sender sequentially processes each token from
 a message pattern.  The possible tokens are:
 
- * **"e"**: The sending party generates an ephemeral key pair and store it in
+ * **"e"**: The sending party generates a new ephemeral key pair and stores it in
    the `e` variable, writes the ephemeral public key in clear into the message
    buffer, and hashes the public key along with the old `h` to derive a new `h`.
 
- * **"s"**: The party writes its static public key from the `s` variable into
-   the message buffer, encrypting it if `k` is non-empty, and hashes the output
-   along with the old `h` to derive a new `h`.
+ * **"s"**: The sending party writes its static public key from the `s`
+   variable into the message buffer, encrypting it if `k` is non-empty, and
+   hashes the output along with the old `h` to derive a new `h`.
 
- * **"dhee", "dhse", "dhes", "dhss"**: The party performs a DH between its
-   corresponding local key pair (the first letter) and the remote public key
-   (the second letter).  The result is hashed along with the old `ck` to derive
-   a new `ck` and `k`, and `n` is set to zero.
+ * **"dhee", "dhse", "dhes", "dhss"**: The sending party performs a DH between
+   its corresponding local key pair (whether `s` or `e` is determined by the
+   first letter following `"dh"`) and the remote public key (whether `rs` or `re`
+   is determined by the second letter following `"dh"`).  The result is hashed
+   along with the old `ck` to derive a new `ck` and `k`, and `n` is set to
+   zero.
 
 After processing the final token in a handshake message, the sender then writes
 the payload (which may be zero-length) into the message buffer, encrypting it
@@ -96,14 +98,30 @@ handshake pattern:
       -> e
       <- e, dhee    
 
+The initiator sends the first message, which is simply an ephemeral public key.
+The responder sends back its own ephemeral public key.  Then a DH is performed
+and the output is hashed into `ck`, which is the final shared key from the
+handshake.  Note that a cleartext payload can be sent in the first handshake
+message, and an encrypted payload can be sent in the response handshake message.  
+
 The responder can sends its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
 
       -> e
       <- e, dhee, s, dhse
 
+In this case, the final `ck` and `k` values are a hash of both DH results.
+Since the `dhse` token indicates a DH between the initiator's ephemeral key and
+the responder's static key, successful decryption by the initiator of the
+second message's payload serves to authenticate the responder to the initiator.
+
+Note that the second message's payload may contain a zero-length plaintext, but
+the payload ciphertext will still contain an authentication tag, since
+encryption is with an AEAD mode.  The second message's payload can also be used to
+deliver certificates for the responder's static public key.
+
 The initiator can send *its* static public key (under encryption), and
-authenticate itself, using a pattern with one additional message:
+authenticate itself, using a handshake pattern with one additional message:
 
       -> e
       <- e, dhee, s, dhse
@@ -112,52 +130,64 @@ authenticate itself, using a pattern with one additional message:
 The following sections flesh out the details, and add some complications (such
 as pre-shared symmetric keys, and "pre-messages" that represent knowledge of
 the other party's public keys before the handshake).  However, the core of
-Noise is this simple system of variables, tokens, and processing rules, which allow concise expression of a range of protocols.
+Noise is this simple system of variables, tokens, and processing rules, which
+allow concise expression of a range of protocols.
 
 3.  Message format
 ===================
 
-All Noise messages are less than or equal to 65535 bytes in length, and can be
-processed without parsing, since there are no type or length fields within the
-message.  
+All Noise messages are less than or equal to 65535 bytes in length.
+Restricting message size has several advantages:
 
-A handshake message begins with a sequence of one or more DH public keys.
-Following the public keys will be a **payload** which could be used to convey
-certificates or other handshake data.  Encryption of static public keys and
-payloads will occur after a DH operation establishes a shared secret key between
-the two parties.  Ephemeral public keys aren't encrypted.  Zero-length payloads
-are allowed.  If encrypted, a zero-length payload will result in a 16-byte
-payload ciphertext, since encryption adds a 16-byte **authentication tag** to
-each ciphertext.
+ * Simplifies testing, since it's easy to test the maximum sizes.
 
-A transport message consists solely of an encrypted payload. 
+ * Reduces the likelihood of errors in memory handling, or integer overflow. 
+
+ * Enables support for streaming and random-access decryption of large data streams.
+
+ * Enables higher-level protocols that encapsulate Noise messages to use an efficient
+ standard length field of 16 bits.
+
+All Noise messages can be processed without parsing, since there are no type or
+length fields.  Of course, Noise messages might be encapsulated within a
+higher-level protocol that contains type and length information.  Noise
+messages might also encapsulate payloads that require parsing of some sort, but
+the payloads are opaque to Noise.
+
+A Noise transport message is simply an AEAD ciphertext that is less than or
+equal to 65535 bytes in length, and that consists of some encrypted payload
+plus a 16-byte authentication tag.  The details depend on the AEAD cipher
+function, e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication
+tag typically occurs at the end of the ciphertext.
+
+A Noise handshake message begins with a sequence of one or more DH public keys,
+as determined by its message pattern.  Following the public keys will be a
+payload which can be used to convey certificates or other handshake data.
+Static public keys and payloads will be in cleartext if they occur in a
+handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
+they occur after a DH operation.  (If Noise is being used with pre-shared keys,
+this rule is different: *all* static public keys and payloads will be
+encrypted; see Section 5).  Like transport messages, AEAD ciphertexts will
+expand each encrypted field by 16 bytes for an authentication tag.
+
+For an example, consider the handshake pattern:
+
+      -> e
+      <- e, dhee, s, dhse
+      -> s, dhse
+
+The first message consists of a cleartext public key followed by a cleartext payload (remember that payloads are implicit, but are always present).  The second message consists of a cleartext public key followed by an encrypted public key followed by an encrypted payload.  The third message consists of an encrypted public key followed by an encrypted payload.  
+
+Assuming zero-length payloads and DH public keys of 32 bytes, the message sizes will be 32 bytes (one public key), then 96 bytes (two public keys and two authentication tags), then 64 bytes (one public key and two authentication tags).  If pre-shared keys are used, the first message grows in size to 48 bytes, since the first payload becomes encrypted.
+
 
 4.  Crypto algorithms
 ======================
 
-A Noise protocol depends on **DH functions**, **cipher functions**, and a **hash
-function**.
-
-During a Noise handshake, the outputs from DH functions will be sequentially
-mixed into a secret **chaining key (`ck`)**.  Cipher keys **(`k`)** derived from the
-chaining key will be used to encrypt public keys and handshake payloads.  These
-ciphertexts will also be sequentially mixed into a **hash variable (`h`)**.  The
-`h` variable will be authenticated with every handshake ciphertext, to ensure
-ciphertexts are bound to earlier data.
-
-To represent a **cipher key** and its associated **nonce** we introduce the notion
-of a **`CipherState`** which contains `k` and `n` variables.
-
-To handle symmetric-key crypto during the handshake we introduce a
-**`SymmetricState`** which extends a `CipherState` with `ck` and `h`
-variables.  An implementation will create a `SymmetricState` to handle
-a single Noise handshake, and can delete it once the handshake is finished.  
-
-The below sections describe these concepts in more detail.
-
-
-4.1. DH functions, cipher functions, and hash functions
---------------------------------------------------------
+A Noise protocol must be instantiated with a concrete set of **DH functions**,
+**cipher functions**, and a **hash function**.  The signature for these
+functions is defined below.  Some concrete example functions are defined in
+Section 8.
 
 Noise depends on the following **DH functions** (and an associated constant):
 
@@ -174,13 +204,15 @@ Noise depends on the following **cipher functions**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
    key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
-   unique for the key `k`.  Encryption must be done with an "AEAD" encryption
-   mode with the associated data `ad` and must return a ciphertext that is the
-   same size as the plaintext plus 16 bytes for an authentication tag.
+   unique for the key `k`.  Returns the ciphertext.  Encryption must be done
+   with an "AEAD" encryption mode with the associated data `ad` and returns
+   a ciphertext that is the same size as the plaintext plus 16 bytes for an
+   authentication tag.
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
- key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
- data `ad`.  If the authentication fails an error is signaled to the caller.
+   key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
+   data `ad`.  Returns the plaintext, unless authentication fails, in which
+   case an error is signaled to the caller.
 
 Noise depends on the following **hash function** (and associated constants):
 
@@ -207,35 +239,80 @@ Noise defines an additional function based on the above `HASH` function.  The
    (`output1`, `output2`).
 
 
-4.2. The  `CipherState` object 
--------------------------------
+4. Processing rules for handshake and transport messages
+---------------------------------------------------------
+
+To precisely define the processing rules we adopt an object-oriented
+terminology, and present three "objects" which encapsulate state variables and
+provide "methods" which implement processing logic.  These three objects are
+presented as a hierarchy: each higher layer object includes one instance of the
+object beneath it.  From lowest-layer to highest, the objects are:
+
+ * A **`CipherState`** object contains `k` and `n` variables, which it uses to
+   encrypt and decrypt ciphertexts.  During the handshake phase each party has
+   a single `CipherState`, but during the transport phase each party has two
+   `CipherState` objects: one for sending, and one for receiving.
+
+ * A **`SymmetricState`** object contains a `CipherState` plus `ck` and `h`
+   variables.  It is so-named because it encapsulates all the "symmetric
+   crypto" used by Noise.  During the handshake phase each party has a
+   single `SymmetricState`, which can be deleted once the handshake is
+   finished.
+
+ * A **`HandshakeState`** object contains a `SymmetricState` plus DH variables
+   (`e`, `s`, `re`, `rs`) and some variables representing the handshake pattern
+   that is being executed.  During the handshake phase each party has a single
+   `HandshakeState`, which can be deleted once the handshake is finished.
+
+To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
+initialization you specify the handshake pattern, any local key pairs, and any
+public keys for the remote party you have knowledge of.  You may optionally
+specify **prologue** data that both parties will confirm is identical (such as
+previously exchanged version negotiation messages).
+
+After `Initialize()` you call `WriteMessage()` and `ReadMessage()` on the
+`HandshakeState` to process each handshake message.  If a decryption error
+occurs the handshake has failed and the `HandshakeState` is deleted without
+sending further messages.
+
+Processing the final handshake message returns two `CipherState` objects, the
+first for encrypting transport messages from initiator to responder, and the
+second for messages in the other direction.  At that point the `HandshakeState`
+may be deleted.  Transport messages are then encrypted and decrypted by calling
+`Encrypt()` and `Decrypt()` on the relevant `CipherState` with zero-length
+associated data.
+
+The below sections describe these objects in detail.
+
+4.1 The `CipherState` object
+-----------------------------
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A cipher key of 32 bytes.
+ * **`k`**: A cipher key of 32 bytes (which may be empty).
 
- * **`n`**: An 8-byte unsigned integer nonce.
+ * **`n`**: An 8-byte (64-bit) unsigned integer nonce.
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
 
- * **`EncryptAndIncrement(ad, plaintext)`**:  Returns `ENCRYPT(k, n++, ad,
- plaintext)`.
+ * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
- * **`DecryptAndIncrement(ad, ciphertext)`**:  Returns `DECRYPT(k, n++, ad,
- ciphertext)`.  If an authentication failure occurs the error is signaled to the
- caller.
+ * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
-4.3. The `SymmetricState` object
+ * **`Encrypt(ad, plaintext)`**:  If `k` is non-empty returns `ENCRYPT(k, n++,
+   ad, plaintext)`.  Otherwise returns `plaintext`.
+
+ * **`Decrypt(ad, ciphertext)`**:  If `k` is non-empty returns `DECRYPT(k, n++,
+   ad, ciphertext)`.  Otherwise returns `ciphertext`.  If an authentication
+   failure occurs in `DECRYPT()` the error is signaled to the caller.
+
+4.2. The `SymmetricState` object
 -----------------------------------------
 
 A `SymmetricState` object extends a `CipherState` with the following
 variables:
 
- * **`has_k`**: A boolean that records whether `k` has been initialized to a secret value.
-
- * **`has_psk`**:  A boolean that records whether a preshared key was mixed in.
- 
  * **`ck`**: A chaining key of `HASHLEN` bytes.
  
  * **`h`**: A hash output of `HASHLEN` bytes.
@@ -243,71 +320,32 @@ variables:
 A `SymmetricState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
- `handshake_name`.  Leaves `k` and `n` uninitialized, and sets `has_k` and `has_psk` to
- `False`.  If `handshake_name` is less than or equal to `HASHLEN` bytes in
- length, sets `h` equal to `handshake_name` with zero bytes appended to make
- `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`.
+   `handshake_name` byte sequence (see Section 9).  If `handshake_name` is less
+   than or equal to `HASHLEN` bytes in length, sets `h` equal to
+   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.
+   Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
+   `InitializeKey(empty)`.  
 
- * **`MixKey(input_key_material)`**:  Sets `ck, k = HKDF(ck,
-   input_key_material)`.  If `HASHLEN` is not 32, then the second output from
-   `HKDF()` is truncated to 32 bytes to match `k`.  Sets `n = 0` and `has_k =
-   True`.
-  
+ * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
+   input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
+   bytes to match `k`.  Calls `InitializeKey(temp_k)`.
+   
  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
- * **`MixPresharedKey(preshared_key)`**:  Sets `ck, temp = HKDF(ck,
-   preshared_key)`.  Calls `MixHash(temp)`.  Sets `has_psk = True`.
+ * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = Encrypt(h, plaintext)`,
+   calls `MixHash(ciphertext)`, and returns `ciphertext`.
 
- * **`EncryptAndHash(plaintext)`**: If `has_k == True` sets `ciphertext =
- EncryptAndIncrement(h, plaintext)`, calls `MixHash(ciphertext)`, and returns
- `ciphertext`.  Otherwise calls `MixHash(plaintext)` and returns `plaintext`.
+ * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
+   calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`DecryptAndHash(data)`**: If `has_k == True` sets `plaintext =
- DecryptAndIncrement(h, data)`, calls `MixHash(data)`, and returns `plaintext`.
- Otherwise calls `MixHash(data)` and returns `data`.
-
- * **`Split()`**:  Creates two child `CipherState` objects by calling `HKDF(ck,
-   empty)` where `empty` is a zero-length byte sequence.  The first child's `k`
-   is set to the first output from `HKDF()`, and the second child's `k` is set
-   to the second output from `HKDF()`.  If `HASHLEN` is not 32, then each
-   output from `HKDF()` is truncated to 32 bytes to match `k`.  Both children's
-   `n` value is set to zero.  Both children are returned.  The caller will use
-   the child `CipherState` objects to encrypt transport messages, as described
-   in the next section.
-
-
-5.  The handshake algorithm
-============================
-
-A pattern for a handshake message is some sequence of **tokens** from the set
-("e", "s", "dhee", "dhes", "dhse", "dhss").  To send (or receive) a handshake
-message you iterate through the tokens that comprise the message's pattern.
-For each token you write (or read) the public key it specifies, or perform the
-DH operation it specifies.  
-
-To provide a rigorous description we introduce the notion of a `HandshakeState`
-object.  A `HandshakeState` extends a `SymmetricState` with DH variables.  
-
-To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
-initialization you specify any local key pairs, and any public keys for the
-remote party you have knowledge of.  You may optionally specify **prologue**
-data that both parties will confirm is identical (such as previously exchanged
-version negotiation messages), and/or a **pre-shared key** that will be used to
-encrypt and authenticate.  
-
-After `Initialize()` you call `WriteMessage()` and `ReadMessage()` to process
-each handshake message.  If a decryption error occurs the handshake has failed
-and the `HandshakeState` is deleted without sending further messages.
-
-Processing the final handshake message returns two `CipherState` objects, the
-first for encrypting transport messages from initiator to responder, and the
-second for messages in the other direction.  At that point the `HandshakeState`
-may be deleted.  Transport messages are then encrypted and decrypted by calling
-`EncryptAndIncrement()` and `DecryptAndIncrement()` on the relevant
-`CipherState` with zero-length associated data.
-
-
-5.1. The `HandshakeState` object
+ * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, empty)` where `empty` is a
+   zero-length byte sequence.  If `HASHLEN` is 64, then `temp_k1` and `temp_k2`
+   are truncated to 32 bytes to match `k`.  Creates two new `CipherState`
+   objects `c1` and `c2`.  Calls `c1.InitializeKey(temp_k1)` and
+   `c2.InitializeKey(temp_k2)`.  Returns the pair `(c1, c2)`.  The caller will
+   use the returned `CipherState` objects to encrypt and decrypt transport messages.
+   
+4.3. The `HandshakeState` object
 ---------------------------------
 
 A `HandshakeState` object extends a `SymmetricState` with the following
@@ -329,26 +367,21 @@ A `HandshakeState` also has the following variables:
  * **`message_index`**: An integer indicating the next pattern to fetch from
  `message_patterns`.
 
-
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(handshake_pattern, initiator, prologue, preshared_key, new_s,
- new_e, new_rs, new_re)`**: Takes a valid handshake pattern (see Section 6), and
- an `initiator` boolean specifying this party's role.  Takes a `prologue` byte
- sequence which may be zero-length, or which may contain context information
- that both parties want to confirm is identical, such as protocol or version
- negotiation messages sent previously.  Takes a `preshared_key` which may be
- empty, or a byte sequence containing secret data known only to the initiator
- and responder.  Takes a set of DH keypairs and public keys for initializing
- local variables, any of which may be empty.
+ * **`Initialize(handshake_pattern, initiator, prologue, new_s, new_e, new_rs,
+   new_re)`**: Takes a valid handshake pattern (see Section 6), and an
+   `initiator` boolean specifying this party's role.  Takes a `prologue` byte
+   sequence which may be zero-length, or which may contain context information
+   that both parties want to confirm is identical, such as protocol or version
+   negotiation messages sent previously.  Takes a set of DH keypairs and public
+   keys for initializing local variables, any of which may be empty.
  
    * Derives a `handshake_name` byte sequence by combining the names for the 
    handshake pattern and crypto functions, as specified in Section 9. Calls 
    `InitializeSymmetric(handshake_name)`.
 
    * Calls `MixHash(prologue)`.
-
-   * If `preshared_key` is non-empty, calls `MixPresharedKey(preshared_key)`.
 
    * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
    
@@ -370,8 +403,7 @@ A `HandshakeState` responds to the following methods:
 
       * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
         for `e`.  Appends `e.public_key` to the buffer.  Calls
-        `MixHash(e.public_key)`.  If `has_psk == True`, calls
-        `MixKey(e.public_key)`.
+        `MixHash(e.public_key)`.
 
       * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
@@ -391,11 +423,10 @@ A `HandshakeState` responds to the following methods:
     message pattern:
 
       * For "e": Sets `re` to the next `DHLEN` bytes from the buffer. Calls
-        `MixHash(re.public_key)`.  If `has_psk == True`, calls
-        `MixKey(re.public_key)`.
+        `MixHash(re.public_key)`. 
       
       * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
-      `has_k == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
+      `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
       `DecryptAndHash(data)`.  
       
       * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  
@@ -404,7 +435,29 @@ A `HandshakeState` responds to the following methods:
   
     * If there are no more message patterns returns two new `CipherState`
       objects by calling `Split()`.
-    
+
+5. Pre-shared keys
+===================
+
+Noise provides an optional "pre-shared key" or "PSK" mode to support protocols
+where both parties already have a shared secret key.  When using pre-shared
+keys, the following changes are made:
+
+ * Handshake names (Section 9) use the prefix "NoisePSK\_" instead of "Noise\_".
+
+ * `Initialize()` takes an additional `psk` argument, which is a sequence of
+   bytes.  Immediately after `MixHash(prologue)`, you set `ck, temp = HKDF(ck,
+   psk)`, then call `MixHash(temp)`.  This mixes the pre-shared key into the
+   chaining key, and also mixes a one-way function of the pre-shared key into
+   the `h` value to ensure that `h` is a function of all handshake inputs.
+
+ * `WriteMessage()` and `ReadMessage()` are modified when processing the `"e"`
+   token to call `MixKey(e.public_key)` as the final step.  Because the initial
+   messages in a handshake pattern are required to start with `"e"` (Section
+   6.1), this ensures `k` is initialized from the pre-shared key.  This also
+   uses the ephemeral public key's value as a random nonce to prevent
+   re-using the same `k` and `n` for different messages.
+
 6. Handshake patterns 
 ======================
 
