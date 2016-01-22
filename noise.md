@@ -48,17 +48,17 @@ sequentially processing the tokens from a message pattern.
 
 Each party to a handshake maintains the following variables:
 
- * **s, e**: The local party's static and ephemeral key pairs (which may be empty).
+ * **`s, e`**: The local party's static and ephemeral key pairs (which may be empty).
 
- * **rs, re**: The remote party's static and ephemeral public keys (which may be empty).
+ * **`rs, re`**: The remote party's static and ephemeral public keys (which may be empty).
 
- * **h**: A value that hashes all the handshake data that's been sent and received.
+ * **`h`**: A value that hashes all the handshake data that's been sent and received.
 
- * **ck**: A "chaining key" that hashes all previous DH outputs.  Once the
+ * **`ck`**: A "chaining key" that hashes all previous DH outputs.  Once the
    handshake completes, the chaining key will be used to derive the encryption
    keys for transport messages.
  
- * **k, n**: A encryption key `k` (which may be empty) and a counter-based
+ * **`k, n`**: A encryption key `k` (which may be empty) and a counter-based
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated from the same inputs.  The key `k` is used to
    encrypt static public keys and handshake payloads, incrementing `n` with
@@ -72,15 +72,15 @@ Each party to a handshake maintains the following variables:
 To send a handshake message, the sender sequentially processes each token from
 a message pattern.  The possible tokens are:
 
- * **"e"**: The sending party generates a new ephemeral key pair and stores it in
+ * **`"e"`**: The sending party generates a new ephemeral key pair and stores it in
    the `e` variable, writes the ephemeral public key in clear into the message
    buffer, and hashes the public key along with the old `h` to derive a new `h`.
 
- * **"s"**: The sending party writes its static public key from the `s`
+ * **`"s"`**: The sending party writes its static public key from the `s`
    variable into the message buffer, encrypting it if `k` is non-empty, and
    hashes the output along with the old `h` to derive a new `h`.
 
- * **"dhee", "dhse", "dhes", "dhss"**: The sending party performs a DH between
+ * **`"dhee", "dhse", "dhes", "dhss"`**: The sending party performs a DH between
    its corresponding local key pair (whether `s` or `e` is determined by the
    first letter following `"dh"`) and the remote public key (whether `rs` or `re`
    is determined by the second letter following `"dh"`).  The result is hashed
@@ -176,9 +176,17 @@ For an example, consider the handshake pattern:
       <- e, dhee, s, dhse
       -> s, dhse
 
-The first message consists of a cleartext public key followed by a cleartext payload (remember that payloads are implicit, but are always present).  The second message consists of a cleartext public key followed by an encrypted public key followed by an encrypted payload.  The third message consists of an encrypted public key followed by an encrypted payload.  
+The first message consists of a cleartext public key followed by a cleartext
+payload (remember that payloads are implicit in the pattern, but are always
+present).  The second message consists of a cleartext public key followed by an
+encrypted public key followed by an encrypted payload.  The third message
+consists of an encrypted public key followed by an encrypted payload.  
 
-Assuming zero-length payloads and DH public keys of 32 bytes, the message sizes will be 32 bytes (one public key), then 96 bytes (two public keys and two authentication tags), then 64 bytes (one public key and two authentication tags).  If pre-shared keys are used, the first message grows in size to 48 bytes, since the first payload becomes encrypted.
+Assuming zero-length payloads and DH public keys of 32 bytes, the message sizes
+will be 32 bytes (one public key), then 96 bytes (two public keys and two
+authentication tags), then 64 bytes (one public key and two authentication
+tags).  If pre-shared keys are used, the first message grows in size to 48
+bytes, since the first payload becomes encrypted.
 
 
 4.  Crypto algorithms
@@ -268,7 +276,7 @@ To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
 initialization you specify the handshake pattern, any local key pairs, and any
 public keys for the remote party you have knowledge of.  You may optionally
 specify **prologue** data that both parties will confirm is identical (such as
-previously exchanged version negotiation messages).
+previously exchanged negotiation messages).
 
 After `Initialize()` you call `WriteMessage()` and `ReadMessage()` on the
 `HandshakeState` to process each handshake message.  If a decryption error
@@ -362,7 +370,7 @@ variables, any of which may be empty:
 A `HandshakeState` also has the following variables:
 
  * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
-   sequence of tokens from the set ("s", "e", "dhee", "dhes", "dhse", "dhss").
+   sequence of tokens from the set `("s", "e", "dhee", "dhes", "dhse", "dhss")`.
 
  * **`message_index`**: An integer indicating the next pattern to fetch from
  `message_patterns`.
@@ -383,7 +391,7 @@ A `HandshakeState` responds to the following methods:
 
    * Calls `MixHash(prologue)`.
 
-   * Sets `s`, `e`, `rs`, and `re` to the corresponding arguments.
+   * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding arguments.
    
    * Calls `MixHash()` once for each public key listed in the pre-messages from
    `handshake_pattern`, passing in that public key as input (see Section 6).  If
@@ -401,13 +409,13 @@ A `HandshakeState` responds to the following methods:
     increments `message_index`, and sequentially processes each token from the
     message pattern:
 
-      * For "e":  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
+      * For `"e"`:  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous value
         for `e`.  Appends `e.public_key` to the buffer.  Calls
         `MixHash(e.public_key)`.
 
-      * For "s":  Appends `EncryptAndHash(s.public_key)` to the buffer.  
+      * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
-      * For "dh*xy*":  Calls `MixKey(DH(x, ry))`.
+      * For `"dh`*xy*`"`:  Calls `MixKey(DH(x, ry))`.
 
     * Appends `EncryptAndHash(payload)` to the buffer.  
     
@@ -422,14 +430,14 @@ A `HandshakeState` responds to the following methods:
     increments `message_index`, and sequentially processes each token from the
     message pattern:
 
-      * For "e": Sets `re` to the next `DHLEN` bytes from the buffer. Calls
+      * For `"e"`: Sets `re` to the next `DHLEN` bytes from the buffer. Calls
         `MixHash(re.public_key)`. 
       
-      * For "s": Sets `data` to the next `DHLEN + 16` bytes of the message if
+      * For `"s"`: Sets `data` to the next `DHLEN + 16` bytes of the message if
       `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
       `DecryptAndHash(data)`.  
       
-      * For "dh*xy*":  Calls `MixKey(DH(y, rx))`.  
+      * For `"dh`*xy*`"`:  Calls `MixKey(DH(y, rx))`.  
 
     * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
   
@@ -443,7 +451,7 @@ Noise provides an optional "pre-shared key" or "PSK" mode to support protocols
 where both parties already have a shared secret key.  When using pre-shared
 keys, the following changes are made:
 
- * Handshake names (Section 9) use the prefix "NoisePSK\_" instead of "Noise\_".
+ * Handshake names (Section 9) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
 
  * `Initialize()` takes an additional `psk` argument, which is a sequence of
    bytes.  Immediately after `MixHash(prologue)`, you set `ck, temp = HKDF(ck,
@@ -461,14 +469,14 @@ keys, the following changes are made:
 6. Handshake patterns 
 ======================
 
-A message pattern is some sequence of tokens from the set ("e", "s", "dhee", "dhes", "dhse",
-"dhss").  A handshake pattern consists of:
+A message pattern is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse",
+"dhss")`.  A handshake pattern consists of:
 
- * A pattern for the initiator's "pre-message" that is either "s", "e",
-   "s, e", or empty.
+ * A pattern for the initiator's "pre-message" that is either `"s"`, `"e"`,
+   `"s, e"`, or empty.
 
- * A pattern for the responder's "pre-message" that is either "s", "e",
-   "s, e", or empty.
+ * A pattern for the responder's "pre-message" that is either `"s"`, `"e"`,
+   `"s, e"`, or empty.
 
  * A sequence of message patterns for the actual handshake messages
 
