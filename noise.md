@@ -247,8 +247,8 @@ Noise defines an additional function based on the above `HASH` function.  The
    (`output1`, `output2`).
 
 
-4. Processing rules for handshake and transport messages
----------------------------------------------------------
+5. Processing rules for handshake and transport messages
+=========================================================
 
 To precisely define the processing rules we adopt an object-oriented
 terminology, and present three "objects" which encapsulate state variables and
@@ -268,7 +268,7 @@ object beneath it.  From lowest-layer to highest, the objects are:
    finished.
 
  * A **`HandshakeState`** object contains a `SymmetricState` plus DH variables
-   (`e`, `s`, `re`, `rs`) and some variables representing the handshake pattern
+   (`s`, `e`, `rs`, `re`) and some variables representing the handshake pattern
    that is being executed.  During the handshake phase each party has a single
    `HandshakeState`, which can be deleted once the handshake is finished.
 
@@ -292,7 +292,7 @@ associated data.
 
 The below sections describe these objects in detail.
 
-4.1 The `CipherState` object
+5.1 The `CipherState` object
 -----------------------------
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
@@ -315,7 +315,7 @@ operator applied to `n` means "use the current `n` value, then increment it".
    ad, ciphertext)`.  Otherwise returns `ciphertext`.  If an authentication
    failure occurs in `DECRYPT()` the error is signaled to the caller.
 
-4.2. The `SymmetricState` object
+5.2. The `SymmetricState` object
 -----------------------------------------
 
 A `SymmetricState` object extends a `CipherState` with the following
@@ -353,7 +353,7 @@ A `SymmetricState` responds to the following methods:
    `c2.InitializeKey(temp_k2)`.  Returns the pair `(c1, c2)`.  The caller will
    use the returned `CipherState` objects to encrypt and decrypt transport messages.
    
-4.3. The `HandshakeState` object
+5.3. The `HandshakeState` object
 ---------------------------------
 
 A `HandshakeState` object extends a `SymmetricState` with the following
@@ -394,7 +394,7 @@ A `HandshakeState` responds to the following methods:
    * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding arguments.
    
    * Calls `MixHash()` once for each public key listed in the pre-messages from
-   `handshake_pattern`, passing in that public key as input (see Section 6).  If
+   `handshake_pattern`, with the specified public key as input (see Section 6).  If
    both initiator and responder have pre-messages, the initiator's public keys
    are hashed first.
 
@@ -444,7 +444,7 @@ A `HandshakeState` responds to the following methods:
     * If there are no more message patterns returns two new `CipherState`
       objects by calling `Split()`.
 
-5. Pre-shared keys
+6. Pre-shared keys
 ===================
 
 Noise provides an optional "pre-shared key" or "PSK" mode to support protocols
@@ -466,27 +466,31 @@ keys, the following changes are made:
    uses the ephemeral public key's value as a random nonce to prevent
    re-using the same `k` and `n` for different messages.
 
-6. Handshake patterns 
+7. Handshake patterns 
 ======================
 
-A message pattern is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse",
-"dhss")`.  A handshake pattern consists of:
+A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse",
+"dhss")`.  A **handshake pattern** consists of:
 
- * A pattern for the initiator's "pre-message" that is either `"s"`, `"e"`,
-   `"s, e"`, or empty.
+ * A pattern for the initiator's **pre-message** that is either:
+   * `"s"`
+   * `"e"`
+   * `"s, e"`
+   * empty
 
- * A pattern for the responder's "pre-message" that is either `"s"`, `"e"`,
-   `"s, e"`, or empty.
+ * A pattern for the responder's pre-message that takes one of the same
+   values as the initiator's pre-message.
 
  * A sequence of message patterns for the actual handshake messages
 
 The pre-messages represent an exchange of public keys that was somehow
-performed prior to the handshake, so these public keys should be inputs to
+performed prior to the handshake, so these public keys must be inputs to
 `Initialize()`.  
 
-The first actual handshake message in the sequence is sent from the initiator
-to the responder; the next is sent by the responder, and so on. All messsages
-described by the handshake pattern must be sent in order.  
+The first actual handshake message is sent from the initiator to the responder,
+the next is sent by the responder, the next from the initiator, and so on in
+alternating fashion. All messsages described by the handshake pattern must be
+sent in order.  
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
@@ -494,15 +498,19 @@ The following handshake pattern describes an unauthenticated DH handshake:
       -> e
       <- e, dhee
 
-The handshake pattern name is `Noise_NN`.  The empty parentheses indicate that neither
-party is initialized with any key pairs.  The tokens "e" and/or "s" in
-parentheses would indicate that the initiator is initialized with the corresponding
-key pairs.  The tokens "re" and/or "rs" would indicate the same thing for the
-responder.
+The handshake pattern name is `Noise_NN`.  This naming convention will be
+explained in Section 7.3.  The empty parentheses indicate that neither party is
+initialized with any key pairs.  The tokens `"s"` and/or `"e"` inside the
+parentheses would indicate that the initiator is initialized with the
+corresponding key pairs.  The tokens `"rs"` and/or `"re"` would indicate the
+same thing for the responder.
 
-Pre-messages are shown as patterns prior to the delimiter "\-\-\-\-\-\-".
-During `Initialize()`, `MixHash()` is called on any pre-message public keys in
-the order they are listed.
+Pre-messages are shown as patterns prior to the delimiter "...", with a
+right-pointing arrow for the initiator's pre-message, and a left-pointing arrow
+for the responder's pre-message.  If both parties have a pre-message, the
+initiator's is listed first (and hashed first).  During `Initialize()`,
+`MixHash()` is called on any pre-message public keys, as described in Section
+5.3.
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
@@ -510,11 +518,11 @@ responder's static public key as well as the responder's ephemeral:
 
     Noise_NK(rs):
       <- s
-      ------
+      ...
       -> e, dhes 
       <- e, dhee
 
-6.1 Pattern validity 
+7.1 Pattern validity 
 ----------------------
 
 Noise patterns must be **valid** in two senses:
@@ -531,7 +539,7 @@ Noise patterns must be **valid** in two senses:
 Patterns failing the first check will obviously abort the program.  Patterns
 failing the second check could result in subtle but catastrophic security flaws.
 
-6.2. One-way patterns 
+7.2. One-way patterns 
 ----------------------
 
 The following patterns represent "one-way" handshakes supporting a one-way
@@ -549,21 +557,21 @@ send any messages using it.
 
     Noise_N(rs):
       <- s
-      ------
+      ...
       -> e, dhes
 
     Noise_K(s, rs):
       -> s
       <- s
-      ------
+      ...
       -> e, dhes, dhss
 
     Noise_X(s, rs):
       <- s
-      ------
+      ...
       -> e, dhes, s, dhss
 
-6.3. Interactive patterns 
+7.3. Interactive patterns 
 --------------------------
 
 The following 16 patterns represent protocols where the initiator and responder
@@ -582,27 +590,27 @@ exchange messages to agree on a shared key.
 
     Noise_NN():                      Noise_KN(s):              
       -> e                             -> s                       
-      <- e, dhee                       ------                     
+      <- e, dhee                       ...                        
                                        -> e                       
                                        <- e, dhee, dhes           
                                              
     Noise_NK(rs):                    Noise_KK(s, rs):
       <- s                             -> s                       
-      ------                           <- s                       
-      -> e, dhes                       ------                     
+      ...                              <- s                       
+      -> e, dhes                       ...                        
       <- e, dhee                       -> e, dhes, dhss           
                                        <- e, dhee, dhes           
                                               
     Noise_NE(rs, re):                Noise_KE(s, rs, re):      
       <- s, e                          -> s
-      ------                           <- s, e
-      -> e, dhee, dhes                 ------                     
+      ...                              <- s, e
+      -> e, dhee, dhes                 ...                        
       <- e, dhee                       -> e, dhee, dhes, dhse     
                                        <- e, dhee, dhes           
                                                                      
     Noise_NX(rs):                    Noise_KX(s, rs):          
       -> e                             -> s                       
-      <- e, dhee, s, dhse              ------                     
+      <- e, dhee, s, dhse              ...                        
                                        -> e                       
                                        <- e, dhee, dhes, s, dhse  
                             
@@ -614,14 +622,14 @@ exchange messages to agree on a shared key.
                                          
     Noise_XK(s, rs):                 Noise_IK(s, rs):            
       <- s                             <- s                         
-      ------                           ------                       
+      ...                              ...                          
       -> e, dhes                       -> e, dhes, s, dhss          
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
                                         
     Noise_XE(s, rs, re):             Noise_IE(s, rs, re):
       <- s, e                          <- s, e                      
-      ------                           ------                       
+      ...                              ...                          
       -> e, dhee, dhes                 -> e, dhee, dhes, s, dhse    
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
@@ -631,7 +639,7 @@ exchange messages to agree on a shared key.
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-7. Handshake re-initialization and "Noise Pipes"
+8. Handshake re-initialization and "Noise Pipes"
 ===============================================
 
 A protocol may support **handshake re-initialization**.  In this case, the
@@ -703,10 +711,10 @@ field denoting the length of the following Noise message, followed by a Noise
 handshake message.  Transport messages are sent with only the 2-byte length
 field, followed by the Noise tranport message.
 
-8. DH functions, cipher functions, and hash functions
+9. DH functions, cipher functions, and hash functions
 ======================================================
 
-8.1. The 25519 DH functions
+9.1. The 25519 DH functions
 ----------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
@@ -718,7 +726,7 @@ field, followed by the Noise tranport message.
 
  * **`DHLEN`** = 32
 
-8.2. The 448 DH functions
+9.2. The 448 DH functions
 --------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
@@ -730,7 +738,7 @@ field, followed by the Noise tranport message.
 
  * **`DHLEN`** = 56
 
-8.3. The ChaChaPoly cipher functions
+9.3. The ChaChaPoly cipher functions
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -739,14 +747,14 @@ field, followed by the Noise tranport message.
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce).
 
-8.4. The AESGCM cipher functions
+9.4. The AESGCM cipher functions
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
  by encoding 32 bits of zeros followed by big-endian encoding of `n`.
 
-8.5. The SHA256 hash function
+9.5. The SHA256 hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-256(input)` 
@@ -755,7 +763,7 @@ field, followed by the Noise tranport message.
 
  * **`BLOCKLEN`** = 64
 
-8.5. The SHA512 hash function
+9.6. The SHA512 hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-512(input)` 
@@ -764,7 +772,7 @@ field, followed by the Noise tranport message.
 
  * **`BLOCKLEN`** = 128
 
-8.6. The BLAKE2s hash function
+9.7. The BLAKE2s hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
@@ -773,7 +781,7 @@ field, followed by the Noise tranport message.
 
  * **`BLOCKLEN`** = 64
 
-8.6. The BLAKE2b hash function
+9.8. The BLAKE2b hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2b(input)` with digest length 64.
@@ -782,7 +790,7 @@ field, followed by the Noise tranport message.
 
  * **`BLOCKLEN`** = 128
 
-9. Handshake names 
+10. Handshake names 
 =========================
 
 To produce a **handshake name** for `Initialize()` you concatenate the names
@@ -808,7 +816,7 @@ If a pre-shared key is in use, then `NoisePSK` is used instead of `Noise`:
  * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
 
 
-10. Application responsibilities
+11. Application responsibilities
 ================================
 
 An application built on Noise must consider several issues:
@@ -844,7 +852,7 @@ An application built on Noise must consider several issues:
    This allows extending the handshake with handshake re-initialization or
    other alternative messages in the future.
 
-11. Security considerations
+12. Security considerations
 ===========================
 
 This section collects various security considerations:
@@ -884,7 +892,7 @@ This section collects various security considerations:
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
 
-12. Rationale
+13. Rationale
 =============
 
 This section collects various design rationale:
@@ -957,8 +965,7 @@ The `MixKey()` design uses `HKDF` because:
    higher-level protocols, e.g. for channel-binding.
 
 
-
-13. IPR
+14. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
