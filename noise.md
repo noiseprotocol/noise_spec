@@ -660,10 +660,10 @@ keys, thus supporting multiple use cases with a single pattern.
 
 The `Noise_XX` pattern offers stronger identity-hiding for the initiator than
 the responder. Since the responder sends their static public key first, the
-responder's identity can be revealed by anonymous active probing.  The
-`Noise_XR` pattern flips this around, offering stronger identity protection
-to the responder (this relationship between `Noise_XX` and `Noise_XR` is
-similar to the relationship between Hugo Krawczyk's `SIGMA-I` and `SIGMA-R`).
+responder's identity can be revealed by anonymous probing.  The `Noise_XR`
+pattern flips this around, offering stronger identity protection to the
+responder (this relationship between `Noise_XX` and `Noise_XR` is similar to the
+relationship between Hugo Krawczyk's `SIGMA-I` and `SIGMA-R`).
 
 The patterns ending in `"K"` allow "zero-RTT" encryption, meaning that the
 initiator can encrypt the first handshake payload.  This feature should be used
@@ -675,19 +675,19 @@ compromised.
 The patterns in the right-hand column allow "half-RTT" encryption of the first
 response payload to a particular initiator.  This feature should also be used
 cautiously.  Because the initiator's ephemeral has not been (strongly)
-authenticated by the initiator's static public key yet, the response payload
+authenticated by the initiator's static key pair yet, the response payload
 only has "weak" forward secrecy.  An active attacker could supply its own
 ephemeral public key alongside a static public key from some victim party.  The
 response payload would not be immediately decryptable by the attacker, but the
 payload would have no forward secrecy: the attacker could later compromise the
 victim's static private key to decrypt the payload.
 
-This risk is partially mitigated in the `"Noise_KK"` and `"Noise_IK"` payloads
+This risk is partially mitigated in the `"Noise_KK"` and `"Noise_IK"` patterns
 since the active attacker would have to compromise the responder's static
 private key to send an initial message that is accepted by the responder.  This
 issue could be more thoroughly mitigated by introducing signatures into Noise,
-but that introduces other concerns and trade-offs, so will be left for a future
-version to consider.
+but that introduces other trade-offs, so will be left for a future version to
+consider.
 
 7.4. More patterns
 --------------------
@@ -697,9 +697,9 @@ convenience, but they are not exhaustive.  Other valid patterns could be
 constructed, for example:
 
  * It would be easy to modify `Noise_X` or `Noise_IK` to transmit the sender's
-   static public key in cleartext instead of encrypted, by changing `"e, dhes,
-   s, dhss"` to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake
-   is usually better, we're not bothering to name those patterns.
+ static public key in cleartext instead of encrypted by changing `"e, dhes, s,
+ dhss"` to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake is
+ usually better, we're not bothering to name those patterns.
 
  * In some patterns both initiator and responder have a static key pair, but
    `"dhss"` is not performed.  This DH operation could be added to provide more
@@ -716,6 +716,30 @@ constructed, for example:
 
 8. Handshake re-initialization and "Noise Pipes"
 ===============================================
+
+A Noise handshake pattern specifies a rigid sequence of messages.  But there may
+be protocols that require branching to different sequences of message.  For
+example:
+
+ * An initiator might only authenticate itself if requested to do so by the
+ responder.
+
+ * An initiator might attempt a zero-RTT handshake based on presumptive
+ knowledge of the responder's static public key.  But if the responder has
+ changed their public key, the responder might need to execute a "fallback"
+ handshake where they transmit their new static public key to the initiator, and
+ the initiator resends the zero-RTT data.
+
+The first case could be supported by simply using a handshake pattern such as
+`Noise_XX` that is a superset of desired functionality, and sending dummy static
+public keys or ignoring static public keys as necessary.
+
+But sometimes more efficiency is desired.  To   
+
+
+
+A protocol might need to dynamically branch between different handshake
+patterns.  For example, 
 
 A protocol may support **handshake re-initialization**.  In this case, the
 recipient of a handshake message must also receive some indication whether this
@@ -972,16 +996,6 @@ This section collects various security considerations:
 
 This section collects various design rationale:
 
-Noise messages are <= 65535 bytes because:
-
- * This allows safe streaming decryption, and random access decryption of large files.
- * This simplifies testing and reduces likelihood of memory or overflow errors in handling large messages.
- * This restricts length fields to a standard size of 16 bits, aiding interop.
- * The overhead of larger standard length fields (e.g. 32 or 64 bits) might
-   cost something for small messages, but the overhead of smaller length fields
-   is insignificant for large messages.
- * This discourage mis-use of handshake payloads for large data transfers.
-
 Nonces are 64 bits in length because:
 
  * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
@@ -1019,13 +1033,14 @@ The authentication tag is 128 bits because:
 
 Big-endian is preferred because:
 
- * While it's true that bignum libraries, Curve25519, Curve448, and
- ChaCha20/Poly1305 use little-endian, these will likely be handled by
- specialized libraries.
- * Some ciphers use big-endian internally (e.g. GCM, SHA2).
- * The Noise length fields are likely to be handled by
+ * Any Noise length fields are likely to be handled by
  parsing code where big-endian "network byte order" is 
  traditional.
+ * Some ciphers use big-endian internally (e.g. GCM, SHA2).
+ * While it's true that Curve25519, Curve448, and
+ ChaCha20/Poly1305 use little-endian, these will likely be handled by
+ specialized libraries, so there's not a strong argument for aligning
+ with them.
 
 The `MixKey()` design uses `HKDF` because:
 
