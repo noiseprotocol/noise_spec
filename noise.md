@@ -1,4 +1,4 @@
-
+)
 Noise v0 (draft) 
 =================
 
@@ -529,19 +529,26 @@ although full forward secrecy is only achieved with the second message.
 7.1 Pattern validity 
 ----------------------
 
-Noise patterns must be **valid** in two senses:
+Noise patterns must be **valid** in the following senses:
 
  * Parties can only send static public keys they possess, or perform DH between
- keys they possess.
+   keys they possess.
 
- * Because Noise uses ephemeral public keys as nonces, parties must send an
-   ephemeral public key as the first token of the first message they send.
-   Also, parties must not send encrypted data (i.e. static public keys and
-   payloads) unless they have performed DH between their current ephemeral and
-   all of the other party's key pairs.  
+ * Because Noise uses ephemeral public keys as random PSK nonces, parties must
+   send an ephemeral public key as the first token of the first message they
+   send.
+
+ * Parties must not send static public keys and payloads, nor complete the
+   handshake, unless they have performed DH between their current ephemeral
+   and all of the other party's current key pairs.  This provides good forward
+   secrecy and authentication.  This also prevents subtle attacks where an
+   invalid public key could be used to force a DH output to a constant value
+   (e.g. zero), thus nullifying the randomizing effect of one party's
+   ephemeral, and triggering catastrophic reuse of a `"dhss"`-derived key.
 
 Patterns failing the first check will obviously abort the program.  Patterns
-failing the second check could result in subtle but catastrophic security flaws.
+failing the second and third checks could result in subtle but catastrophic
+security flaws.
 
 7.2. One-way patterns 
 ----------------------
@@ -593,11 +600,13 @@ The following example handshake patterns represent interactive protocols.
       K_ = static key for initiator known to responder
       X_ = static key for initiator transmitted to responder
       I_ = static key for initiator immediately transmitted to responder,
-           without regard for identity-hiding
+           despite reduced or absent identity-hiding
   
       _N = no static key for responder
       _K = static key for responder known to initiator
       _X = static key for responder transmitted to initiator
+      _R = static key for responder transmitted to initiator, but only 
+           after the initiator has revealed their identity
 
 
     Noise_NN():                      Noise_KN(s):              
@@ -637,41 +646,73 @@ The following example handshake patterns represent interactive protocols.
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
       -> s, dhse
 
-    Noise_XXr(s, rs):
+    Noise_XR(s, rs):
       -> e
-      <- e
-      -> dhee, s, dhse
+      <- e, dhee
+      -> s, dhse
       <- s, dhse
 
-The `Noise_XX` pattern is the most generically useful, since it supports mutual
-authentication and transmission of static public keys.  Even if these features
-aren't needed, it's possible to use the `Noise_XX` handshake and ignore the
-transmitted static public keys, or send dummy static public keys, thus
-supporting multiple use cases with a single handshake pattern.
+The `Noise_XX` pattern is the most generically useful, since it is efficient,
+and supports mutual authentication and transmission of static public keys. Even
+if these features aren't needed, it's possible to use the `Noise_XX` handshake
+and ignore the transmitted static public keys, or send dummy static public
+keys, thus supporting multiple use cases with a single pattern.
 
 The `Noise_XX` pattern offers stronger identity-hiding for the initiator than
 the responder. Since the responder sends their static public key first, the
 responder's identity can be revealed by anonymous active probing.  The
-`Noise_XXr` pattern flips this around, offering stronger identity protection
-to the responder (this relationship between `Noise_XX` and `Noise_XXr` is
+`Noise_XR` pattern flips this around, offering stronger identity protection
+to the responder (this relationship between `Noise_XX` and `Noise_XR` is
 similar to the relationship between Hugo Krawczyk's `SIGMA-I` and `SIGMA-R`).
 
+The patterns ending in `"K"` allow "zero-RTT" encryption, meaning that the
+initiator can encrypt the first handshake payload.  This feature should be used
+cautiously.  Because the initial message is not based on a responder ephemeral,
+it can be replayed, and does not have forward secrecy or resistance to
+key-compromise impersonation ("KCI") if the responder's static private key is
+compromised.
+
+The patterns in the right-hand column allow "half-RTT" encryption of the first
+response payload to a particular initiator.  This feature should also be used
+cautiously.  Because the initiator's ephemeral has not been (strongly)
+authenticated by the initiator's static public key yet, the response payload
+only has "weak" forward secrecy.  An active attacker could supply its own
+ephemeral public key alongside a static public key from some victim party.  The
+response payload would not be immediately decryptable by the attacker, but the
+payload would have no forward secrecy: the attacker could later compromise the
+victim's static private key to decrypt the payload.
+
+This risk is partially mitigated in the `"Noise_KK"` and `"Noise_IK"` payloads
+since the active attacker would have to compromise the responder's static
+private key to send an initial message that is accepted by the responder.  This
+issue could be more thoroughly mitigated by introducing signatures into Noise,
+but that introduces other concerns and trade-offs, so will be left for a future
+version to consider.
 
 7.4. More patterns
 --------------------
 
-The patterns in the previous sections are representative examples which we are
-naming for convenience, but they are not exhaustive.  Other valid patterns
-could be constructed, for example:
+The patterns in the previous sections are examples which we are naming for
+convenience, but they are not exhaustive.  Other valid patterns could be
+constructed, for example:
 
- * It would be easy to modify `Noise_X` to transmit the sender's static public
-   key in cleartext instead of encrypted, just by changing `"e, dhes, s, dhss"`
-   to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake is usually
-   better, we're not bothering to name that pattern.
+ * It would be easy to modify `Noise_X` or `Noise_IK` to transmit the sender's
+   static public key in cleartext instead of encrypted, by changing `"e, dhes,
+   s, dhss"` to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake
+   is usually better, we're not bothering to name those patterns.
 
- * In some patterns both initiator and responder have a static public key, but
-   `"dhss"` is not performed.  This DH operation could be added to provide more 
+ * In some patterns both initiator and responder have a static key pair, but
+   `"dhss"` is not performed.  This DH operation could be added to provide more
    resilience in case the ephemerals are generated by a bad RNG.
+
+ * Pre-knowledge of ephemeral public keys is not demonstrated in any of the
+   above patterns.  This pre-knowledge could be used to implement a "pre-key"
+   or "semi-ephemeral" key handshake, where the forward-secrecy and
+   KCI-resistance of zero-RTT data is improved since the pre-distributed
+   "semi-ephemeral" key can be changed more frequently than the responder's
+   static key.  These patterns would benefit from signatures, which are not yet
+   included in Noise.  These patterns also introduce new complexity around the
+   lifetimes of semi-ephemeral key pairs, so are not discussed further here.
 
 8. Handshake re-initialization and "Noise Pipes"
 ===============================================
