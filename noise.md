@@ -1,4 +1,4 @@
-)
+
 Noise v0 (draft) 
 =================
 
@@ -332,8 +332,8 @@ A `SymmetricState` responds to the following methods:
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
    `handshake_name` byte sequence (see Section 10).  If `handshake_name` is less
    than or equal to `HASHLEN` bytes in length, sets `h` equal to
-   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.
-   Otherwise sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
+   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise
+   sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
    `InitializeKey(empty)`.  
 
  * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
@@ -488,7 +488,7 @@ A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee"
 
 The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
-`Initialize()` for the recipient of the pre-message.  
+`Initialize()` for the "recipient" of the pre-message.  
 
 The first actual handshake message is sent from the initiator to the responder,
 the next is sent by the responder, the next from the initiator, and so on in
@@ -516,9 +516,9 @@ initiator's is listed first (and hashed first).  During `Initialize()`,
 
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
-responder's static public key as well as the responder's ephemeral.  Note that
-this pre-knowledge allows an encrypted payload to be sent in the first message,
-although full forward secrecy is only achieved with the second message.
+responder's static public key as well as the responder's ephemeral public key.
+Note that this pre-knowledge allows an encrypted payload to be sent in the first
+message, although full forward secrecy is only achieved with the second message.
 
     Noise_NK(rs):
       <- s
@@ -643,7 +643,7 @@ The following example handshake patterns represent interactive protocols.
                                         
     Noise_XX(s, rs):                 Noise_IX(s, rs):
       -> e                             -> e, s
-      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse                                
+      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
       -> s, dhse
 
     Noise_XR(s, rs):
@@ -652,44 +652,204 @@ The following example handshake patterns represent interactive protocols.
       -> s, dhse
       <- s, dhse
 
-The `Noise_XX` pattern is the most generically useful, since it is efficient,
-and supports mutual authentication and transmission of static public keys. Even
-if these features aren't needed, it's possible to use the `Noise_XX` handshake
-and ignore the transmitted static public keys, or send dummy static public
-keys, thus supporting multiple use cases with a single pattern.
+The `Noise_XX` pattern is the most generically useful, since it is efficient and
+supports mutual authentication and transmission of static public keys.  The
+`Noise_XR` pattern is similar to `Noise_XX` but is less efficient, and offers
+stronger identity-hiding for the responder rather than the initiator.  (This is
+similar to the distinction between SIGMA-I and SIGMA-R; see next section for
+more details on identity-hiding.)
 
-The `Noise_XX` pattern offers stronger identity-hiding for the initiator than
-the responder. Since the responder sends their static public key first, the
-responder's identity can be revealed by anonymous probing.  The `Noise_XR`
-pattern flips this around, offering stronger identity protection to the
-responder (this relationship between `Noise_XX` and `Noise_XR` is similar to the
-relationship between Hugo Krawczyk's `SIGMA-I` and `SIGMA-R`).
+Many patterns allow encryption of handshake payloads, but with reduced security
+properties compared to later payloads:
 
-The patterns ending in `"K"` allow "zero-RTT" encryption, meaning that the
-initiator can encrypt the first handshake payload.  This feature should be used
-cautiously.  Because the initial message is not based on a responder ephemeral,
-it can be replayed, and does not have forward secrecy or resistance to
-key-compromise impersonation ("KCI") if the responder's static private key is
-compromised.
+ * Patterns where the initiator has pre-knowledge of the responder's static
+ public key (i.e. patterns ending in `"K"`) allow "zero-RTT" encryption, meaning
+ that the initiator can encrypt the first handshake payload.  
 
-The patterns in the right-hand column allow "half-RTT" encryption of the first
-response payload to a particular initiator.  This feature should also be used
-cautiously.  Because the initiator's ephemeral has not been (strongly)
-authenticated by the initiator's static key pair yet, the response payload
-only has "weak" forward secrecy.  An active attacker could supply its own
-ephemeral public key alongside a static public key from some victim party.  The
-response payload would not be immediately decryptable by the attacker, but the
-payload would have no forward secrecy: the attacker could later compromise the
-victim's static private key to decrypt the payload.
+ * Patterns where the initiator transmits their static public key in later
+ messages (i.e. patterns starting in `"X"`) allow "half-RTT" encryption of the
+ first response payload to a not-yet-identified initiator.
+ 
+ * Patterns in the right-hand column allow "half-RTT" encryption of the first
+ response payload to a particular initiator.  
 
-This risk is partially mitigated in the `"Noise_KK"` and `"Noise_IK"` patterns
-since the active attacker would have to compromise the responder's static
-private key to send an initial message that is accepted by the responder.  This
-issue could be more thoroughly mitigated by introducing signatures into Noise,
-but that introduces other trade-offs, so will be left for a future version to
-consider.
+These features must be used cautiously, as these early encrypted payloads have
+security properties which can be subly different from later payloads.  The next
+section provides more analysis.
 
-7.4. More patterns
+7.4. Security properties 
+-------------------------
+
+The following table lists the security properties for Noise handshake and
+transport payloads for all the named patterns in Sections 7.2 and 7.3.  Each
+payload is assigned an "authentication" property regarding the degree of
+authentication of the sender provided to the recipient, and a "confidentiality"
+property regarding the degree of confidentiality provided to the sender.
+
+The authentication properties are:
+
+ 0.  **No authentication.**  This payload may have been sent by any party,
+     including an active attacker.
+
+ 1.  **Sender authentication *vulnerable* to key-compromise impersonation
+     (KCI)**.  The sender authentication is based on a static-static DH
+     (`"dhss"`) involving both parties' long-term key pairs.  If the recipient's
+     long-term private key has been compromised, this authentication can be
+     forged.  Note that a future version of Noise might include signatures,
+     which could improve this security property, but brings other trade-offs.
+
+ 2.  **Sender authentication *resistant* to key-compromise impersonation
+     (KCI)**.  The sender authentication is based on an ephemeral-static DH
+     (`"dhes"` or `"dhse"`) between the sender's static key pair and the
+     recipient's ephemeral key pair.  Assuming the recipient's ephemeral private
+     key is secure, this authentication cannot be forged.
+
+The confidentiality properties are:
+
+ 0.  **No confidentiality.**  This payload is sent in cleartext.
+
+ 1.  **Encryption to an ephemeral recipient.**  This payload has forward
+     secrecy, since encryption involves an ephemeral-ephemeral DH (`"dhee"`).
+     However, the sender has not authenticated the recipient, so this payload
+     might be sent to any party, including an active attacker.
+
+ 2.  **Encryption to a known recipient, forward secrecy for the sender only.**
+     This payload is encrypted based only on an ephemeral-static DH involving
+     the sender's ephemeral key pair and the recipient's static key pair.  If
+     the recipient's static private key is compromised, even at a later date,
+     this payload can be decrypted.
+
+ 3.  **Encryption to a known recipient, weak forward secrecy.**  This payload is
+     encrypted based on an ephemeral-ephemeral DH.  However, the binding between
+     the recipient's alleged ephemeral public key and the recipient's static public
+     key hasn't been verified, so the recipient's alleged ephemeral public key
+     may have been forged by an active attacker.  In this case, the attacker
+     could later compromise the recipient's static private key to decrypt the
+     payload. Note that a future version of Noise might include signatures,
+     which could improve this security property, but brings other trade-offs.
+
+ 4.  **Encryption to a known recipient, weak forward secrecy if the sender's
+     private key has been compromised.**  This payload is encrypted based on an
+     ephemeral-ephemeral DH.  However, the binding between the recipient's
+     alleged ephemeral public and the recipient's static public key has only
+     been verified based on DHs involving both those public keys and the
+     sender's static key pair.  Thus, if the sender's static private key was
+     previously compromised, the recipient's alleged public key may have been
+     forged by an active attacker.  In this case, the attacker could later
+     compromise the intended recipient's static private key to decrypt the
+     payload. Note that a future version of Noise might include signatures,
+     which could improve this security property, but brings other trade-offs.
+
+ 5. **Encryption to a known recipient, strong forward secrecy.**  This payload
+    is encrypted based on an ephemeral-ephemeral DH.  Assuming the ephemeral
+    private keys are secure, and neither party is being actively impersonated by
+    an attacker that has stolen its private key, this payload cannot be
+    decrypted.
+
+
+Secure Properties
+
+                             authentication    confidentiality
+                             --------------    ---------------
+    Noise_N                         0                 2
+    Noise_K                         1                 2
+    Noise_X                         1                 2                  
+                                                                         
+                                                                         
+    Noise_NN                                                             
+      -> e                          0                 0
+      <- e, dhee                    0                 1
+      ->                            0                 1
+                                                                         
+    Noise_NK                                                             
+      <- s                                                               
+      ...                                                                
+      -> e, dhes                    0                 2                 
+      <- e, dhee                    2                 1                 
+      ->                            0                 5                 
+                                                                         
+    Noise_NX                                                             
+      -> e                          0                 0                  
+      <- e, dhee, s, dhse           2                 1                 
+      ->                            0                 5                 
+                                                                         
+                                                                         
+    Noise_XN                                                             
+      -> e                          0                 0                 
+      <- e, dhee                    0                 1                 
+      -> s, dhse                    2                 1                 
+      <-                            0                 5                 
+                                                                         
+    Noise_XK                                                             
+      <- s                                                               
+      ...                                                                
+      -> e, dhes                    0                 2                 
+      <- e, dhee                    2                 1                 
+      -> s, dhse                    2                 5                 
+      <-                            2                 5                 
+                                                                         
+    Noise_XX                                                             
+     -> e                           0                 0                 
+     <- e, dhee, s, dhse            2                 1                 
+     -> s, dhse                     2                 5                 
+     <-                             2                 5                 
+                                                                         
+    Noise_XR                                                             
+      -> e                          0                 0                  
+      <- e, dhee                    0                 1                 
+      -> s, dhse                    2                 1                 
+      <- s, dhse                    2                 5                 
+      ->                            2                 5                 
+                                                                         
+                                                                         
+    Noise_KN                                                             
+      -> s                                                               
+      ...                                                                
+      -> e                          0                 0                  
+      <- e, dhee, dhes              0                 3                 
+      ->                            2                 1                 
+      <-                            0                 5                 
+                                                                         
+    Noise_KK                                                             
+      -> s                                                               
+      <- s                                                               
+      ...                                                                
+      -> e, dhes, dhss              1                 2                 
+      <- e, dhee, dhes              2                 4                 
+      ->                            2                 5                 
+      <-                            2                 5                 
+                                                                      
+    Noise_KX                                                             
+      -> s                                                               
+      ...                                                                
+      -> e                          0                 0               
+      <- e, dhee, dhes, s, dhse     2                 3               
+      ->                            2                 5               
+      <-                            2                 5               
+                                                                      
+                                                                      
+    Noise_IN                                                          
+      -> e, s                       0                 0               
+      <- e, dhee, dhes              0                 3               
+      ->                            2                 1               
+      <-                            0                 5               
+                                                                      
+    Noise_IK                                                          
+      <- s                                                            
+      ...                                                             
+      -> e, dhes, s, dhss           1                 2               
+      <- e, dhee, dhes              2                 4               
+      ->                            2                 5               
+      <-                            2                 5               
+                                                                      
+    Noise_IX                                                          
+      -> e, s                       0                 0               
+      <- e, dhee, dhes, s, dhse     2                 3               
+      ->                            2                 5               
+      <-                            2                 5               
+
+
+7.5. More patterns 
 --------------------
 
 The patterns in the previous sections are examples which we are naming for
@@ -701,18 +861,23 @@ constructed, for example:
  dhss"` to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake is
  usually better, we're not bothering to name those patterns.
 
+ * It would be easy to make `Noise_KK` or `Noise_IK` slightly more efficient by
+ removing the `"dhss"`.  This would worsen security properties for the
+ initial exchange of handshake payloads, so we're not bothering to name those
+ patterns.
+
  * In some patterns both initiator and responder have a static key pair, but
-   `"dhss"` is not performed.  This DH operation could be added to provide more
-   resilience in case the ephemerals are generated by a bad RNG.
+ `"dhss"` is not performed.  This DH operation could be added to provide more
+ resilience in case the ephemerals are generated by a bad RNG.
 
  * Pre-knowledge of ephemeral public keys is not demonstrated in any of the
-   above patterns.  This pre-knowledge could be used to implement a "pre-key"
-   or "semi-ephemeral" key handshake, where the forward-secrecy and
-   KCI-resistance of zero-RTT data is improved since the pre-distributed
-   "semi-ephemeral" key can be changed more frequently than the responder's
-   static key.  These patterns would benefit from signatures, which are not yet
-   included in Noise.  These patterns also introduce new complexity around the
-   lifetimes of semi-ephemeral key pairs, so are not discussed further here.
+ above patterns.  This pre-knowledge could be used to implement a "pre-key" or
+ "semi-ephemeral key" handshake, where the forward-secrecy and KCI-resistance of
+ zero-RTT data is improved since the pre-distributed "semi-ephemeral" key can be
+ changed more frequently than the responder's static key.  These patterns would
+ benefit from signatures, which are not yet included in Noise.  These patterns
+ also introduce new complexity around the lifetimes of semi-ephemeral key pairs,
+ so are not discussed further here.
 
 8. Handshake re-initialization and "Noise Pipes"
 ===============================================
