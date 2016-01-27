@@ -66,8 +66,8 @@ Each party to a handshake maintains the following variables:
    and includes the current `h` value as "associated data" which is covered by
    the AEAD authentication tag.  Encryption of static public keys and payloads
    provides some confidentiality during the handshake phase.  It also confirms
-   to the other party that the correct key was derived, and that the sender has
-   a matching view of transmitted handshake data.
+   to the receiving party that the correct key was derived, and that the sender
+   has a matching view of transmitted handshake data.
 
 To send a handshake message, the sender sequentially processes each token from
 a message pattern.  The possible tokens are:
@@ -90,7 +90,7 @@ a message pattern.  The possible tokens are:
 
 After processing the final token in a handshake message, the sender then writes
 the payload (which may be zero-length) into the message buffer, encrypting it
-if `k` is non-empty, and hashing the output along with the old `h` to derive a
+if `k` is non-empty, and hashes the output along with the old `h` to derive a
 new `h`.
 
 As a simple example, an unauthenticated DH handshake is described by the
@@ -168,9 +168,9 @@ Following the public keys will be a payload which can be used to convey
 certificates or other handshake data.  Static public keys and payloads will be
 in cleartext if they occur in a handshake pattern prior to a DH operation, and
 will be an AEAD ciphertext if they occur after a DH operation.  (If Noise is
-being used with pre-shared keys, this rule is different: *all* static public
-keys and payloads will be encrypted; see Section 6).  Like transport messages,
-AEAD ciphertexts will expand each encrypted field by 16 bytes for an
+being used with pre-shared symmetric keys, this rule is different: *all* static
+public keys and payloads will be encrypted; see Section 6).  Like transport
+messages, AEAD ciphertexts will expand each encrypted field by 16 bytes for an
 authentication tag.
 
 For an example, consider the handshake pattern:
@@ -188,8 +188,8 @@ consists of an encrypted public key followed by an encrypted payload.
 Assuming zero-length payloads and DH public keys of 32 bytes, the message sizes
 will be 32 bytes (one public key), then 96 bytes (two public keys and two
 authentication tags), then 64 bytes (one public key and two authentication
-tags).  If pre-shared keys are used, the first message grows in size to 48
-bytes, since the first payload becomes encrypted.
+tags).  If pre-shared symmetric keys are used, the first message grows in size
+to 48 bytes, since the first payload becomes encrypted.
 
 
 4.  Crypto algorithms
@@ -348,7 +348,7 @@ A `SymmetricState` responds to the following methods:
  * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
    calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, empty)` where `empty` is a
+ * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, none)` where `none` is a
    zero-length byte sequence.  If `HASHLEN` is 64, then `temp_k1` and `temp_k2`
    are truncated to 32 bytes to match `k`.  Creates two new `CipherState`
    objects `c1` and `c2`.  Calls `c1.InitializeKey(temp_k1)` and
@@ -436,23 +436,24 @@ A `HandshakeState` responds to the following methods:
       * For `"e"`: Sets `re` to the next `DHLEN` bytes from the message. Calls
         `MixHash(re.public_key)`. 
       
-      * For `"s"`: Sets `data` to the next `DHLEN + 16` bytes of the message if
+      * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
       `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
-      `DecryptAndHash(data)`.  
+      `DecryptAndHash(temp)`.  
       
       * For `"dh`*xy*`"`:  Calls `MixKey(DH(y, rx))`.  
 
-    * Copies the output from `DecryptAndHash(remaining_message)` into the `payload_buffer`.
+    * Calls `DecryptAndHash()` on the remaining bytes of the message, and
+      stores the output into the `payload_buffer`.
   
     * If there are no more message patterns returns two new `CipherState`
       objects by calling `Split()`.
 
-6. Pre-shared keys
-===================
+6. Pre-shared symmetric keys
+=============================
 
-Noise provides an optional "pre-shared key" or "PSK" mode to support protocols
-where both parties already have a shared secret key.  When using pre-shared
-keys, the following changes are made:
+Noise provides an optional "pre-shared symmetric key" or "PSK" mode to support
+protocols where both parties already have a shared secret key.  When using
+pre-shared symmetric keys, the following changes are made:
 
  * Handshake names (Section 10) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
 
@@ -517,8 +518,9 @@ initiator's is listed first (and hashed first).  During `Initialize()`,
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral public key.
-Note that this pre-knowledge allows an encrypted payload to be sent in the first
-message, although full forward secrecy is only achieved with the second message.
+Note that this pre-knowledge allows an encrypted payload to be sent in the
+first message, although full forward secrecy and replay protection is only
+achieved with the second message.
 
     Noise_NK(rs):
       <- s
@@ -670,8 +672,9 @@ properties compared to later payloads:
  messages (i.e. patterns starting in `"X"`) allow "half-RTT" encryption of the
  first response payload to a not-yet-identified initiator.
  
- * Patterns in the right-hand column allow "half-RTT" encryption of the first
- response payload to a particular initiator.  
+ * Patterns where the responder knows the initiator identity after the first
+   message (i.e. patterns starting with "K" or "I") allow "half-RTT" encryption
+   of the first response payload to a particular initiator.  
 
 These features must be used cautiously, as these early encrypted payloads have
 security properties which can be subly different from later payloads.  The next
@@ -713,11 +716,13 @@ The confidentiality properties are:
      However, the sender has not authenticated the recipient, so this payload
      might be sent to any party, including an active attacker.
 
- 2.  **Encryption to a known recipient, forward secrecy for the sender only.**
-     This payload is encrypted based only on an ephemeral-static DH involving
-     the sender's ephemeral key pair and the recipient's static key pair.  If
-     the recipient's static private key is compromised, even at a later date,
-     this payload can be decrypted.
+ 2.  **Encryption to a known recipient, forward secrecy for the sender only,
+     vulnerable to replay.** This payload is encrypted based only on an
+     ephemeral-static DH involving the sender's ephemeral key pair and the
+     recipient's static key pair.  If the recipient's static private key is
+     compromised, even at a later date, this payload can be decrypted.  This
+     message can also be replayed, since there's no ephemeral contribution from
+     the recipient.
 
  3.  **Encryption to a known recipient, weak forward secrecy.**  This payload is
      encrypted based on an ephemeral-ephemeral DH.  However, the binding between
@@ -734,11 +739,13 @@ The confidentiality properties are:
      alleged ephemeral public and the recipient's static public key has only
      been verified based on DHs involving both those public keys and the
      sender's static key pair.  Thus, if the sender's static private key was
-     previously compromised, the recipient's alleged public key may have been
-     forged by an active attacker.  In this case, the attacker could later
-     compromise the intended recipient's static private key to decrypt the
-     payload. Note that a future version of Noise might include signatures,
-     which could improve this security property, but brings other trade-offs.
+     previously compromised, the recipient's alleged ephemeral public key may
+     have been forged by an active attacker (this is essentially a combination
+     of a "KCI" attack enabling "weak forward secrecy").  In this case, the
+     attacker could later compromise the intended recipient's static private
+     key to decrypt the payload. Note that a future version of Noise might
+     include signatures, which could improve this security property, but brings
+     other trade-offs.
 
  5. **Encryption to a known recipient, strong forward secrecy.**  This payload
     is encrypted based on an ephemeral-ephemeral DH.  Assuming the ephemeral
@@ -1069,7 +1076,8 @@ function.  For example:
 
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-If a pre-shared key is in use, then the prefix `NoisePSK_` is used instead of `Noise_`:
+If a pre-shared symmetric key is in use, then the prefix `NoisePSK_` is used
+instead of `Noise_`:
 
  * `NoisePSK_XX_25519_AESGCM_SHA256`
 
@@ -1141,8 +1149,8 @@ This section collects various security considerations:
  the same secret key was reused with the same handshake name but a different set
  of cryptographic operations then bad interactions could occur.
 
- * **Pre-shared keys**:  Pre-shared keys should be secret values with 256 bits
- of entropy (or more).
+ * **Pre-shared symmetric keys**:  Pre-shared symmetric keys should be secret
+   values with 256 bits of entropy (or more).
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
