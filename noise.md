@@ -442,8 +442,8 @@ A `HandshakeState` responds to the following methods:
       
       * For `"dh`*xy*`"`:  Calls `MixKey(DH(y, rx))`.  
 
-    * Calls `DecryptAndHash()` on the remaining bytes of the message, and
-      stores the output into the `payload_buffer`.
+    * Calls `DecryptAndHash()` on the remaining bytes of the message and
+      stores the output into `payload_buffer`.
   
     * If there are no more message patterns returns two new `CipherState`
       objects by calling `Split()`.
@@ -661,24 +661,23 @@ stronger identity-hiding for the responder rather than the initiator.  (This is
 similar to the distinction between SIGMA-I and SIGMA-R; see next section for
 more details on identity-hiding.)
 
-Many patterns allow encryption of handshake payloads, but with reduced security
-properties compared to later payloads:
+All patterns allow some degree of encryption of handshake payloads, but with
+reduced security properties compared to transport payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
  public key (i.e. patterns ending in `"K"`) allow "zero-RTT" encryption, meaning
  that the initiator can encrypt the first handshake payload.  
 
- * Patterns where the initiator transmits their static public key in later
- messages (i.e. patterns starting in `"X"`) allow "half-RTT" encryption of the
- first response payload to a not-yet-identified initiator.
- 
- * Patterns where the responder knows the initiator identity after the first
-   message (i.e. patterns starting with "K" or "I") allow "half-RTT" encryption
-   of the first response payload to a particular initiator.  
+ * All patterns allow "half-RTT" encryption of the first response payload, but
+   the responder only has evidence for the initiator identity at this point in
+   patterns starting with "K" or "I".
 
-These features must be used cautiously, as these early encrypted payloads have
-security properties which can be subly different from later payloads.  The next
-section provides more analysis.
+Patterns starting with "K" or "I" have the additional property that the
+responder is only guaranteed "weak" forward secrecy for the transport messages
+it sends until it receives a transport message from the initiator.
+
+The next section provides more analysis of payload security
+properties.
 
 7.4. Security properties 
 -------------------------
@@ -691,17 +690,17 @@ property regarding the degree of confidentiality provided to the sender.
 
 The authentication properties are:
 
- 0.  **No authentication.**  This payload may have been sent by any party,
+ *  **0 = No authentication.**  This payload may have been sent by any party,
      including an active attacker.
 
- 1.  **Sender authentication *vulnerable* to key-compromise impersonation
-     (KCI)**.  The sender authentication is based on a static-static DH
-     (`"dhss"`) involving both parties' long-term key pairs.  If the recipient's
-     long-term private key has been compromised, this authentication can be
-     forged.  Note that a future version of Noise might include signatures,
-     which could improve this security property, but brings other trade-offs.
+ *  **1 = Sender authentication *vulnerable* to key-compromise impersonation
+    (KCI)**.  The sender authentication is based on a static-static DH
+    (`"dhss"`) involving both parties' static key pairs.  If the recipient's
+    long-term private key has been compromised, this authentication can be
+    forged.  Note that a future version of Noise might include signatures,
+    which could improve this security property, but brings other trade-offs.
 
- 2.  **Sender authentication *resistant* to key-compromise impersonation
+ *  **2 = Sender authentication *resistant* to key-compromise impersonation
      (KCI)**.  The sender authentication is based on an ephemeral-static DH
      (`"dhes"` or `"dhse"`) between the sender's static key pair and the
      recipient's ephemeral key pair.  Assuming the recipient's ephemeral private
@@ -709,22 +708,21 @@ The authentication properties are:
 
 The confidentiality properties are:
 
- 0.  **No confidentiality.**  This payload is sent in cleartext.
+ *   **0 = No confidentiality.**  This payload is sent in cleartext.
 
- 1.  **Encryption to an ephemeral recipient.**  This payload has forward
+ *   **1 = Encryption to an ephemeral recipient.**  This payload has forward
      secrecy, since encryption involves an ephemeral-ephemeral DH (`"dhee"`).
      However, the sender has not authenticated the recipient, so this payload
      might be sent to any party, including an active attacker.
 
- 2.  **Encryption to a known recipient, forward secrecy for the sender only,
-     vulnerable to replay.** This payload is encrypted based only on an
-     ephemeral-static DH involving the sender's ephemeral key pair and the
-     recipient's static key pair.  If the recipient's static private key is
-     compromised, even at a later date, this payload can be decrypted.  This
-     message can also be replayed, since there's no ephemeral contribution from
-     the recipient.
+ *   **2 = Encryption to a known recipient, forward secrecy for the sender
+     only, vulnerable to replay.** This payload is encrypted based only on DHs
+     involving the recipient's static key pair.  If the recipient's static
+     private key is compromised, even at a later date, this payload can be
+     decrypted.  This message can also be replayed, since there's no ephemeral
+     contribution from the recipient.
 
- 3.  **Encryption to a known recipient, weak forward secrecy.**  This payload is
+ *   **3 = Encryption to a known recipient, weak forward secrecy.**  This payload is
      encrypted based on an ephemeral-ephemeral DH.  However, the binding between
      the recipient's alleged ephemeral public key and the recipient's static public
      key hasn't been verified, so the recipient's alleged ephemeral public key
@@ -733,28 +731,37 @@ The confidentiality properties are:
      payload. Note that a future version of Noise might include signatures,
      which could improve this security property, but brings other trade-offs.
 
- 4.  **Encryption to a known recipient, weak forward secrecy if the sender's
-     private key has been compromised.**  This payload is encrypted based on an
-     ephemeral-ephemeral DH.  However, the binding between the recipient's
-     alleged ephemeral public and the recipient's static public key has only
-     been verified based on DHs involving both those public keys and the
-     sender's static key pair.  Thus, if the sender's static private key was
-     previously compromised, the recipient's alleged ephemeral public key may
-     have been forged by an active attacker (this is essentially a combination
-     of a "KCI" attack enabling "weak forward secrecy").  In this case, the
-     attacker could later compromise the intended recipient's static private
-     key to decrypt the payload. Note that a future version of Noise might
+ *   **4 = Encryption to a known recipient, weak forward secrecy if the
+     sender's private key has been compromised.**  This payload is encrypted
+     based on an ephemeral-ephemeral DH.  However, the binding between the
+     recipient's alleged ephemeral public and the recipient's static public key
+     has only been verified based on DHs involving both those public keys and
+     the sender's static private key.  Thus, if the sender's static private key
+     was previously compromised, the recipient's alleged ephemeral public key
+     may have been forged by an active attacker.  In this case, the attacker
+     could later compromise the intended recipient's static private key to
+     decrypt the payload (this is a variant of "KCI" attack enabling a "weak
+     forward secrecy" attack). Note that a future version of Noise might
      include signatures, which could improve this security property, but brings
      other trade-offs.
 
- 5. **Encryption to a known recipient, strong forward secrecy.**  This payload
-    is encrypted based on an ephemeral-ephemeral DH.  Assuming the ephemeral
-    private keys are secure, and neither party is being actively impersonated by
-    an attacker that has stolen its private key, this payload cannot be
-    decrypted.
+ *  **5 = Encryption to a known recipient, strong forward secrecy.**  This
+    payload is encrypted based on an ephemeral-ephemeral DH and well as an
+    ephemeral-static DH with the recipient's static key pair.  Assuming the
+    ephemeral private keys are secure, and the recipient is not being actively
+    impersonated by an attacker that has stolen its static private key, this
+    payload cannot be decrypted.
 
 
-Secure Properties
+For one-way handshakes, the below-listed security properties apply to the
+handshake payload as well as transport payloads.
+
+For interactive handshakes, security properties are listed for each handshake
+payload.  Transport payloads are only listed if they have different security
+properties than the previous handshake payload sent from the same party.  If
+two transport payloads are listed, the security properties for the second only
+appy if the if the first transport payload was received.
+
 
                              authentication    confidentiality
                              --------------    ---------------
