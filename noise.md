@@ -876,7 +876,8 @@ received.
 The following table lists the identity hiding properties for all the named
 patterns in Sections 7.2 and 7.3.  Each pattern is assigned properties
 describing the confidentiality supplied to the initiator's static public key,
-and to the responder's static public key.  
+and to the responder's static public key, assuming that ephemeral private keys
+are secure.
 
 (Of course, the identities of Noise participants might be exposed through other means, included payload fields, traffic analysis, or metadata such as IP addresses.  This section only characterizes identity leakage through static public keys in handshakes.)
 
