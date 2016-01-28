@@ -538,8 +538,9 @@ Noise patterns must be **valid** in the following senses:
    keys they possess.
 
  * Parties must send an ephemeral public key as the first token of the first
-   message they send in a handshake pattern.  This is because Noise uses
-   ephemeral public keys as random PSK nonces.
+   message they send in a handshake pattern.  This is because Noise requires DH
+   outputs involving ephemeral keys to randomize the shared secret keys, and
+   also uses ephemeral public keys as random PSK nonces.
 
  * Parties must not send static public keys and payloads, nor complete the
    handshake, unless they have performed DH between their current ephemeral
@@ -564,7 +565,7 @@ non-interactive data streams.
 Following a one-way handshake the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
 The second `CipherState` from `Split()` is discarded - the recipient must not
-send any messages using it.
+send any messages using it (as this would violate the rules in Section 7.1).
 
     Naming convention for one-way patterns:    
       N = no static key for sender
@@ -876,10 +877,14 @@ received.
 The following table lists the identity hiding properties for all the named
 patterns in Sections 7.2 and 7.3.  Each pattern is assigned properties
 describing the confidentiality supplied to the initiator's static public key,
-and to the responder's static public key, assuming that ephemeral private keys
-are secure.
+and to the responder's static public key.  The underlying assumptions are that
+ephemeral private keys are secure, and that parties abort the handshake if they
+receive a static public key from the other party which they don't trust.
 
-(Of course, the identities of Noise participants might be exposed through other means, included payload fields, traffic analysis, or metadata such as IP addresses.  This section only characterizes identity leakage through static public keys in handshakes.)
+Note that this section only considers identity leakage through static public
+key fields in handshakes.  Of course, the identities of Noise participants
+might be exposed through other means, included payload fields, traffic
+analysis, or metadata such as IP addresses.
 
 The properties are:
 
@@ -890,7 +895,8 @@ The properties are:
 
   * **2.**  Encrypted with forward secrecy, but sent to an anonymous responder. 
 
-  * **3.**  Not transmitted, but a passive attacker can check candidates for the responder's private key and determine whether the candidate is correct.
+  * **3.**  Not transmitted, but a passive attacker can check candidates for
+    the responder's private key and determine whether the candidate is correct.
 
   * **4.** Encrypted to responder's static public key, without forward secrecy.
     If an attacker learns the responder's private key they can decrypt the
