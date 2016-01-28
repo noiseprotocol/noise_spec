@@ -348,12 +348,13 @@ A `SymmetricState` responds to the following methods:
  * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
    calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, none)` where `none` is a
-   zero-length byte sequence.  If `HASHLEN` is 64, then `temp_k1` and `temp_k2`
-   are truncated to 32 bytes to match `k`.  Creates two new `CipherState`
-   objects `c1` and `c2`.  Calls `c1.InitializeKey(temp_k1)` and
+ * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
+   is a zero-length byte sequence.  If `HASHLEN` is 64, then `temp_k1` and
+   `temp_k2` are each truncated to 32 bytes to match `k`.  Creates two new
+   `CipherState` objects `c1` and `c2`.  Calls `c1.InitializeKey(temp_k1)` and
    `c2.InitializeKey(temp_k2)`.  Returns the pair `(c1, c2)`.  The caller will
-   use the returned `CipherState` objects to encrypt and decrypt transport messages.
+   use the returned `CipherState` objects to encrypt and decrypt transport
+   messages.
    
 5.3. The `HandshakeState` object
 ---------------------------------
@@ -658,29 +659,34 @@ The `Noise_XX` pattern is the most generically useful, since it is efficient and
 supports mutual authentication and transmission of static public keys.  The
 `Noise_XR` pattern is similar to `Noise_XX` but is less efficient, and offers
 stronger identity-hiding for the responder rather than the initiator.  (This is
-similar to the distinction between SIGMA-I and SIGMA-R; see next section for
-more details on identity-hiding.)
+similar to the distinction between SIGMA-I and SIGMA-R; see Section 7.5 for
+more analysis on identity-hiding.)
 
-All patterns allow some degree of encryption of handshake payloads, but with
-reduced security properties compared to transport payloads:
+All interactive patterns allow some degree of encryption of handshake payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
  public key (i.e. patterns ending in `"K"`) allow "zero-RTT" encryption, meaning
- that the initiator can encrypt the first handshake payload.  
+ the initiator can encrypt the first handshake payload.  
 
- * All patterns allow "half-RTT" encryption of the first response payload, but
-   the responder only has evidence for the initiator identity at this point in
+ * All interactive patterns allow "half-RTT" encryption of the first response
+   payload, but the encryption only targets an initiator static public key in
    patterns starting with "K" or "I".
 
-Patterns starting with "K" or "I" have the additional property that the
-responder is only guaranteed "weak" forward secrecy for the transport messages
-it sends until it receives a transport message from the initiator.
+The security properties for handshake payloads are usually weaker than the
+final security properties achieved by transport payloads, so these early
+encryptions must be used with caution.
 
-The next section provides more analysis of payload security
-properties.
+In some patterns the security properties of transport payloads can vary.
+In particular: patterns starting with "K" or "I" have the caveat that the responder
+is only guaranteed "weak" forward secrecy for the transport messages it sends
+until it receives a transport message from the initiator.  After receiving a
+transport message from the initiator, the responder becomes assured of "strong"
+forward secrecy.
 
-7.4. Security properties 
--------------------------
+The next section provides more analysis of these payload security properties.
+
+7.4. Payload security properties
+---------------------------------
 
 The following table lists the security properties for Noise handshake and
 transport payloads for all the named patterns in Sections 7.2 and 7.3.  Each
@@ -757,10 +763,11 @@ For one-way handshakes, the below-listed security properties apply to the
 handshake payload as well as transport payloads.
 
 For interactive handshakes, security properties are listed for each handshake
-payload.  Transport payloads are only listed if they have different security
-properties than the previous handshake payload sent from the same party.  If
-two transport payloads are listed, the security properties for the second only
-appy if the if the first transport payload was received.
+payload.  Transport payloads are listed as arrows without a pattern, and are
+only listed if they have different security properties than the previous
+handshake payload sent from the same party.  If two transport payloads are
+listed, the security properties for the second only apply if the first was
+received.
 
 
                              authentication    confidentiality
@@ -863,7 +870,64 @@ appy if the if the first transport payload was received.
       <-                            2                 5               
 
 
-7.5. More patterns 
+7.5. Identity hiding
+---------------------
+
+The following table lists the identity hiding properties for all the named
+patterns in Sections 7.2 and 7.3.  Each pattern is assigned properties
+describing the confidentiality supplied to the initiator's static public key,
+and to the responder's static public key.  
+
+(Of course, the identities of Noise participants might be exposed through other means, included payload fields, traffic analysis, or metadata such as IP addresses.  This section only characterizes identity leakage through static public keys in handshakes.)
+
+The properties are:
+
+  * **0.** Transmitted in clear.
+
+  * **1.**  Encrypted with forward secrecy, but can be probed by an
+   anonymous initiator.
+
+  * **2.**  Encrypted with forward secrecy, but sent to an anonymous responder. 
+
+  * **3.**  Not transmitted, but a passive attacker can check candidates for the responder's private key and determine whether the candidate is correct.
+
+  * **4.** Encrypted to responder's static public key, without forward secrecy.
+    If an attacker learns the responder's private key they can decrypt the
+    initiator's public key. 
+
+  * **5.**  Not transmitted, but a passive attacker can check candidates for the responder's private key and initiator's public key and determine if both candidates are correct.
+
+  * **6.** Encrypted but with weak forward secrecy.  An active attacker who pretends to be the initiator without the initiator's static private key, then later learns the initiator private key, can then decrypt the responder's public key.
+
+  * **7.** Not transmitted, but an active attacker who pretends to be the initator without the initiator's static private key, then later learns a candidate for the initiator private key, can then check whether the candidate is correct.
+
+  * **8.** Encrypted with forward secrecy to an authenticated party.
+
+
+Identity hiding properties for static public keys:
+
+                  initiator          responder              
+                  ---------          ---------
+    Noise_N           -                  3
+    Noise_K           5                  5
+    Noise_X           4                  3
+    Noise_NN          -                  -
+    Noise_NK          -                  3
+    Noise_NX          -                  1
+    Noise_XN          2                  -
+    Noise_XK          8                  3
+    Noise_XX          8                  1
+    Noise_XR          2                  8
+    Noise_KN          7                  -
+    Noise_KK          5                  5
+    Noise_KX          7                  6
+    Noise_IN          0                  -
+    Noise_IK          4                  3
+    Noise_IX          0                  6
+
+
+
+7.6. More patterns 
 --------------------
 
 The patterns in the previous sections are examples which we are naming for
