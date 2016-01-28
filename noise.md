@@ -537,9 +537,9 @@ Noise patterns must be **valid** in the following senses:
  * Parties can only send static public keys they possess, or perform DH between
    keys they possess.
 
- * Because Noise uses ephemeral public keys as random PSK nonces, parties must
-   send an ephemeral public key as the first token of the first message they
-   send.
+ * Parties must send an ephemeral public key as the first token of the first
+   message they send in a handshake pattern.  This is because Noise uses
+   ephemeral public keys as random PSK nonces.
 
  * Parties must not send static public keys and payloads, nor complete the
    handshake, unless they have performed DH between their current ephemeral
@@ -662,7 +662,7 @@ stronger identity-hiding for the responder rather than the initiator.  (This is
 similar to the distinction between SIGMA-I and SIGMA-R; see Section 7.5 for
 more analysis on identity-hiding.)
 
-All interactive patterns allow some degree of encryption of handshake payloads:
+All interactive patterns allow some encryption of handshake payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
  public key (i.e. patterns ending in `"K"`) allow "zero-RTT" encryption, meaning
@@ -770,104 +770,104 @@ listed, the security properties for the second only apply if the first was
 received.
 
 
-                             authentication    confidentiality
-                             --------------    ---------------
-    Noise_N                         0                 2
-    Noise_K                         1                 2
-    Noise_X                         1                 2                  
-                                                                         
-                                                                         
-    Noise_NN                                                             
-      -> e                          0                 0
-      <- e, dhee                    0                 1
-      ->                            0                 1
-                                                                         
-    Noise_NK                                                             
-      <- s                                                               
-      ...                                                                
-      -> e, dhes                    0                 2                 
-      <- e, dhee                    2                 1                 
-      ->                            0                 5                 
-                                                                         
-    Noise_NX                                                             
-      -> e                          0                 0                  
-      <- e, dhee, s, dhse           2                 1                 
-      ->                            0                 5                 
-                                                                         
-                                                                         
-    Noise_XN                                                             
-      -> e                          0                 0                 
-      <- e, dhee                    0                 1                 
-      -> s, dhse                    2                 1                 
-      <-                            0                 5                 
-                                                                         
-    Noise_XK                                                             
-      <- s                                                               
-      ...                                                                
-      -> e, dhes                    0                 2                 
-      <- e, dhee                    2                 1                 
-      -> s, dhse                    2                 5                 
-      <-                            2                 5                 
-                                                                         
-    Noise_XX                                                             
-     -> e                           0                 0                 
-     <- e, dhee, s, dhse            2                 1                 
-     -> s, dhse                     2                 5                 
-     <-                             2                 5                 
-                                                                         
-    Noise_XR                                                             
-      -> e                          0                 0                  
-      <- e, dhee                    0                 1                 
-      -> s, dhse                    2                 1                 
-      <- s, dhse                    2                 5                 
-      ->                            2                 5                 
-                                                                         
-                                                                         
-    Noise_KN                                                             
-      -> s                                                               
-      ...                                                                
-      -> e                          0                 0                  
-      <- e, dhee, dhes              0                 3                 
-      ->                            2                 1                 
-      <-                            0                 5                 
-                                                                         
-    Noise_KK                                                             
-      -> s                                                               
-      <- s                                                               
-      ...                                                                
-      -> e, dhes, dhss              1                 2                 
-      <- e, dhee, dhes              2                 4                 
-      ->                            2                 5                 
-      <-                            2                 5                 
-                                                                      
-    Noise_KX                                                             
-      -> s                                                               
-      ...                                                                
-      -> e                          0                 0               
-      <- e, dhee, dhes, s, dhse     2                 3               
-      ->                            2                 5               
-      <-                            2                 5               
-                                                                      
-                                                                      
-    Noise_IN                                                          
-      -> e, s                       0                 0               
-      <- e, dhee, dhes              0                 3               
-      ->                            2                 1               
-      <-                            0                 5               
-                                                                      
-    Noise_IK                                                          
-      <- s                                                            
-      ...                                                             
-      -> e, dhes, s, dhss           1                 2               
-      <- e, dhee, dhes              2                 4               
-      ->                            2                 5               
-      <-                            2                 5               
-                                                                      
-    Noise_IX                                                          
-      -> e, s                       0                 0               
-      <- e, dhee, dhes, s, dhse     2                 3               
-      ->                            2                 5               
-      <-                            2                 5               
+                             Authentication   Confidentiality
+                             --------------   ---------------
+    Noise_N                         0                2
+    Noise_K                         1                2
+    Noise_X                         1                2                  
+                                                                        
+                                                                        
+    Noise_NN                                                            
+      -> e                          0                0
+      <- e, dhee                    0                1
+      ->                            0                1
+                                                                        
+    Noise_NK                                                            
+      <- s                                                              
+      ...                                                               
+      -> e, dhes                    0                2                 
+      <- e, dhee                    2                1                 
+      ->                            0                5                 
+                                                                        
+    Noise_NX                                                            
+      -> e                          0                0                  
+      <- e, dhee, s, dhse           2                1                 
+      ->                            0                5                 
+                                                                        
+                                                                        
+    Noise_XN                                                            
+      -> e                          0                0                 
+      <- e, dhee                    0                1                 
+      -> s, dhse                    2                1                 
+      <-                            0                5                 
+                                                                        
+    Noise_XK                                                            
+      <- s                                                              
+      ...                                                               
+      -> e, dhes                    0                2                 
+      <- e, dhee                    2                1                 
+      -> s, dhse                    2                5                 
+      <-                            2                5                 
+                                                                        
+    Noise_XX                                                            
+     -> e                           0                0                 
+     <- e, dhee, s, dhse            2                1                 
+     -> s, dhse                     2                5                 
+     <-                             2                5                 
+                                                                        
+    Noise_XR                                                            
+      -> e                          0                0                  
+      <- e, dhee                    0                1                 
+      -> s, dhse                    2                1                 
+      <- s, dhse                    2                5                 
+      ->                            2                5                 
+                                                                        
+                                                                        
+    Noise_KN                                                            
+      -> s                                                              
+      ...                                                               
+      -> e                          0                0                  
+      <- e, dhee, dhes              0                3                 
+      ->                            2                1                 
+      <-                            0                5                 
+                                                                        
+    Noise_KK                                                            
+      -> s                                                              
+      <- s                                                              
+      ...                                                               
+      -> e, dhes, dhss              1                2                 
+      <- e, dhee, dhes              2                4                 
+      ->                            2                5                 
+      <-                            2                5                 
+                                                                     
+    Noise_KX                                                            
+      -> s                                                              
+      ...                                                               
+      -> e                          0                0               
+      <- e, dhee, dhes, s, dhse     2                3               
+      ->                            2                5               
+      <-                            2                5               
+                                                                     
+                                                                     
+    Noise_IN                                                         
+      -> e, s                       0                0               
+      <- e, dhee, dhes              0                3               
+      ->                            2                1               
+      <-                            0                5               
+                                                                     
+    Noise_IK                                                         
+      <- s                                                           
+      ...                                                            
+      -> e, dhes, s, dhss           1                2               
+      <- e, dhee, dhes              2                4               
+      ->                            2                5               
+      <-                            2                5               
+                                                                     
+    Noise_IX                                                         
+      -> e, s                       0                0               
+      <- e, dhee, dhes, s, dhse     2                3               
+      ->                            2                5               
+      <-                            2                5               
 
 
 7.5. Identity hiding
@@ -907,24 +907,24 @@ The properties are:
 
 Identity hiding properties for static public keys:
 
-                  initiator          responder              
-                  ---------          ---------
-    Noise_N           -                  3
-    Noise_K           5                  5
-    Noise_X           4                  3
-    Noise_NN          -                  -
-    Noise_NK          -                  3
-    Noise_NX          -                  1
-    Noise_XN          2                  -
-    Noise_XK          8                  3
-    Noise_XX          8                  1
-    Noise_XR          2                  8
-    Noise_KN          7                  -
-    Noise_KK          5                  5
-    Noise_KX          7                  6
-    Noise_IN          0                  -
-    Noise_IK          4                  3
-    Noise_IX          0                  6
+               Initiator      Responder              
+               ---------      ---------
+    Noise_N        -              3
+    Noise_K        5              5
+    Noise_X        4              3
+    Noise_NN       -              -
+    Noise_NK       -              3
+    Noise_NX       -              1
+    Noise_XN       2              -
+    Noise_XK       8              3
+    Noise_XX       8              1
+    Noise_XR       2              8
+    Noise_KN       7              -
+    Noise_KK       5              5
+    Noise_KX       7              6
+    Noise_IN       0              -
+    Noise_IK       4              3
+    Noise_IX       0              6
 
 
 
@@ -936,9 +936,9 @@ convenience, but they are not exhaustive.  Other valid patterns could be
 constructed, for example:
 
  * It would be easy to modify `Noise_X` or `Noise_IK` to transmit the sender's
- static public key in cleartext instead of encrypted by changing `"e, dhes, s,
- dhss"` to `"e, s, dhes, dhss"`.  Since encrypting more of the handshake is
- usually better, we're not bothering to name those patterns.
+   static public key in cleartext instead of encrypted by changing `"e, dhes,
+   s, dhss"` to `"e, s, dhes, dhss"`.  Since this worsens identity hiding,
+   we're not bothering to name those patterns.
 
  * It would be easy to make `Noise_KK` or `Noise_IK` slightly more efficient by
  removing the `"dhss"`.  This would worsen security properties for the
@@ -953,13 +953,13 @@ constructed, for example:
  above patterns.  This pre-knowledge could be used to implement a "pre-key" or
  "semi-ephemeral key" handshake, where the forward-secrecy and KCI-resistance of
  zero-RTT data is improved since the pre-distributed "semi-ephemeral" key can be
- changed more frequently than the responder's static key.  These patterns would
+ changed more frequently than the responder's static key.  These patterns might
  benefit from signatures, which are not yet included in Noise.  These patterns
  also introduce new complexity around the lifetimes of semi-ephemeral key pairs,
  so are not discussed further here.
 
-8. Handshake re-initialization and "Noise Pipes"
-===============================================
+8. Handshake chaining
+======================
 
 A Noise handshake pattern specifies a rigid sequence of messages.  But there may
 be protocols that require branching to different sequences of message.  For
