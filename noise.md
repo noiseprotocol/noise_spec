@@ -537,8 +537,9 @@ Noise patterns must be **valid** in the following senses:
  * Parties can only send static public keys they possess, or perform DH between
    keys they possess.
 
- * Parties must send an ephemeral public key as the first token of the first
-   message they send.
+ * Parties must send a new ephemeral public key at the start of the first
+   message they send (i.e. the first token of the first message pattern in each
+   direction must be `"e"`).
 
  * Parties must not send static public keys and payloads, nor complete the
    handshake, unless they have performed DH between their current ephemeral
@@ -548,8 +549,8 @@ Patterns failing the first check will obviously abort the program.
 
 The second and third checks are necessary because Noise requires DH outputs
 involving ephemeral keys to randomize the shared secret keys, and also uses
-ephemeral public keys as random PSK nonces.  Patterns failing these checks
-could result in subtle but catastrophic security flaws.
+ephemeral public keys to randomize PSK-based encryption.  Patterns failing
+these checks could result in subtle but catastrophic security flaws.
 
 7.2. One-way patterns 
 ----------------------
@@ -674,7 +675,7 @@ The security properties for handshake payloads are usually weaker than the
 final security properties achieved by transport payloads, so these early
 encryptions must be used with caution.
 
-In some patterns the security properties of transport payloads can vary.
+In some patterns the security properties of transport payloads can also vary.
 In particular: patterns starting with "K" or "I" have the caveat that the responder
 is only guaranteed "weak" forward secrecy for the transport messages it sends
 until it receives a transport message from the initiator.  After receiving a
@@ -719,35 +720,38 @@ The confidentiality properties are:
      However, the sender has not authenticated the recipient, so this payload
      might be sent to any party, including an active attacker.
 
- *   **2 = Encryption to a known recipient, forward secrecy for the sender
-     only, vulnerable to replay.** This payload is encrypted based only on DHs
-     involving the recipient's static key pair.  If the recipient's static
-     private key is compromised, even at a later date, this payload can be
-     decrypted.  This message can also be replayed, since there's no ephemeral
-     contribution from the recipient.
+ *   **2 = Encryption to a known recipient, forward secrecy for sender
+     compromise only, vulnerable to replay.** This payload is encrypted based
+     only on DHs involving the recipient's static key pair.  If the recipient's
+     static private key is compromised, even at a later date, this payload can
+     be decrypted.  This message can also be replayed, since there's no
+     ephemeral contribution from the recipient.
 
- *   **3 = Encryption to a known recipient, weak forward secrecy.**  This payload is
-     encrypted based on an ephemeral-ephemeral DH.  However, the binding between
-     the recipient's alleged ephemeral public key and the recipient's static public
-     key hasn't been verified, so the recipient's alleged ephemeral public key
-     may have been forged by an active attacker.  In this case, the attacker
-     could later compromise the recipient's static private key to decrypt the
-     payload. Note that a future version of Noise might include signatures,
-     which could improve this security property, but brings other trade-offs.
+ *   **3 = Encryption to a known recipient, weak forward secrecy.**  This
+     payload is encrypted based on an ephemeral-ephemeral DH and also an
+     ephemeral-static DH involving the recipient's static key pair.  However,
+     the binding between the recipient's alleged ephemeral public key and the
+     recipient's static public key hasn't been verified, so the recipient's
+     alleged ephemeral public key may have been forged by an active attacker.
+     In this case, the attacker could later compromise the recipient's static
+     private key to decrypt the payload. Note that a future version of Noise
+     might include signatures, which could improve this security property, but
+     brings other trade-offs.
 
  *   **4 = Encryption to a known recipient, weak forward secrecy if the
      sender's private key has been compromised.**  This payload is encrypted
-     based on an ephemeral-ephemeral DH.  However, the binding between the
-     recipient's alleged ephemeral public and the recipient's static public key
-     has only been verified based on DHs involving both those public keys and
-     the sender's static private key.  Thus, if the sender's static private key
-     was previously compromised, the recipient's alleged ephemeral public key
-     may have been forged by an active attacker.  In this case, the attacker
-     could later compromise the intended recipient's static private key to
-     decrypt the payload (this is a variant of "KCI" attack enabling a "weak
-     forward secrecy" attack). Note that a future version of Noise might
-     include signatures, which could improve this security property, but brings
-     other trade-offs.
+     based on an ephemeral-ephemeral DH, and also based on an ephemeral-static
+     DH involving the recipient's static key pair.  However, the binding
+     between the recipient's alleged ephemeral public and the recipient's
+     static public key has only been verified based on DHs involving both those
+     public keys and the sender's static private key.  Thus, if the sender's
+     static private key was previously compromised, the recipient's alleged
+     ephemeral public key may have been forged by an active attacker.  In this
+     case, the attacker could later compromise the intended recipient's static
+     private key to decrypt the payload (this is a variant of a "KCI" attack
+     enabling a "weak forward secrecy" attack). Note that a future version of
+     Noise might include signatures, which could improve this security
+     property, but brings other trade-offs.
 
  *  **5 = Encryption to a known recipient, strong forward secrecy.**  This
     payload is encrypted based on an ephemeral-ephemeral DH and well as an
@@ -883,7 +887,7 @@ key fields in handshakes.  Of course, the identities of Noise participants
 might be exposed through other means, included payload fields, traffic
 analysis, or metadata such as IP addresses.
 
-The properties are:
+The properties for a relevant public key are:
 
   * **0.** Transmitted in clear.
 
