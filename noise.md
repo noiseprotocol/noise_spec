@@ -538,21 +538,18 @@ Noise patterns must be **valid** in the following senses:
    keys they possess.
 
  * Parties must send an ephemeral public key as the first token of the first
-   message they send in a handshake pattern.  This is because Noise requires DH
-   outputs involving ephemeral keys to randomize the shared secret keys, and
-   also uses ephemeral public keys as random PSK nonces.
+   message they send.
 
  * Parties must not send static public keys and payloads, nor complete the
    handshake, unless they have performed DH between their current ephemeral
-   and all of the other party's current key pairs.  This provides good forward
-   secrecy and authentication.  This also prevents subtle attacks where an
-   invalid public key could be used to force a DH output to a constant value
-   (e.g. zero), thus nullifying the randomizing effect of one party's
-   ephemeral, and triggering catastrophic reuse of a `"dhss"`-derived key.
+   and all of the other party's current key pairs that they are aware of.  
+   
+Patterns failing the first check will obviously abort the program.  
 
-Patterns failing the first check will obviously abort the program.  Patterns
-failing the second and third checks could result in subtle but catastrophic
-security flaws.
+The second and third checks are necessary because Noise requires DH outputs
+involving ephemeral keys to randomize the shared secret keys, and also uses
+ephemeral public keys as random PSK nonces.  Patterns failing these checks
+could result in subtle but catastrophic security flaws.
 
 7.2. One-way patterns 
 ----------------------
