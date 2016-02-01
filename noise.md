@@ -102,8 +102,8 @@ handshake pattern:
 The initiator sends the first message, which is simply an ephemeral public key.
 The responder sends back its own ephemeral public key.  Then a DH is performed
 and the output is hashed into `ck`, which is the final shared key from the
-handshake.  Note that a cleartext payload can be sent in the first handshake
-message, and an encrypted payload can be sent in the response handshake message.  
+handshake.  Note that a cleartext payload is sent in the first handshake
+message, and an encrypted payload is sent in the response handshake message.  
 
 The responder can send its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
@@ -550,10 +550,10 @@ Noise patterns must be **valid** in the following senses:
    
 Patterns failing the first check will obviously abort the program.  
 
-The second and third checks are necessary because Noise requires DH outputs
-involving ephemeral keys to randomize the shared secret keys, and also uses
-ephemeral public keys to randomize PSK-based encryption.  Patterns failing
-these checks could result in subtle but catastrophic security flaws.
+The second and third checks are necessary because Noise uses DH outputs
+involving ephemeral keys to randomize the shared secret keys.  Noise also uses
+ephemeral public keys to randomize PSK-based encryption.  Patterns failing these
+checks could result in subtle but catastrophic security flaws.
 
 7.2. One-way patterns 
 ----------------------
@@ -971,8 +971,8 @@ for convenience.  Other valid patterns could be constructed, for example:
 ===============================
 
 A handshake pattern specifies a fixed sequence of messages.  In some cases
-parties may begin executing one handshake pattern, then discover a need to
-switch to a different sequence of messages.  Noise has two ways to handle this.
+parties executing a handshake pattern may discover a need to send a different
+sequence of messages.  Noise has two ways to handle this.
 
 8.1. Dummy static public keys
 ------------------------------
@@ -1009,8 +1009,9 @@ first handshake can be represented as pre-messages in the second handshake.
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses two patterns defined in the previous section: `Noise_XX` is used
-for a full handshake, after which the initiator can cache the responder's static
-public key.  `Noise_IK` is used for a zero-RTT handshake.  
+for an initial handshake if the parties haven't communicated before, after which
+the initiator can cache the responder's static public key.  `Noise_IK` is used
+for a zero-RTT handshake.  
 
 If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
 changing her static key), the responder will initiate a new `Noise_XXfallback`
@@ -1040,8 +1041,10 @@ Note that in the fallback case, the initiator and responder roles are switched:
 If Alice inititates a `Noise_IK` handshake with Bob, Bob might 
 initiate a `Noise_XX_fallback` handshake.
 
-To distinguish these patterns, each handshake message could be preceded by a
-`type` byte (see Section 11):
+There needs to be some way for the recipient of a message to distinguish whether
+it's the next message in the current handshake pattern, or requires
+re-initialization for a new pattern.  For example, each handshake message could
+be preceded by a `type` byte (see Section 11):
 
  * If `type == 0` in the initiator's first message then the initiator is performing
  a `Noise_XX` handshake.
@@ -1065,9 +1068,9 @@ To distinguish these patterns, each handshake message could be preceded by a
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 DH function (aka "X25519"
-   in some specifications).  If the function detects an invalid public
-   key, the output may be set to all zeros or any other value that doesn't leak
-   information about the private key.
+ in RFC 7748).  The null public key value is all zeros, which will always
+ produce an output of all zeros.  Other invalid public key values will also
+ produce an output of all zeros.
 
  * **`DHLEN`** = 32
 
@@ -1077,9 +1080,9 @@ To distinguish these patterns, each handshake message could be preceded by a
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 DH function (aka "X448" in
-   some specifications).  If the function detects an invalid public key,
-   the output may be set to all zeros or any other value that doesn't leak
-   information about the private key.
+ RFC 7748).  The null public key value is all zeros, which will always produce
+ an output of all zeros.  Other invalid public key values will also produce an
+ output of all zeros.
 
  * **`DHLEN`** = 56
 
@@ -1229,9 +1232,10 @@ This section collects various security considerations:
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key (e.g. if setting her public keys to invalid values causes
-   DH outputs of zero).  If a higher-level protocol wants a unique "channel
-   binding" value for referring to a Noise session it should use the value of
-   `h` after the final handshake message, not `ck`.
+   DH outputs of zero, as is the case for the `25519` and `448` DH functions).
+   If a higher-level protocol wants a unique "channel binding" value for
+   referring to a Noise session it should use the value of `h` after the final
+   handshake message, not `ck`.
 
  * **Implementation fingerprinting**:  If this protocol is used in settings with
    anonymous parties, care should be taken that implementations behave
@@ -1321,5 +1325,5 @@ earlier versions of the key derivation.
 
 Thanks to Karthikeyan Bhargavan for some editorial feedback.
 
-Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
+Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
 versions.
