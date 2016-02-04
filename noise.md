@@ -302,7 +302,8 @@ The below sections describe these objects in detail.
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A cipher key of 32 bytes (which may be empty).
+ * **`k`**: A cipher key of 32 bytes (which may be `empty`).  `Empty` is a
+   special value which indicates `k` has not yet been initialized.
 
  * **`n`**: An 8-byte (64-bit) unsigned integer nonce.
 
@@ -337,7 +338,7 @@ A `SymmetricState` responds to the following methods:
    than or equal to `HASHLEN` bytes in length, sets `h` equal to
    `handshake_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise
    sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
-   `InitializeKey(empty)`.  
+   `InitializeKey(empty)`.
 
  * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
    input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
@@ -363,7 +364,8 @@ A `SymmetricState` responds to the following methods:
 ---------------------------------
 
 A `HandshakeState` object contains a `SymmetricState` plus the following
-variables, any of which may be empty:
+variables, any of which may be `empty`.  `Empty` is a special value which 
+indicates the variable has not yet been initialized.
 
  * **`s`**: The local static key pair 
 
@@ -537,7 +539,8 @@ achieved with the second message.
 
 Noise patterns must be **valid** in the following senses:
 
- * Parties can only send static public keys they possess, or perform DH between
+ * Parties can only send a static public key if they were initialized with a
+   static key pair, and can only perform DH between private keys and public
    keys they possess.
 
  * Parties must send a new ephemeral public key at the start of the first
@@ -552,8 +555,11 @@ Patterns failing the first check will obviously abort the program.
 
 The second and third checks are necessary because Noise uses DH outputs
 involving ephemeral keys to randomize the shared secret keys.  Noise also uses
-ephemeral public keys to randomize PSK-based encryption.  Patterns failing these
-checks could result in subtle but catastrophic security flaws.
+ephemeral public keys to randomize PSK-based encryption.  Patterns failing
+these checks could result in subtle but catastrophic security flaws.  
+
+Users are recommended to only use the handshake patterns listed below, or other
+patterns that have been vetted by experts to satisfy the above checks.
 
 7.2. One-way patterns 
 ----------------------
