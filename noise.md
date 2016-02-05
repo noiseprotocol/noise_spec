@@ -324,6 +324,9 @@ A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
+If incrementing `n` would exceed 2^64 - 1 then no more data can be processed,
+and any further `Encrypt()` or `Decrypt()` calls will signal an error to the
+caller.
 
  * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
@@ -1039,10 +1042,10 @@ authentications (initiator only, responder only, both, or none).
 -------------------------------------------------
 
 Consider a protocol where the initiator can attempt zero-RTT encryption based on
-prior knowledge of the responder's static public key.  If the responder has
-changed their static public key, the parties will need to switch to a "fallback"
-handshake where the responder transmits the new static public key and the
-initiator resends the zero-RTT data.
+the responder's static public key.  If the responder has changed their static
+public key, the parties will need to switch to a "fallback" handshake where the
+responder transmits the new static public key and the initiator resends the
+zero-RTT data.
 
 This can be handled by both parties re-initalizing their `HandshakeState` and
 simply executing a different handshake.  Public keys that were exchanged in the
