@@ -157,21 +157,22 @@ messages might also encapsulate payloads that require parsing of some sort, but
 the payloads are opaque to Noise.
 
 A Noise **transport message** is simply an AEAD ciphertext that is less than or
-equal to 65535 bytes in length, and that consists of some encrypted payload
+equal to 65535 bytes in length, and that consists of an encrypted payload
 plus a 16-byte authentication tag.  The details depend on the AEAD cipher
 function, e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication
 tag typically occurs at the end of the ciphertext.
 
 A Noise **handshake message** is also less than 65535 bytes.  It begins with a
 sequence of one or more DH public keys, as determined by its message pattern.
-Following the public keys will be a payload which can be used to convey
-certificates or other handshake data.  Static public keys and payloads will be
-in cleartext if they occur in a handshake pattern prior to a DH operation, and
-will be an AEAD ciphertext if they occur after a DH operation.  (If Noise is
-being used with pre-shared symmetric keys, this rule is different: *all* static
-public keys and payloads will be encrypted; see Section 6).  Like transport
-messages, AEAD ciphertexts will expand each encrypted field by 16 bytes for an
-authentication tag.
+Following the public keys will be a single payload which can be used to convey
+certificates or other handshake data, but can also be zero length.  
+
+Static public keys and payloads will be in cleartext if they occur in a
+handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
+they occur after a DH operation.  (If Noise is being used with pre-shared
+symmetric keys, this rule is different: *all* static public keys and payloads
+will be encrypted; see Section 6).  Like transport messages, AEAD ciphertexts
+will expand each encrypted field by 16 bytes for an authentication tag.
 
 For an example, consider the handshake pattern:
 
@@ -179,17 +180,24 @@ For an example, consider the handshake pattern:
       <- e, dhee, s, dhse
       -> s, dhse
 
-The first message consists of a cleartext public key followed by a cleartext
-payload (remember that payloads are implicit in the pattern, but are always
-present).  The second message consists of a cleartext public key followed by an
-encrypted public key followed by an encrypted payload.  The third message
-consists of an encrypted public key followed by an encrypted payload.  
+The first message consists of a cleartext public key (`"e"`) followed by a
+cleartext payload (remember that payloads are implicit in the pattern, but are
+always present).  The second message consists of a cleartext public key (`"e"`)
+followed by an encrypted public key (`"s"`) followed by an encrypted payload.
+The third message consists of an encrypted public key (`"s"`) followed by an
+encrypted payload.  
 
-Assuming zero-length payloads and DH public keys of 32 bytes, the message sizes
-will be 32 bytes (one public key), then 96 bytes (two public keys and two
-authentication tags), then 64 bytes (one public key and two authentication
-tags).  If pre-shared symmetric keys are used, the first message grows in size
-to 48 bytes, since the first payload becomes encrypted.
+Assuming zero-length payloads and DH public keys of 56 bytes, the message sizes
+will be:
+
+ * 56 bytes (one public key and a zero-length payload)
+
+ * 144 bytes (two public keys, the second encrypted, and an encrypted payload)
+
+ * 72 bytes (one encrypted public key and an encrypted payload)
+
+If pre-shared symmetric keys are used, the first message grows in size to 72
+bytes, since the first payload becomes encrypted.
 
 
 4.  Crypto algorithms
