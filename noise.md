@@ -246,11 +246,18 @@ Noise defines an additional function based on the above `HASH` function.  The
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
-   arbitrary length.  Sets the value `temp_key = HMAC-HASH(chaining_key,
-   input_key_material)`.  Sets the value `output1 = HMAC-HASH(temp_key, byte(0x01))`.
-   Sets the value `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.  These
-   three values are all `HASHLEN` bytes in length.  Returns the pair
-   (`output1`, `output2`).
+   arbitrary length.  Returns two byte sequences of length `HASHLEN`, as
+   follows:   
+
+     * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.  
+     
+     * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
+   
+     * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.  
+
+     * Returns the pair `(output1, output2)`.
+    
+   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in length.
 
 
 5. Processing rules for handshake and transport messages
