@@ -58,7 +58,7 @@ Each party to a handshake maintains the following variables:
    handshake completes, the chaining key will be used to derive the encryption
    keys for transport messages.
  
- * **`k, n`**: A encryption key `k` (which may be empty) and a counter-based
+ * **`k, n`**: An encryption key `k` (which may be empty) and a counter-based
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated from the same inputs.  The key `k` and nonce `n`
    are used to encrypt static public keys and handshake payloads, incrementing
@@ -1215,9 +1215,17 @@ This section collects various security considerations:
  * **Termination**:  Preventing attackers from truncating a stream of transport
    messages is an application responsibility.  See previous section.
 
- * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key `k`
- for encryption would be catastrophic.  Implementations must carefully follow
- the rules for nonces.   
+ * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
+   `k` for encryption would be catastrophic.  Implementations must carefully
+   follow the rules for nonces.  Nonces are not allowed to wrap back to zero
+   due to integer overflow.  This means parties are not allowed to send more
+   than 2^64 transport messages.
+
+ * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
+   in security as the volume of data encrypted under a single key increases.
+   Due to this, parties should not send more than 2^56 bytes (roughly 72
+   petabytes) encrypted by a single key.  If sending such large volumes of data
+   is a possibility, different cipher functions should be chosen.
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
    ephemeral public key and perform a DH with it prior to sending any encrypted
@@ -1227,10 +1235,11 @@ This section collects various security considerations:
    only allow transport messages from the sender, not the recipient.
 
  * **Handshake names**:  The handshake name used with `Initialize()` must
- uniquely identify the combination of handshake pattern and crypto functions for
- every key it's used with (whether ephemeral key pair or static key pair).  If
- the same secret key was reused with the same handshake name but a different set
- of cryptographic operations then bad interactions could occur.
+   uniquely identify the combination of handshake pattern and crypto functions
+   for every key it's used with (whether ephemeral key pair, static key pair,
+   or PSK).  If the same secret key was reused with the same handshake name but
+   a different set of cryptographic operations then bad interactions could
+   occur.
 
  * **Pre-shared symmetric keys**:  Pre-shared symmetric keys should be secret
    values with 256 bits of entropy (or more).
