@@ -26,13 +26,16 @@ a sequence of DH operations, hashing the DH results into a shared secret key.
 After the handshake phase each party can use this shared key to send encrypted
 **transport messages**.
 
-The Noise framework supports handshakes where each party has a
-long-term **static key pair** and/or an **ephemeral key pair**.  The handshake
-is described by **patterns**.  A **message pattern** is a sequence of
-**tokens** that specifies the DH public keys that comprise a handshake message,
-and the DH operations that are performed when sending or receiving that
-message.  A **handshake pattern** specifies the sequence of message patterns
-that comprise a handshake.
+The Noise framework supports handshakes where each party has a long-term
+**static key pair** and/or an **ephemeral key pair**.  A Noise handshake is
+described by a simple language.  This language consists of **tokens** which can
+be arranged into different **message patterns**.  The message patterns, in
+turn, can be arranged into **handshake patterns**.
+
+A **message pattern** is a sequence of tokens that specifies the DH public
+keys that comprise a handshake message, and the DH operations that are
+performed when sending or receiving that message.  A **handshake pattern**
+specifies the sequential exchange of messages that comprise a handshake.
 
 A handshake pattern can be instantiated by **DH functions**, **cipher
 functions**, and a **hash function** to give a concrete protocol.  An
