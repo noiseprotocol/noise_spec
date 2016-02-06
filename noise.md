@@ -324,9 +324,8 @@ A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-If incrementing `n` would exceed 2^64 - 1 then no more data can be processed,
-and any further `Encrypt()` or `Decrypt()` calls will signal an error to the
-caller.
+If incrementing `n` exceeds 2^64 - 1 then any further `Encrypt()` or
+`Decrypt()` calls will signal an error to the caller.
 
  * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
