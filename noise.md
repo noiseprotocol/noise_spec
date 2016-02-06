@@ -481,7 +481,7 @@ A `HandshakeState` responds to the following methods:
 ============
 
 Noise handshakes have a **prologue** input which allows arbitrary data to be
-included in the `h` variable.  If both parties do not provide identical prologue
+hashed into the `h` variable.  If both parties do not provide identical prologue
 data, the handshake will fail due to a decryption error.  This is useful when
 the parties engaged in negotiation prior to the handshake and want to ensure
 they share identical views of that negotiation.  
