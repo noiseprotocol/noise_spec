@@ -812,10 +812,10 @@ For one-way handshakes, the below-listed security properties apply to the
 handshake payload as well as transport payloads.
 
 For interactive handshakes, security properties are listed for each handshake
-payload.  Transport payloads are listed as arrows without a pattern, and are
-only listed if they have different security properties than the previous
-handshake payload sent from the same party.  If two transport payloads are
-listed, the security properties for the second only apply if the first was
+payload.  Transport payloads are listed as arrows without a pattern.  Transport
+payloads are only listed if they have different security properties than the
+previous handshake payload sent from the same party.  If two transport payloads
+are listed, the security properties for the second only apply if the first was
 received.
 
 
