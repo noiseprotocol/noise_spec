@@ -370,14 +370,20 @@ A `SymmetricState` responds to the following methods:
  * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
    calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`Split()`**:  Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
-   is a zero-length byte sequence.  If `HASHLEN` is 64, then `temp_k1` and
-   `temp_k2` are each truncated to 32 bytes to match `k`.  Creates two new
-   `CipherState` objects `c1` and `c2`.  Calls `c1.InitializeKey(temp_k1)` and
-   `c2.InitializeKey(temp_k2)`.  Returns the pair `(c1, c2)`.  The caller will
-   use the returned `CipherState` objects to encrypt and decrypt transport
-   messages.
+ * **`Split()`**:  Returns a pair of `CipherState` objects for encryption transport messages.  Executes the following steps:
+
+   * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
+   is a zero-length byte sequence.  
    
+   * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes to match `k`.  
+   
+   *  Creates two new `CipherState` objects `c1` and `c2`.  
+   
+   * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
+   
+   * Returns the pair `(c1, c2)`.  
+
+
 5.3. The `HandshakeState` object
 ---------------------------------
 
