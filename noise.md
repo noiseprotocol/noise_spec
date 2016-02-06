@@ -198,7 +198,7 @@ will be:
 
  * 144 bytes (two public keys, the second encrypted, and an encrypted payload)
 
- * 72 bytes (one encrypted public key and an encrypted payload)
+ * 88 bytes (one encrypted public key and an encrypted payload)
 
 If pre-shared symmetric keys are used, the first message grows in size to 72
 bytes, since the first payload becomes encrypted.
