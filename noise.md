@@ -1381,10 +1381,10 @@ and also by HOMQV from Hugo Krawzcyk.
 Feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld, Tiffany
 Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
 
+Thanks to Tom Ritter and Karthikeyan Bhargavan for editorial feedback.
+
 Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
 earlier versions of the key derivation.
-
-Thanks to Karthikeyan Bhargavan for some editorial feedback.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
 versions.
