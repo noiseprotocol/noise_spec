@@ -352,11 +352,11 @@ variables:
 A `SymmetricState` responds to the following methods:   
  
  * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
-   `handshake_name` byte sequence (see Section 11).  If `handshake_name` is less
-   than or equal to `HASHLEN` bytes in length, sets `h` equal to
-   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise
-   sets `h = HASH(handshake_name)`.  Sets `ck = h`. Calls
-   `InitializeKey(empty)`.
+   `handshake_name` byte sequence (see Section 11).  Executes the following steps:
+   * If `handshake_name` is less than or equal to `HASHLEN` bytes in length, sets `h` equal to
+   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  
+   * Sets `ck = h`. 
+   * Calls `InitializeKey(empty)`.
 
  * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
    input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
