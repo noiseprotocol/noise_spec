@@ -1271,7 +1271,7 @@ This section collects various security considerations:
  * **Rollback**:  If parties decide on a Noise handshake based on some previous
  negotiation that is not included as prologue, then a rollback attack might be
  possible.  This is a particular risk with handshake re-initialization, and
- requires careful attention if any Noise handshake is preceded by communication
+ requires careful attention if a Noise handshake is preceded by communication
  between the parties.
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
