@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2016-02-03
- * **Revision:** 21 (work in progress)
+ * **Date:** 2016-02-18
+ * **Revision:** 22 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -29,8 +29,8 @@ After the handshake phase each party can use this shared key to send encrypted
 The Noise framework supports handshakes where each party has a long-term
 **static key pair** and/or an **ephemeral key pair**.  A Noise handshake is
 described by a simple language.  This language consists of **tokens** which are
-arranged into different **message patterns**.  The message patterns are arranged
-into **handshake patterns**.
+arranged into different **message patterns**.  The message patterns are
+themselves arranged into **handshake patterns**.
 
 A **message pattern** is a sequence of tokens that specifies the DH public
 keys that comprise a handshake message, and the DH operations that are
@@ -68,9 +68,7 @@ Each party to a handshake maintains the following variables:
    `n` with each encryption.  Encryption with `k` uses an "AEAD" cipher mode
    and includes the current `h` value as "associated data" which is covered by
    the AEAD authentication tag.  Encryption of static public keys and payloads
-   provides some confidentiality during the handshake phase.  It also confirms
-   to the receiving party that the correct key was derived, and that the sender
-   has a matching view of transmitted handshake data.
+   provides some confidentiality and key confirmation during the handshake phase.
 
 To send a handshake message, the sender sequentially processes each token from
 a message pattern.  The possible tokens are:
@@ -369,12 +367,14 @@ A `SymmetricState` responds to the following methods:
  * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
    calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`Split()`**:  Returns a pair of `CipherState` objects for encryption transport messages.  Executes the following steps:
+ * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
+   transport messages.  Executes the following steps:
 
    * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
    is a zero-length byte sequence.  
    
-   * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes to match `k`.  
+   * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
+     apiece to match `k`.  
    
    *  Creates two new `CipherState` objects `c1` and `c2`.  
    
@@ -939,7 +939,7 @@ key fields in handshakes.  Of course, the identities of Noise participants
 might be exposed through other means, included payload fields, traffic
 analysis, or metadata such as IP addresses.
 
-The properties for a relevant public key are:
+The properties for the relevant public key are:
 
   * **0.** Transmitted in clear.
 
