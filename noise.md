@@ -322,8 +322,9 @@ A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-If incrementing `n` exceeds 2^64 - 1 then any further `Encrypt()` or
-`Decrypt()` calls will signal an error to the caller.
+If incrementing `n` causes an arithmetic overflow (i.e. would result in `n`
+greater than 2^64 - 1) then any further `Encrypt()` or `Decrypt()` calls will
+signal an error to the caller.
 
  * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
@@ -593,7 +594,7 @@ Noise patterns must be **valid** in the following senses:
  * After performing a DH between a remote public key and any local private key
    that is not a "fresh" ephemeral private key, the local party must not send
    any payloads or static public keys, nor complete the handshake, unless they
-   have also performed a DH with a "fresh" ephemeral private key against the
+   have also performed a DH between a "fresh" ephemeral private key and the
    remote public key.  A "fresh" ephemeral private key is one that was created
    by processing an `"e"` token when sending a message (as opposed to an
    ephemeral private key passed in during initialization).
