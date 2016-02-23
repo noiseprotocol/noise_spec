@@ -3,8 +3,8 @@ Noise v0 (draft)
 =================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2016-02-18
- * **Revision:** 22 (work in progress)
+ * **Date:** 2016-02-22
+ * **Revision:** 23 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -586,14 +586,18 @@ Noise patterns must be **valid** in the following senses:
    static key pair, and can only perform DH between private keys and public
    keys they possess.
 
- * Parties must send a new ephemeral public key at the start of the first
+ * Parties must send a fresh ephemeral public key at the start of the first
    message they send (i.e. the first token of the first message pattern in each
    direction must be `"e"`).
 
- * Parties must not send static public keys and payloads, nor complete the
-   handshake, unless they have performed DH between their current ephemeral
-   and all of the other party's current key pairs that they are aware of.  
-   
+ * After performing a DH between a remote public key and any local private key
+   that is not a "fresh" ephemeral private key, the local party must not send
+   any payloads or static public keys, nor complete the handshake, unless they
+   have also performed a DH with a "fresh" ephemeral private key against the
+   remote public key.  A "fresh" ephemeral private key is one that was created
+   by processing an `"e"` token when sending a message (as opposed to an
+   ephemeral private key passed in during initialization).
+
 Patterns failing the first check will obviously abort the program.  
 
 The second and third checks are necessary because Noise uses DH outputs
@@ -936,7 +940,7 @@ receive a static public key from the other party which they don't trust.
 
 Note that this section only considers identity leakage through static public
 key fields in handshakes.  Of course, the identities of Noise participants
-might be exposed through other means, included payload fields, traffic
+might be exposed through other means, including payload fields, traffic
 analysis, or metadata such as IP addresses.
 
 The properties for the relevant public key are:
@@ -955,11 +959,19 @@ The properties for the relevant public key are:
     If an attacker learns the responder's private key they can decrypt the
     initiator's public key. 
 
-  * **5.**  Not transmitted, but a passive attacker can check candidates for the responder's private key and initiator's public key and determine if both candidates are correct.
+  * **5.**  Not transmitted, but a passive attacker can check candidates for
+    the responder's private key and initiator's public key and determine if
+    both candidates are correct.
 
-  * **6.** Encrypted but with weak forward secrecy.  An active attacker who pretends to be the initiator without the initiator's static private key, then later learns the initiator private key, can then decrypt the responder's public key.
+  * **6.** Encrypted but with weak forward secrecy.  An active attacker who
+    pretends to be the initiator without the initiator's static private key,
+    then later learns the initiator private key, can then decrypt the
+    responder's public key.
 
-  * **7.** Not transmitted, but an active attacker who pretends to be the initator without the initiator's static private key, then later learns a candidate for the initiator private key, can then check whether the candidate is correct.
+  * **7.** Not transmitted, but an active attacker who pretends to be the
+    initator without the initiator's static private key, then later learns a
+    candidate for the initiator private key, can then check whether the
+    candidate is correct.
 
   * **8.** Encrypted with forward secrecy to an authenticated party.
 
