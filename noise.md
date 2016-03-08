@@ -1,10 +1,10 @@
 
-Noise v0 (draft) 
-=================
+The Noise Protocol Framework v0 (draft) 
+========================================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2016-02-22
- * **Revision:** 23 (work in progress)
+ * **Revision:** 24 (work in progress)
  * **Copyright:** This document is placed in the public domain
 
 1. Introduction
@@ -1400,7 +1400,7 @@ The Noise specification (this document) is hereby placed in the public domain.
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
-and also by HOMQV from Hugo Krawzcyk.
+and also by HOMQV and SIGMA from Hugo Krawzcyk.
 
 Feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld, Tiffany
 Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
