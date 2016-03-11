@@ -306,9 +306,7 @@ first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
 may be deleted.  Transport messages are then encrypted and decrypted by calling
 `Encrypt()` and `Decrypt()` on the relevant `CipherState` with zero-length
-associated data.  If a decryption error occurs the session has failed and the
-`CipherState` objects are deleted without sending or receiving further
-messages.
+associated data.
 
 The below sections describe these objects in detail.
 
