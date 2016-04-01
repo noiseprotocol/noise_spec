@@ -167,7 +167,8 @@ tag typically occurs at the end of the ciphertext.
 A Noise **handshake message** is also less than or equal to 65535 bytes.  It
 begins with a sequence of one or more DH public keys, as determined by its
 message pattern.  Following the public keys will be a single payload which can
-be used to convey certificates or other handshake data.
+be used to convey certificates or other handshake data, but can also contain a
+zero-length plaintext.
 
 Static public keys and payloads will be in cleartext if they occur in a
 handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
@@ -190,14 +191,14 @@ followed by an encrypted public key (`"s"`) followed by an encrypted payload.
 The third message consists of an encrypted public key (`"s"`) followed by an
 encrypted payload.  
 
-Assuming zero-length payloads and DH public keys of 56 bytes, the message sizes
-will be:
+Assuming each payload contains a zero-length plaintext, and DH public keys are 56
+bytes, the message sizes will be:
 
- * 56 bytes (one public key and a zero-length payload)
+ 1. 56 bytes (one cleartext public key and a cleartext payload)
 
- * 144 bytes (two public keys, the second encrypted, and an encrypted payload)
+ 2. 144 bytes (two public keys, the second encrypted, and an encrypted payload)
 
- * 88 bytes (one encrypted public key and an encrypted payload)
+ 3. 88 bytes (one encrypted public key and an encrypted payload)
 
 If pre-shared symmetric keys are used, the first message grows in size to 72
 bytes, since the first payload becomes encrypted.
@@ -206,10 +207,10 @@ bytes, since the first payload becomes encrypted.
 4.  Crypto algorithms
 ======================
 
-A Noise protocol must be instantiated with a concrete set of **DH functions**,
+A Noise protocol is instantiated with a concrete set of **DH functions**,
 **cipher functions**, and a **hash function**.  The signature for these
-functions is defined below.  Some concrete example functions are defined in
-[Section 10](#Section10).
+functions is defined below.  Some concrete functions are defined in [Section
+10](#Section10).
 
 Noise depends on the following **DH functions** (and an associated constant):
 
@@ -250,16 +251,16 @@ Noise depends on the following **hash function** (and associated constants):
 
  * **`BLOCKLEN`** = A constant specifying the size in bytes that the hash
  function uses internally to divide its input for iterative processing.  This is
- needed to use the hash function within the HMAC construct (`BLOCKLEN` is `B` in
- RFC 2104).
+ needed to use the hash function with HMAC (`BLOCKLEN` is `B` in
+ [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)).
 
-Noise defines an additional function based on the above `HASH` function:
+Noise defines an additional function based on the above `HASH()` function:
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
    arbitrary length.  Returns two byte sequences of length `HASHLEN`, as
-   follows. (The `||` operator indicates concatenation of byte sequences; the
-   `byte` function constructs a single byte):   
+   follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) using the `HASH()` function;  the `||` operator concatenates byte sequences;
+   the `byte` function constructs a single byte):   
 
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.  
      
@@ -307,8 +308,8 @@ Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
 may be deleted.  Transport messages are then encrypted and decrypted by calling
-`Encrypt()` and `Decrypt()` on the relevant `CipherState` with zero-length
-associated data.
+`EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
+zero-length associated data.
 
 The below sections describe these objects in detail.
 
@@ -317,10 +318,10 @@ The below sections describe these objects in detail.
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n` variables:
 
- * **`k`**: A cipher key of 32 bytes (which may be `empty`).  `Empty` is a
+  * **`k`**: A cipher key of 32 bytes (which may be `empty`).  `Empty` is a
    special value which indicates `k` has not yet been initialized.
 
- * **`n`**: An 8-byte (64-bit) unsigned integer nonce.
+  * **`n`**: An 8-byte (64-bit) unsigned integer nonce.
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
@@ -328,14 +329,14 @@ If incrementing `n` causes an arithmetic overflow (i.e. would result in `n`
 greater than 2^64 - 1) then any further `Encrypt()` or `Decrypt()` calls will
 signal an error to the caller.
 
- * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
+  * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
- * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
+  * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
- * **`Encrypt(ad, plaintext)`**:  If `k` is non-empty returns `ENCRYPT(k, n++,
+  * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns `ENCRYPT(k, n++,
    ad, plaintext)`.  Otherwise returns `plaintext`.
 
- * **`Decrypt(ad, ciphertext)`**:  If `k` is non-empty returns `DECRYPT(k, n++,
+  * **`DecryptWithAd(ad, ciphertext)`**:  If `k` is non-empty returns `DECRYPT(k, n++,
    ad, ciphertext)`.  Otherwise returns `ciphertext`.  If an authentication
    failure occurs in `DECRYPT()` the error is signaled to the caller.
 
@@ -345,45 +346,45 @@ signal an error to the caller.
 A `SymmetricState` object contains a `CipherState` plus the following
 variables:
 
- * **`ck`**: A chaining key of `HASHLEN` bytes.
+  * **`ck`**: A chaining key of `HASHLEN` bytes.
  
- * **`h`**: A hash output of `HASHLEN` bytes.
+  * **`h`**: A hash output of `HASHLEN` bytes.
 
 A `SymmetricState` responds to the following methods:   
  
- * **`InitializeSymmetric(handshake_name)`**:  Takes an arbitrary-length
-   `handshake_name` byte sequence (see [Section 11](#Section11)).  Executes the following steps:
-   * If `handshake_name` is less than or equal to `HASHLEN` bytes in length, sets `h` equal to
-   `handshake_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise sets `h = HASH(handshake_name)`.  
-   * Sets `ck = h`. 
-   * Calls `InitializeKey(empty)`.
+  * **`InitializeSymmetric(protocol_name)`**:  Takes an arbitrary-length
+   `protocol_name` byte sequence (see [Section 11](#Section11)).  Executes the following steps:
+    * If `protocol_name` is less than or equal to `HASHLEN` bytes in length, sets `h` equal to
+   `protocol_name` with zero bytes appended to make `HASHLEN` bytes.  Otherwise sets `h = HASH(protocol_name)`.  
+    * Sets `ck = h`. 
+    * Calls `InitializeKey(empty)`.
 
- * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
+  * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
    input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
    bytes to match `k`.  Calls `InitializeKey(temp_k)`.
    
- * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
+  * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
- * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = Encrypt(h, plaintext)`,
+  * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h, plaintext)`,
    calls `MixHash(ciphertext)`, and returns `ciphertext`.
 
- * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = Decrypt(h, ciphertext)`,
+  * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = DecryptWithAd(h, ciphertext)`,
    calls `MixHash(ciphertext)`, and returns `plaintext`.  
 
- * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
+  * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
    transport messages.  Executes the following steps:
 
-   * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
+    * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen`
    is a zero-length byte sequence.  
    
-   * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
+    * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
      apiece to match `k`.  
    
-   *  Creates two new `CipherState` objects `c1` and `c2`.  
+    *  Creates two new `CipherState` objects `c1` and `c2`.  
    
-   * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
+    * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
    
-   * Returns the pair `(c1, c2)`.  
+    * Returns the pair `(c1, c2)`.  
 
 
 <a name="Section5.3"></a>
