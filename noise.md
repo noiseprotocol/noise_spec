@@ -172,7 +172,7 @@ Static public keys and payloads will be in cleartext if they occur in a
 handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
 they occur after a DH operation.  (If Noise is being used with pre-shared
 symmetric keys, this rule is different: *all* static public keys and payloads
-will be encrypted; see Section 7).  Like transport messages, AEAD ciphertexts
+will be encrypted; see [Section 7](#Section7)).  Like transport messages, AEAD ciphertexts
 will expand each encrypted field (whether static public key or payload) by 16
 bytes.
 
@@ -497,6 +497,7 @@ mix prologue data into encryption keys.  If an input contains secret data that's
 intended to strengthen the encryption, a "PSK" handshake should be used
 instead (see next section). 
 
+<a name="Section7"></a>
 7. Pre-shared symmetric keys
 =============================
 
