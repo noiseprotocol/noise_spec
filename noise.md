@@ -1,6 +1,6 @@
 
-The Noise Protocol Framework v0 (draft) 
-========================================
+The Noise Protocol Framework v1
+================================
 
  * **Author:** Trevor Perrin (noise @ trevp.net)
  * **Date:** 2016-02-22
@@ -29,8 +29,8 @@ After the handshake phase each party can use this shared key to send encrypted
 The Noise framework supports handshakes where each party has a long-term
 **static key pair** and/or an **ephemeral key pair**.  A Noise handshake is
 described by a simple language.  This language consists of **tokens** which are
-arranged into different **message patterns**.  The message patterns are
-themselves arranged into **handshake patterns**.
+arranged into **message patterns**.  Message patterns are arranged into
+**handshake patterns**.
 
 A **message pattern** is a sequence of tokens that specifies the DH public
 keys that comprise a handshake message, and the DH operations that are
@@ -38,9 +38,9 @@ performed when sending or receiving that message.  A **handshake pattern**
 specifies the sequential exchange of messages that comprise a handshake.
 
 A handshake pattern can be instantiated by **DH functions**, **cipher
-functions**, and a **hash function** to give a concrete protocol.  An
-application using Noise must handle some **application responsibilities** on its
-own, such as indicating message lengths.
+functions**, and a **hash function** to give a concrete **Noise protocol**.  An
+application using a Noise protocol must handle some **application
+responsibilities** on its own, such as indicating message lengths.
 
 2.2. Handshake state machine
 -----------------------------
@@ -49,7 +49,7 @@ The core of Noise is a set of variables maintained by each party during a
 handshake, and rules for sending and receiving handshake messages by
 sequentially processing the tokens from a message pattern.
 
-Each party to a handshake maintains the following variables:
+Each party maintains the following variables:
 
  * **`s, e`**: The local party's static and ephemeral key pairs (which may be empty).
 
@@ -104,7 +104,8 @@ The initiator sends the first message, which is simply an ephemeral public key.
 The responder sends back its own ephemeral public key.  Then a DH is performed
 and the output is hashed into `ck`, which is the final shared key from the
 handshake.  Note that a cleartext payload is sent in the first handshake
-message, and an encrypted payload is sent in the response handshake message.  
+message, and an encrypted payload is sent in the response handshake message.
+The application may send whatever payloads it wants.
 
 The responder can send its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
@@ -163,10 +164,10 @@ plus a 16-byte authentication tag.  The details depend on the AEAD cipher
 function, e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication
 tag typically occurs at the end of the ciphertext.
 
-A Noise **handshake message** is also less than 65535 bytes.  It begins with a
-sequence of one or more DH public keys, as determined by its message pattern.
-Following the public keys will be a single payload which can be used to convey
-certificates or other handshake data, but can also be zero length.  
+A Noise **handshake message** is also less than or equal to 65535 bytes.  It
+begins with a sequence of one or more DH public keys, as determined by its
+message pattern.  Following the public keys will be a single payload which can
+be used to convey certificates or other handshake data.
 
 Static public keys and payloads will be in cleartext if they occur in a
 handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
