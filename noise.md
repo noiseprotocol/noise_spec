@@ -395,50 +395,50 @@ A `HandshakeState` object contains a `SymmetricState` plus the following
 variables, any of which may be `empty`.  `Empty` is a special value which 
 indicates the variable has not yet been initialized.
 
- * **`s`**: The local static key pair 
+  * **`s`**: The local static key pair 
 
- * **`e`**: The local ephemeral key pair
+  * **`e`**: The local ephemeral key pair
 
- * **`rs`**: The remote party's static public key
+  * **`rs`**: The remote party's static public key
 
- * **`re`**: The remote party's ephemeral public key 
+  * **`re`**: The remote party's ephemeral public key 
 
 A `HandshakeState` also has the following variables:
 
- * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
+  * **`message_patterns`**: A sequence of message patterns.  Each message pattern is a
    sequence of tokens from the set `("s", "e", "dhee", "dhes", "dhse", "dhss")`.
 
- * **`message_index`**: An integer indicating the next pattern to fetch from
+  * **`message_index`**: An integer indicating the next pattern to fetch from
  `message_patterns`.
 
 A `HandshakeState` responds to the following methods:
 
- * **`Initialize(handshake_pattern, initiator, prologue, new_s, new_e, new_rs,
-   new_re)`**: Takes a valid handshake pattern (see [Section 8](#Section8)) and an
+  * **`Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)`**: 
+   Takes a valid handshake pattern (see [Section 8](#Section8)) and an
    `initiator` boolean specifying this party's role as either initiator or
    responder.  Takes a `prologue` byte sequence which may be zero-length, or
    which may contain context information that both parties want to confirm is
    identical (see [Section 6](#Section6)).  Takes a set of DH keypairs and public keys for
    initializing local variables, any of which may be empty.
  
-   * Derives a `handshake_name` byte sequence by combining the names for the 
+    * Derives a `protocol_name` byte sequence by combining the names for the 
    handshake pattern and crypto functions, as specified in [Section 11](#Section11). Calls 
-   `InitializeSymmetric(handshake_name)`.
+   `InitializeSymmetric(protocol_name)`.
 
-   * Calls `MixHash(prologue)`.
+    * Calls `MixHash(prologue)`.
 
-   * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding arguments.
+    * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding arguments.
    
-   * Calls `MixHash()` once for each public key listed in the pre-messages from
+    * Calls `MixHash()` once for each public key listed in the pre-messages from
      `handshake_pattern`, with the specified public key as input (see [Section 8](#Section8)
      for an explanation of pre-messages).  If both initiator and responder have
      pre-messages, the initiator's public keys are hashed first.
 
-   * Sets `message_patterns` to the message patterns from `handshake_pattern`.
+    * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
-   * Sets `message_index = 0` (i.e. the first message pattern).
+    * Sets `message_index = 0` (i.e. the first message pattern).
 
- * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
+  * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
 
     * Fetches the next message pattern from `message_patterns[message_index]`,
@@ -451,14 +451,14 @@ A `HandshakeState` responds to the following methods:
 
       * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
       
-      * For `"dh`*xy*`"`:  Calls `MixKey(DH(x, ry))`.
+      * For `"dhxy"`:  Calls `MixKey(DH(x, ry))`.
 
     * Appends `EncryptAndHash(payload)` to the buffer.  
     
     * If there are no more message patterns returns two new `CipherState`
       objects by calling `Split()`.
 
- * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence containing
+  * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence containing
    a Noise handshake message, and a `payload_buffer` to write the message's
    plaintext payload into.
 
@@ -473,7 +473,7 @@ A `HandshakeState` responds to the following methods:
       `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` to
       `DecryptAndHash(temp)`.  
       
-      * For `"dh`*xy*`"`:  Calls `MixKey(DH(y, rx))`.  
+      * For `"dhxy"`:  Calls `MixKey(DH(y, rx))`.  
 
     * Calls `DecryptAndHash()` on the remaining bytes of the message and
       stores the output into `payload_buffer`.
@@ -491,11 +491,10 @@ data, the handshake will fail due to a decryption error.  This is useful when
 the parties engaged in negotiation prior to the handshake and want to ensure
 they share identical views of that negotiation.  
 
-For example, suppose Bob communicates to Alice a list of Noise handshakes that
-he is willing to support.  These handshakes might possess varying degrees of
-security.  Alice will then choose and execute a single handshake.  To ensure
-that a "man-in-the-middle" did not edit Bob's list to remove the more secure
-options, Alice and Bob could include the list as prologue data.
+For example, suppose Bob communicates to Alice a list of Noise protocols that
+he is willing to support.  Alice will then choose and execute a single
+protocol.  To ensure that a "man-in-the-middle" did not edit Bob's list to
+remove options, Alice and Bob could include the list as prologue data.
 
 Note that while the parties confirm their prologues are identical, they don't
 mix prologue data into encryption keys.  If an input contains secret data that's
@@ -510,7 +509,7 @@ Noise provides an optional **pre-shared symmetric key** or **PSK** mode to
 support protocols where both parties already have a shared secret key.  When
 using pre-shared symmetric keys, the following changes are made:
 
- * Handshake names ([Section 11](#Section11)) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
+ * Protocol names ([Section 11](#Section11)) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
 
  * `Initialize()` takes an additional `psk` argument, which is a sequence of
    bytes.  Immediately after `MixHash(prologue)` it sets `ck, temp = HKDF(ck,
@@ -574,7 +573,7 @@ initiator's is listed first (and hashed first).  During `Initialize()`,
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral public key.
-Note that this pre-knowledge allows an encrypted payload to be sent in the
+This pre-knowledge allows an encrypted payload to be sent in the
 first message, although full forward secrecy and replay protection is only
 achieved with the second message.
 
@@ -651,10 +650,9 @@ send any messages using it (as this would violate the rules in [Section 8.1](#Se
       ...
       -> e, dhes, s, dhss
 
-Note that `Noise_N` is a conventional DH-based public-key encryption.  The
-other patterns add sender authentication, where the sender's public key is
-either known to the recipient beforehand (`Noise_K`) or transmitted under
-encryption (`Noise_X`).
+`Noise_N` is a conventional DH-based public-key encryption.  The other patterns
+add sender authentication, where the sender's public key is either known to the
+recipient beforehand (`Noise_K`) or transmitted under encryption (`Noise_X`).
 
 <a name="Section8.3"></a>
 8.3. Interactive patterns 
@@ -950,7 +948,7 @@ underlying assumptions are that ephemeral private keys are secure, and that
 parties abort the handshake if they receive a static public key from the other
 party which they don't trust.
 
-Note that this section only considers identity leakage through static public
+This section only considers identity leakage through static public
 key fields in handshakes.  Of course, the identities of Noise participants
 might be exposed through other means, including payload fields, traffic
 analysis, or metadata such as IP addresses.
@@ -1040,8 +1038,8 @@ for convenience.  Other valid patterns could be constructed, for example:
  also introduce new complexity around the lifetimes of semi-ephemeral key pairs,
  so are not discussed further here.
 
-9. Complex handshakes
-===============================
+9. Complex protocols
+=====================
 
 A handshake pattern specifies a fixed sequence of messages.  In some cases
 parties executing a handshake pattern may discover a need to send a different
@@ -1064,7 +1062,7 @@ null public key value per [Section 4](#Section4) (e.g.  an all-zeros `25519` val
 guaranteed to produce an all-zeros output).
 
 This technique is simple, since it allows use of a single handshake pattern.  It
-also doesn't reveal which option was chosen from the message size.  It could be
+also doesn't reveal which option was chosen from message sizes.  It could be
 extended to allow a `Noise_XX` pattern to support any permutation of
 authentications (initiator only, responder only, both, or none).
 
@@ -1146,9 +1144,9 @@ Noise message proper, but simply signals when re-initialization is needed:
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve25519 DH function (aka "X25519"
- in RFC 7748).  The null public key value is all zeros, which will always
- produce an output of all zeros.  Other invalid public key values will also
- produce an output of all zeros.
+   in [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
+   value is all zeros, which will always produce an output of all zeros.  Other
+   invalid public key values will also produce an output of all zeros.
 
  * **`DHLEN`** = 32
 
@@ -1158,9 +1156,9 @@ Noise message proper, but simply signals when re-initialization is needed:
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
  
  * **`DH(privkey, pubkey)`**: Executes the Curve448 DH function (aka "X448" in
- RFC 7748).  The null public key value is all zeros, which will always produce
- an output of all zeros.  Other invalid public key values will also produce an
- output of all zeros.
+   [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
+   value is all zeros, which will always produce an output of all zeros.  Other
+   invalid public key values will also produce an output of all zeros.
 
  * **`DHLEN`** = 56
 
@@ -1168,8 +1166,7 @@ Noise message proper, but simply signals when re-initialization is needed:
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- `AEAD_CHACHA20_POLY1305` from RFC 7539.  The 96-bit nonce is formed by encoding
- 32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
+ `AEAD_CHACHA20_POLY1305` from [RFC 7539](https://www.ietf.org/rfc/rfc7539.txt).  The 96-bit nonce is formed by encoding 32 bits of zeros followed by little-endian encoding of `n`.  (Earlier
  implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible
  to encode `n` directly into the ChaCha20 nonce without the 32-bit zero prefix).
 
@@ -1177,8 +1174,7 @@ Noise message proper, but simply signals when re-initialization is needed:
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from NIST SP800-38-D with 128-bit tags.  The 96-bit nonce is formed
- by encoding 32 bits of zeros followed by big-endian encoding of `n`.
+ AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with 128-bit tags.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
 
 10.5. The SHA256 hash function
 ------------------------------
@@ -1217,10 +1213,10 @@ Noise message proper, but simply signals when re-initialization is needed:
  * **`BLOCKLEN`** = 128
 
 <a name="Section11"></a>
-11. Handshake names 
-=========================
+11. Protocol names 
+===================
 
-To produce a **handshake name** for `Initialize()` you concatenate the names
+To produce a **Noise protocol name** for `Initialize()` you concatenate the names
 for the handshake pattern, the DH functions, the cipher functions, and the hash
 function.  For example: 
 
@@ -1294,7 +1290,7 @@ This section collects various security considerations:
  encrypted by a single key.  If sending such large volumes of data is a
  possibility, different cipher functions should be chosen.
 
- * **Rollback**:  If parties decide on a Noise handshake based on some previous
+ * **Rollback**:  If parties decide on a Noise protocol based on some previous
  negotiation that is not included as prologue, then a rollback attack might be
  possible.  This is a particular risk with handshake re-initialization, and
  requires careful attention if a Noise handshake is preceded by communication
@@ -1313,10 +1309,10 @@ This section collects various security considerations:
  rules in [Section 8.1](#Section8.1).  It's also the reason why one-way handshakes only allow
  transport messages from the sender, not the recipient.
 
- * **Handshake names**:  The handshake name used with `Initialize()` must
+ * **Protocol names**:  The protocol name used with `Initialize()` must
  uniquely identify the combination of handshake pattern and crypto functions for
  every key it's used with (whether ephemeral key pair, static key pair, or PSK).
- If the same secret key was reused with the same handshake name but a different
+ If the same secret key was reused with the same protocol name but a different
  set of cryptographic operations then bad interactions could occur.
 
  * **Pre-shared symmetric keys**:  Pre-shared symmetric keys should be secret
@@ -1342,66 +1338,67 @@ This section collects various design rationale:
 
 Nonces are 64 bits in length because:
 
- * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
- * 64 bit nonces were used in the initial specification and implementations of
+  * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
+  * 64 bit nonces were used in the initial specification and implementations of
    ChaCha20, so Noise nonces can be used with these implementations.
- * 64 bits makes it easy for the entire nonce to be treated as an integer and incremented.
- * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
+  * 64 bits makes it easy for the entire nonce to be treated as an integer and incremented.
+  * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
    random nonces are acceptable.
 
 The recommended hash function families are SHA2 and BLAKE2 because:
 
- * SHA2 is widely available.
- * SHA2 is often used alongside AES.
- * BLAKE2 is similar to ChaCha20.
+  * SHA2 is widely available.
+  * SHA2 is often used alongside AES.
+  * BLAKE2 is similar to ChaCha20.
 
 Hash output lengths of 256 bits are supported because:
 
- * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit security level.
- * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing
+  * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit security level.
+  * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing
  smaller inputs (due to smaller block size), then their larger brethren
  (SHA2-512 and BLAKE2b).
- * SHA2-256 and BLAKE2s are faster on 32-bit processors than their larger brethren.
+  * SHA2-256 and BLAKE2s are faster on 32-bit processors than their larger brethren.
 
 Cipher keys are 256 bits because:
 
- * 256 bits is a conservative length for cipher keys when considering cryptanalytic
+  * 256 bits is a conservative length for cipher keys when considering cryptanalytic
    safety margins, time/memory tradeoffs, multi-key attacks, and quantum attacks.
 
 The authentication tag is 128 bits because:
 
- * Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.
- * Noise may be used in a wide variety of contexts, including where attackers
+  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.
+  * Noise may be used in a wide variety of contexts, including where attackers
    can receive rapid feedback on whether MAC guesses are correct.
- * A single fixed length is simpler than supporting variable-length tags.
+  * A single fixed length is simpler than supporting variable-length tags.
 
 The GCM security limit is 2^56 bytes because:
- * This is 2^52 AES blocks (each block is 16 bytes).  The limit is based on
+
+  * This is 2^52 AES blocks (each block is 16 bytes).  The limit is based on
    the risk of birthday collisions being used to rule out plaintext guesses.
    The probability an attacker could rule out a random guess on a 2^56 byte
    plaintext is less than 1 in 1 million (roughly ((2^52)^2) / 2^128).
 
 Big-endian is preferred because:
 
- * Any Noise length fields are likely to be handled by
+  * Any Noise length fields are likely to be handled by
  parsing code where big-endian "network byte order" is 
  traditional.
- * Some ciphers use big-endian internally (e.g. GCM, SHA2).
- * While it's true that Curve25519, Curve448, and
+  * Some ciphers use big-endian internally (e.g. GCM, SHA2).
+  * While it's true that Curve25519, Curve448, and
  ChaCha20/Poly1305 use little-endian, these will likely be handled by
  specialized libraries, so there's not a strong argument for aligning
  with them.
 
 The `MixKey()` design uses `HKDF` because:
 
- * HKDF is a conservative and widely used design.
+  * HKDF is a conservative and widely used design.
 
 `MixHash()` is used instead of `MixKey()` because:
 
- * `MixHash()` is more efficient than `MixKey()`.
- * `MixHash()` avoids any IPR concerns regarding mixing identity data into
+  * `MixHash()` is more efficient than `MixKey()`.
+  * `MixHash()` avoids any IPR concerns regarding mixing identity data into
    session keys (see KEA+).
- * `MixHash()` produces a non-secret `h` value that might be useful to
+  * `MixHash()` produces a non-secret `h` value that might be useful to
    higher-level protocols, e.g. for channel-binding.
 
 
@@ -1422,7 +1419,7 @@ Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
 Thanks to Tom Ritter and Karthikeyan Bhargavan for editorial feedback.
 
 Moxie Marlinspike, Christian Winnerlein, and Hugo Krawzcyk provided feedback on
-earlier versions of the key derivation.
+key derivation.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
 versions.
