@@ -543,16 +543,16 @@ using pre-shared symmetric keys, the following changes are made:
 A **message pattern** is some sequence of tokens from the set `("e", "s",
 "dhee", "dhes", "dhse", "dhss")`.  A **handshake pattern** consists of:
 
- * A pattern for the initiator's **pre-message** that is either:
-   * `"s"`
-   * `"e"`
-   * `"s, e"`
-   * empty
+  * A pattern for the initiator's **pre-message** that is either:
+    * `"s"`
+    * `"e"`
+    * `"s, e"`
+    * empty
 
- * A pattern for the responder's pre-message that takes the same
+  * A pattern for the responder's pre-message that takes the same
    range of values as the initiator's pre-message.
 
- * A sequence of message patterns for the actual handshake messages
+  * A sequence of message patterns for the actual handshake messages
 
 The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
@@ -1158,7 +1158,7 @@ needed:
 10. DH functions, cipher functions, and hash functions
 ======================================================
 
-10.1. The 25519 DH functions
+10.1. The `25519` DH functions
 ----------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
@@ -1170,7 +1170,7 @@ needed:
 
  * **`DHLEN`** = 32
 
-10.2. The 448 DH functions
+10.2. The `448` DH functions
 --------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
@@ -1182,7 +1182,7 @@ needed:
 
  * **`DHLEN`** = 56
 
-10.3. The ChaChaPoly cipher functions
+10.3. The `ChaChaPoly` cipher functions
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -1192,7 +1192,7 @@ needed:
  compatible to encode `n` directly into the ChaCha20 nonce without the 32-bit
  zero prefix).
 
-10.4. The AESGCM cipher functions
+10.4. The `AESGCM` cipher functions
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -1200,7 +1200,7 @@ needed:
  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian
  encoding of `n`.
 
-10.5. The SHA256 hash function
+10.5. The `SHA256` hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-256(input)` 
@@ -1209,7 +1209,7 @@ needed:
 
  * **`BLOCKLEN`** = 64
 
-10.6. The SHA512 hash function
+10.6. The `SHA512` hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-512(input)` 
@@ -1218,7 +1218,7 @@ needed:
 
  * **`BLOCKLEN`** = 128
 
-10.7. The BLAKE2s hash function
+10.7. The `BLAKE2s` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
@@ -1227,7 +1227,7 @@ needed:
 
  * **`BLOCKLEN`** = 64
 
-10.8. The BLAKE2b hash function
+10.8. The `BLAKE2b` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2b(input)` with digest length 64.

@@ -2,7 +2,7 @@ html { font-size: 100%; overflow-y: scroll; -webkit-text-size-adjust: 100%; -ms-
 
 body{
 color:#444;
-font-family:Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
+font-family:'Helvetica Neue', 'Helvetica', 'Arial';
 font-size:12px;
 line-height:1.5em;
 padding:1em;
@@ -52,8 +52,8 @@ padding-left: 3em;
 border-left: 0.5em #EEE solid;
 }
 hr { display: block; height: 2px; border: 0; border-top: 1px solid #aaa;border-bottom: 1px solid #eee; margin: 1em 0; padding: 0; }
-pre, code, kbd, samp { color: #000; font-family: monospace, monospace; _font-family: 'courier new', monospace; font-size: 0.98em; }
-pre { white-space: pre; white-space: pre-wrap; word-wrap: break-word; }
+pre, code, kbd, samp { color: #000; font-family: monospace, monospace; _font-family: 'courier new', monospace; font-size: 0.98em; line-height: 1.25em; }
+pre { background-color: #EEE; white-space: pre; white-space: pre-wrap; word-wrap: break-word; margin: 0  0; }
 
 b, strong { font-weight: bold; }
 
@@ -68,7 +68,7 @@ sup { top: -0.5em; }
 sub { bottom: -0.25em; }
 
 ul, ol { margin: 1em 1; padding: 0 0 0 2em; }
-li p:last-child { margin:0 }
+li p:last-child { margin:1 }
 dd { margin: 0 0 0 2em; }
 
 img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; }

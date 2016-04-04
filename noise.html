@@ -16,7 +16,7 @@
 <b>Date:</b> 2016-04-04<br/>
 </div>
 <div id="TOC">
-<h1 class="toc">Table of Contents</h3>
+<h2 class="toc">Table of Contents</h2>
 <ul>
 <li><a href="#introduction">1. Introduction</a></li>
 <li><a href="#overview">2. Overview</a><ul>
@@ -45,14 +45,14 @@
 <li><a href="#handshake-re-initialization-and-noise-pipes">9.2. Handshake re-initialization and Noise Pipes</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</a><ul>
-<li><a href="#the-25519-dh-functions">10.1. The 25519 DH functions</a></li>
-<li><a href="#the-448-dh-functions">10.2. The 448 DH functions</a></li>
-<li><a href="#the-chachapoly-cipher-functions">10.3. The ChaChaPoly cipher functions</a></li>
-<li><a href="#the-aesgcm-cipher-functions">10.4. The AESGCM cipher functions</a></li>
-<li><a href="#the-sha256-hash-function">10.5. The SHA256 hash function</a></li>
-<li><a href="#the-sha512-hash-function">10.6. The SHA512 hash function</a></li>
-<li><a href="#the-blake2s-hash-function">10.7. The BLAKE2s hash function</a></li>
-<li><a href="#the-blake2b-hash-function">10.8. The BLAKE2b hash function</a></li>
+<li><a href="#the-25519-dh-functions">10.1. The <code>25519</code> DH functions</a></li>
+<li><a href="#the-448-dh-functions">10.2. The <code>448</code> DH functions</a></li>
+<li><a href="#the-chachapoly-cipher-functions">10.3. The <code>ChaChaPoly</code> cipher functions</a></li>
+<li><a href="#the-aesgcm-cipher-functions">10.4. The <code>AESGCM</code> cipher functions</a></li>
+<li><a href="#the-sha256-hash-function">10.5. The <code>SHA256</code> hash function</a></li>
+<li><a href="#the-sha512-hash-function">10.6. The <code>SHA512</code> hash function</a></li>
+<li><a href="#the-blake2s-hash-function">10.7. The <code>BLAKE2s</code> hash function</a></li>
+<li><a href="#the-blake2b-hash-function">10.8. The <code>BLAKE2b</code> hash function</a></li>
 </ul></li>
 <li><a href="#protocol-names">11. Protocol names</a></li>
 <li><a href="#application-responsibilities">12. Application responsibilities</a></li>
@@ -269,11 +269,13 @@ using the <code>HASH()</code> function; the <code>||</code> operator concatenate
 <h1 id="handshake-patterns">8. Handshake patterns</h1>
 <p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;dhee&quot;, &quot;dhes&quot;, &quot;dhse&quot;, &quot;dhss&quot;)</code>. A <strong>handshake pattern</strong> consists of:</p>
 <ul>
-<li>A pattern for the initiator's <strong>pre-message</strong> that is either:</li>
+<li>A pattern for the initiator's <strong>pre-message</strong> that is either:
+<ul>
 <li><code>&quot;s&quot;</code></li>
 <li><code>&quot;e&quot;</code></li>
 <li><code>&quot;s, e&quot;</code></li>
-<li><p>empty</p></li>
+<li>empty</li>
+</ul></li>
 <li><p>A pattern for the responder's pre-message that takes the same range of values as the initiator's pre-message.</p></li>
 <li><p>A sequence of message patterns for the actual handshake messages</p></li>
 </ul>
@@ -595,46 +597,46 @@ Noise_XXfallback(s, rs, re):
 </ul>
 <p><a name="Section10"></a></p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</h1>
-<h2 id="the-25519-dh-functions">10.1. The 25519 DH functions</h2>
+<h2 id="the-25519-dh-functions">10.1. The <code>25519</code> DH functions</h2>
 <ul>
 <li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new Curve25519 keypair.</p></li>
 <li><p><strong><code>DH(privkey, pubkey)</code></strong>: Executes the Curve25519 DH function (aka &quot;X25519&quot; in <a href="https://www.ietf.org/rfc/rfc7748.txt">RFC 7748</a>). The null public key value is all zeros, which will always produce an output of all zeros. Other invalid public key values will also produce an output of all zeros.</p></li>
 <li><p><strong><code>DHLEN</code></strong> = 32</p></li>
 </ul>
-<h2 id="the-448-dh-functions">10.2. The 448 DH functions</h2>
+<h2 id="the-448-dh-functions">10.2. The <code>448</code> DH functions</h2>
 <ul>
 <li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new Curve448 keypair.</p></li>
 <li><p><strong><code>DH(privkey, pubkey)</code></strong>: Executes the Curve448 DH function (aka &quot;X448&quot; in <a href="https://www.ietf.org/rfc/rfc7748.txt">RFC 7748</a>). The null public key value is all zeros, which will always produce an output of all zeros. Other invalid public key values will also produce an output of all zeros.</p></li>
 <li><p><strong><code>DHLEN</code></strong> = 56</p></li>
 </ul>
-<h2 id="the-chachapoly-cipher-functions">10.3. The ChaChaPoly cipher functions</h2>
+<h2 id="the-chachapoly-cipher-functions">10.3. The <code>ChaChaPoly</code> cipher functions</h2>
 <ul>
 <li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: <code>AEAD_CHACHA20_POLY1305</code> from <a href="https://www.ietf.org/rfc/rfc7539.txt">RFC 7539</a>. The 96-bit nonce is formed by encoding 32 bits of zeros followed by little-endian encoding of <code>n</code>. (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's compatible to encode <code>n</code> directly into the ChaCha20 nonce without the 32-bit zero prefix).</li>
 </ul>
-<h2 id="the-aesgcm-cipher-functions">10.4. The AESGCM cipher functions</h2>
+<h2 id="the-aesgcm-cipher-functions">10.4. The <code>AESGCM</code> cipher functions</h2>
 <ul>
 <li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256-GCM from <a href="http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf">NIST SP 800-38D</a> with 128-bit tags.<br />
 The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of <code>n</code>.</li>
 </ul>
-<h2 id="the-sha256-hash-function">10.5. The SHA256 hash function</h2>
+<h2 id="the-sha256-hash-function">10.5. The <code>SHA256</code> hash function</h2>
 <ul>
 <li><p><strong><code>HASH(input)</code></strong>: <code>SHA2-256(input)</code></p></li>
 <li><p><strong><code>HASHLEN</code></strong> = 32</p></li>
 <li><p><strong><code>BLOCKLEN</code></strong> = 64</p></li>
 </ul>
-<h2 id="the-sha512-hash-function">10.6. The SHA512 hash function</h2>
+<h2 id="the-sha512-hash-function">10.6. The <code>SHA512</code> hash function</h2>
 <ul>
 <li><p><strong><code>HASH(input)</code></strong>: <code>SHA2-512(input)</code></p></li>
 <li><p><strong><code>HASHLEN</code></strong> = 64</p></li>
 <li><p><strong><code>BLOCKLEN</code></strong> = 128</p></li>
 </ul>
-<h2 id="the-blake2s-hash-function">10.7. The BLAKE2s hash function</h2>
+<h2 id="the-blake2s-hash-function">10.7. The <code>BLAKE2s</code> hash function</h2>
 <ul>
 <li><p><strong><code>HASH(input)</code></strong>: <code>BLAKE2s(input)</code> with digest length 32.</p></li>
 <li><p><strong><code>HASHLEN</code></strong> = 32</p></li>
 <li><p><strong><code>BLOCKLEN</code></strong> = 64</p></li>
 </ul>
-<h2 id="the-blake2b-hash-function">10.8. The BLAKE2b hash function</h2>
+<h2 id="the-blake2b-hash-function">10.8. The <code>BLAKE2b</code> hash function</h2>
 <ul>
 <li><p><strong><code>HASH(input)</code></strong>: <code>BLAKE2b(input)</code> with digest length 64.</p></li>
 <li><p><strong><code>HASHLEN</code></strong> = 64</p></li>
