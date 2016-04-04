@@ -1,11 +1,10 @@
-
-The Noise Protocol Framework v1
-================================
-
- * **Author:** Trevor Perrin (noise @ trevp.net)
- * **Date:** 2016-02-22
- * **Revision:** 24 (work in progress)
- * **Copyright:** This document is placed in the public domain
+---
+title: 'The Noise Protocol Framework v1'
+author:     'Trevor Perrin (noise @ trevp.net)'
+date:       '2016-02-22'
+revision:   '24 (work in progress)'
+copyright:  'This document is placed in the public domain'
+---
 
 1. Introduction
 ================
@@ -208,8 +207,9 @@ If pre-shared symmetric keys are used, the first message grows in size to 72
 bytes, since the first payload becomes encrypted.
 
 <a name="Section4"></a>
-4.  Crypto algorithms
-======================
+
+4. Crypto functions
+=====================
 
 A Noise protocol is instantiated with a concrete set of **DH functions**,
 **cipher functions**, and a **hash function**.  The signature for these
@@ -394,6 +394,7 @@ A `SymmetricState` responds to the following methods:
 
 
 <a name="Section5.3"></a>
+
 5.3. The `HandshakeState` object
 ---------------------------------
 
@@ -491,6 +492,7 @@ A `HandshakeState` responds to the following methods:
       objects by calling `Split()`.
 
 <a name="Section6"></a>
+
 6. Prologue 
 ============
 
@@ -511,6 +513,7 @@ that's intended to strengthen the encryption, a "PSK" handshake should be used
 instead (see next section). 
 
 <a name="Section7"></a>
+
 7. Pre-shared symmetric keys
 =============================
 
@@ -534,6 +537,7 @@ using pre-shared symmetric keys, the following changes are made:
    `k` and `n` for different messages.
 
 <a name="Section8"></a>
+
 8. Handshake patterns 
 ======================
 
@@ -593,6 +597,7 @@ second message.
       <- e, dhee
 
 <a name="Section8.1"></a>
+
 8.1 Pattern validity 
 ----------------------
 
@@ -625,6 +630,7 @@ Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
 
 <a name="Section8.2"></a>
+
 8.2. One-way patterns 
 ----------------------
 
@@ -664,6 +670,7 @@ add sender authentication, where the sender's public key is either known to the
 recipient beforehand (`Noise_K`) or transmitted under encryption (`Noise_X`).
 
 <a name="Section8.3"></a>
+
 8.3. Interactive patterns 
 --------------------------
 
@@ -946,6 +953,7 @@ received.
       <-                            2                5               
 
 <a name="Section8.5"></a>
+
 8.5. Identity hiding
 ---------------------
 
@@ -1055,6 +1063,7 @@ parties executing a handshake pattern may discover a need to send a different
 sequence of messages.  Noise has two ways to handle this.
 
 <a name="Section9.1"></a>
+
 9.1. Dummy static public keys
 ------------------------------
 
@@ -1146,6 +1155,7 @@ needed:
  * In all other cases, `type` will be 0.
 
 <a name="Section10"></a>
+
 10. DH functions, cipher functions, and hash functions
 ======================================================
 
@@ -1228,6 +1238,7 @@ needed:
  * **`BLOCKLEN`** = 128
 
 <a name="Section11"></a>
+
 11. Protocol names 
 ===================
 
@@ -1255,6 +1266,7 @@ instead of `Noise_`:
  * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
 
 <a name="Section12"></a>
+
 12. Application responsibilities
 ================================
 
