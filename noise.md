@@ -1,9 +1,8 @@
 ---
-title: 'The Noise Protocol Framework v1'
+title:      'The Noise Protocol Framework v1'
 author:     'Trevor Perrin (noise @ trevp.net)'
-date:       '2016-02-22'
-revision:   '24 (work in progress)'
-copyright:  'This document is placed in the public domain'
+date:       '2016-04-04'
+revision:   '25'
 ---
 
 1. Introduction
