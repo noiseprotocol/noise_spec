@@ -615,8 +615,7 @@ Noise_XXfallback(s, rs, re):
 </ul>
 <h2 id="the-aesgcm-cipher-functions">10.4. The <code>AESGCM</code> cipher functions</h2>
 <ul>
-<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256-GCM from <a href="http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf">NIST SP 800-38D</a> with 128-bit tags.<br />
-The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of <code>n</code>.</li>
+<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256-GCM from <a href="http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf">NIST SP 800-38D</a> with 128-bit tags. The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of <code>n</code>.</li>
 </ul>
 <h2 id="the-sha256-hash-function">10.5. The <code>SHA256</code> hash function</h2>
 <ul>

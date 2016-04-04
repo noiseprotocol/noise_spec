@@ -1196,9 +1196,7 @@ needed:
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with 128-bit tags.  
- The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian
- encoding of `n`.
+ AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with 128-bit tags.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
 
 10.5. The `SHA256` hash function
 ------------------------------
