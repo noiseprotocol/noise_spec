@@ -44,13 +44,13 @@ $if(Subtitle)$
 <h1 class="subtitle">$Subtitle$</h1>
 $endif$
 $for(Author)$
-<h3 class="author">Author: $Author$</h3>
+<b>Author:</b> $Author$<br/>
 $endfor$
-$if(Date)$
-<h3 class="date">Date: $Date$</h3>
-$endif$
 $if(Revision)$
-<h3 class="revision">Revision: $Revision$</h3>
+<b>Revision:</b> $Revision$<br/>
+$endif$
+$if(Date)$
+<b>Date:</b> $Date$<br/>
 $endif$
 $if(Copyright)$
 <h3 class="date">Copyright: $Copyright$</h3>

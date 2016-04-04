@@ -1,5 +1,5 @@
 ---
-Title:      'The Noise Protocol Framework v1'
+Title:      'The Noise Protocol Framework'
 Author:     'Trevor Perrin (noise@trevp.net)'
 Date:       '2016-04-04'
 Revision:   '25'
