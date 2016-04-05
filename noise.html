@@ -14,7 +14,7 @@
 <div id="header">
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
-<b>Revision:</b> 25<br/>
+<b>Revision:</b> 26<br/>
 <b>Date:</b> 2016-04-04<br/>
 </div>
 <div id="TOC">
@@ -114,7 +114,7 @@
 <p>All Noise messages can be processed without parsing, since there are no type or length fields. Of course, Noise messages might be encapsulated within a higher-level protocol that contains type and length information. Noise messages might also encapsulate payloads that require parsing of some sort, but the payloads are opaque to Noise.</p>
 <p>A Noise <strong>transport message</strong> is simply an AEAD ciphertext that is less than or equal to 65535 bytes in length, and that consists of an encrypted payload plus a 16-byte authentication tag. The details depend on the AEAD cipher function, e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication tag typically occurs at the end of the ciphertext.</p>
 <p>A Noise <strong>handshake message</strong> is also less than or equal to 65535 bytes. It begins with a sequence of one or more DH public keys, as determined by its message pattern. Following the public keys will be a single payload which can be used to convey certificates or other handshake data, but can also contain a zero-length plaintext.</p>
-<p>Static public keys and payloads will be in cleartext if they occur in a handshake pattern prior to a DH operation, and will be an AEAD ciphertext if they occur after a DH operation. (If Noise is being used with pre-shared symmetric keys, this rule is different: <em>all</em> static public keys and payloads will be encrypted; see <a href="#pre-shared-symmetric-keys">Section 7</a>). Like transport messages, AEAD ciphertexts will expand each encrypted field (whether static public key or payload) by 16 bytes.</p>
+<p>Static public keys and payloads will be in cleartext if they occur in a handshake pattern prior to a DH operation, and will be AEAD ciphertexts if they occur after a DH operation. (If Noise is being used with pre-shared symmetric keys, this rule is different: <em>all</em> static public keys and payloads will be encrypted; see <a href="#pre-shared-symmetric-keys">Section 7</a>). Like transport messages, AEAD ciphertexts will expand each encrypted field (whether static public key or payload) by 16 bytes.</p>
 <p>For an example, consider the handshake pattern:</p>
 <pre><code>  -&gt; e
   &lt;- e, dhee, s, dhse
@@ -173,7 +173,7 @@
 <li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which may be <code>empty</code>). <code>Empty</code> is a special value which indicates <code>k</code> has not yet been initialized.</p></li>
 <li><p><strong><code>n</code></strong>: An 8-byte (64-bit) unsigned integer nonce.</p></li>
 </ul>
-<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. If incrementing <code>n</code> causes an arithmetic overflow (i.e. would result in <code>n</code> greater than 2^64 - 1) then any further <code>Encrypt()</code> or <code>Decrypt()</code> calls will signal an error to the caller.</p>
+<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. If incrementing <code>n</code> causes an arithmetic overflow (i.e. would result in <code>n</code> greater than 2^64 - 1) then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
@@ -251,7 +251,7 @@
 </ul></li>
 </ul>
 <h1 id="prologue">6. Prologue</h1>
-<p>Noise handshakes have a <strong>prologue</strong> input which allows arbitrary data to be hashed into the <code>h</code> variable. If both parties do not provide identical prologue data, the handshake will fail due to a decryption error. This is useful when the parties engaged in negotiation prior to the handshake and want to ensure they share identical views of that negotiation.</p>
+<p>Noise protocols have a <strong>prologue</strong> input which allows arbitrary data to be hashed into the <code>h</code> variable. If both parties do not provide identical prologue data, the handshake will fail due to a decryption error. This is useful when the parties engaged in negotiation prior to the handshake and want to ensure they share identical views of that negotiation.</p>
 <p>For example, suppose Bob communicates to Alice a list of Noise protocols that he is willing to support. Alice will then choose and execute a single protocol. To ensure that a &quot;man-in-the-middle&quot; did not edit Bob's list to remove options, Alice and Bob could include the list as prologue data.</p>
 <p>Note that while the parties confirm their prologues are identical, they don't mix prologue data into encryption keys. If an input contains secret data that's intended to strengthen the encryption, a &quot;PSK&quot; handshake should be used instead (see next section).</p>
 <h1 id="pre-shared-symmetric-keys">7. Pre-shared symmetric keys</h1>
@@ -405,7 +405,7 @@ Noise_XR(s, rs):
 <li><p><strong>2 = Encryption to a known recipient, forward secrecy for sender compromise only, vulnerable to replay.</strong> This payload is encrypted based only on DHs involving the recipient's static key pair. If the recipient's static private key is compromised, even at a later date, this payload can be decrypted. This message can also be replayed, since there's no ephemeral contribution from the recipient.</p></li>
 <li><p><strong>3 = Encryption to a known recipient, weak forward secrecy.</strong> This payload is encrypted based on an ephemeral-ephemeral DH and also an ephemeral-static DH involving the recipient's static key pair. However, the binding between the recipient's alleged ephemeral public key and the recipient's static public key hasn't been verified by the sender, so the recipient's alleged ephemeral public key may have been forged by an active attacker. In this case, the attacker could later compromise the recipient's static private key to decrypt the payload. Note that a future version of Noise might include signatures, which could improve this security property, but brings other trade-offs.</p></li>
 <li><p><strong>4 = Encryption to a known recipient, weak forward secrecy if the sender's private key has been compromised.</strong> This payload is encrypted based on an ephemeral-ephemeral DH, and also based on an ephemeral-static DH involving the recipient's static key pair. However, the binding between the recipient's alleged ephemeral public and the recipient's static public key has only been verified based on DHs involving both those public keys and the sender's static private key. Thus, if the sender's static private key was previously compromised, the recipient's alleged ephemeral public key may have been forged by an active attacker. In this case, the attacker could later compromise the intended recipient's static private key to decrypt the payload (this is a variant of a &quot;KCI&quot; attack enabling a &quot;weak forward secrecy&quot; attack). Note that a future version of Noise might include signatures, which could improve this security property, but brings other trade-offs.</p></li>
-<li><p><strong>5 = Encryption to a known recipient, strong forward secrecy.</strong> This payload is encrypted based on an ephemeral-ephemeral DH and well as an ephemeral-static DH with the recipient's static key pair. Assuming the ephemeral private keys are secure, and the recipient is not being actively impersonated by an attacker that has stolen its static private key, this payload cannot be decrypted.</p></li>
+<li><p><strong>5 = Encryption to a known recipient, strong forward secrecy.</strong> This payload is encrypted based on an ephemeral-ephemeral DH as well as an ephemeral-static DH with the recipient's static key pair. Assuming the ephemeral private keys are secure, and the recipient is not being actively impersonated by an attacker that has stolen its static private key, this payload cannot be decrypted.</p></li>
 </ul>
 <p>For one-way handshakes, the below-listed security properties apply to the handshake payload as well as transport payloads.</p>
 <p>For interactive handshakes, security properties are listed for each handshake payload. Transport payloads are listed as arrows without a pattern. Transport payloads are only listed if they have different security properties than the previous handshake payload sent from the same party. If two transport payloads are listed, the security properties for the second only apply if the first was received.</p>
@@ -552,12 +552,12 @@ Noise_IX       0              6</code></pre>
 <h1 id="complex-protocols">9. Complex protocols</h1>
 <p>A handshake pattern specifies a fixed sequence of messages. In some cases parties executing a handshake pattern may discover a need to send a different sequence of messages. Noise has two ways to handle this.</p>
 <h2 id="dummy-static-public-keys">9.1. Dummy static public keys</h2>
-<p>Consider a protocol where an initiator will authenticate itself if requested by the responder. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
+<p>Consider a protocol where an initiator will authenticate herself if requested by the responder. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
 <p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>Noise_XX</code>. The initiator can simulate the <code>Noise_NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter. For efficiency, the initiator can send a null public key value per <a href="#crypto-functions">Section 4</a> (e.g. an all-zeros <code>25519</code> value that is guaranteed to produce an all-zeros output).</p>
 <p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes. It could be extended to allow a <code>Noise_XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
 <h2 id="handshake-re-initialization-and-noise-pipes">9.2. Handshake re-initialization and Noise Pipes</h2>
-<p>Consider a protocol where the initiator can attempt zero-RTT encryption based on the responder's static public key. If the responder has changed their static public key, the parties will need to switch to a &quot;fallback&quot; handshake where the responder transmits the new static public key and the initiator resends the zero-RTT data.</p>
-<p>This can be handled by both parties re-initalizing their <code>HandshakeState</code> and simply executing a different handshake. Public keys that were exchanged in the first handshake can be represented as pre-messages in the second handshake. If any important negotiation occurred in the first handshake, the first handshake's <code>h</code> variable should be provided as prologue to the second handshake.</p>
+<p>Consider a protocol where the initiator can attempt zero-RTT encryption based on the responder's static public key. If the responder has changed his static public key, the parties will need to switch to a &quot;fallback&quot; handshake where the responder transmits the new static public key and the initiator resends the zero-RTT data.</p>
+<p>This can be handled by both parties re-initalizing their <code>HandshakeState</code> and simply executing a different handshake. Public keys that were exchanged in the first handshake can be represented as pre-messages in the second handshake. If any negotiation occurred in the first handshake, the first handshake's <code>h</code> variable should be provided as prologue to the second handshake.</p>
 <p>By way of example, this section defines the <strong>Noise Pipe</strong> protocol. This protocol uses two patterns defined in the previous section: <code>Noise_XX</code> is used for an initial handshake if the parties haven't communicated before, after which the initiator can cache the responder's static public key. <code>Noise_IK</code> is used for a zero-RTT handshake.</p>
 <p>If the responder fails to decrypt the first <code>Noise_IK</code> message (perhaps due to changing her static key), the responder will initiate a new <code>Noise_XXfallback</code> handshake identical to <code>Noise_XX</code> except re-using the ephemeral public key from the first <code>Noise_IK</code> message as a pre-message public key.</p>
 <p>Below are the three patterns used for Noise Pipes:</p>
@@ -631,7 +631,7 @@ Noise_XXfallback(s, rs, re):
 <li><p><strong><code>BLOCKLEN</code></strong> = 128</p></li>
 </ul>
 <h1 id="protocol-names">11. Protocol names</h1>
-<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the names for the handshake pattern, the DH functions, the cipher functions, and the hash function. For example:</p>
+<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII names for the handshake pattern, the DH functions, the cipher functions, and the hash function, with underscore separators. For example:</p>
 <ul>
 <li><p><code>Noise_XX_25519_AESGCM_SHA256</code></p></li>
 <li><p><code>Noise_N_25519_ChaChaPoly_BLAKE2s</code></p></li>
@@ -703,9 +703,9 @@ Noise_XXfallback(s, rs, re):
 <ul>
 <li>This is 2^52 AES blocks (each block is 16 bytes). The limit is based on the risk of birthday collisions being used to rule out plaintext guesses. The probability an attacker could rule out a random guess on a 2^56 byte plaintext is less than 1 in 1 million (roughly (2^52 * 2^52) / 2^128).</li>
 </ul>
-<p>Big-endian is preferred because:</p>
+<p>Big-endian length fields are recommended because:</p>
 <ul>
-<li>Any Noise length fields are likely to be handled by parsing code where big-endian &quot;network byte order&quot; is traditional.</li>
+<li>Length fields are likely to be handled by parsing code where big-endian &quot;network byte order&quot; is traditional.</li>
 <li>Some ciphers use big-endian internally (e.g. GCM, SHA2).</li>
 <li>While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use little-endian, these will likely be handled by specialized libraries, so there's not a strong argument for aligning with them.</li>
 </ul>
@@ -713,7 +713,7 @@ Noise_XXfallback(s, rs, re):
 <ul>
 <li>HKDF is a conservative and widely used design.</li>
 </ul>
-<p><code>MixHash()</code> is used instead of <code>MixKey()</code> because:</p>
+<p><code>MixHash()</code> is used instead of sending all inputs through <code>MixKey()</code> because:</p>
 <ul>
 <li><code>MixHash()</code> is more efficient than <code>MixKey()</code>.</li>
 <li><code>MixHash()</code> avoids any IPR concerns regarding mixing identity data into session keys (see KEA+).</li>

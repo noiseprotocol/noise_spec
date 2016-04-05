@@ -1,7 +1,7 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '25'
+revision:   '26'
 date:       '2016-04-04'
 ---
 
@@ -173,7 +173,7 @@ be used to convey certificates or other handshake data, but can also contain a
 zero-length plaintext.
 
 Static public keys and payloads will be in cleartext if they occur in a
-handshake pattern prior to a DH operation, and will be an AEAD ciphertext if
+handshake pattern prior to a DH operation, and will be AEAD ciphertexts if
 they occur after a DH operation.  (If Noise is being used with pre-shared
 symmetric keys, this rule is different: *all* static public keys and payloads
 will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
@@ -325,8 +325,8 @@ variables:
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
 If incrementing `n` causes an arithmetic overflow (i.e. would result in `n`
-greater than 2^64 - 1) then any further `Encrypt()` or `Decrypt()` calls will
-signal an error to the caller.
+greater than 2^64 - 1) then any further `EncryptWithAd()` or `DecryptWithAd()`
+calls will signal an error to the caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
@@ -489,7 +489,7 @@ A `HandshakeState` responds to the following methods:
 6. Prologue 
 ============
 
-Noise handshakes have a **prologue** input which allows arbitrary data to be
+Noise protocols have a **prologue** input which allows arbitrary data to be
 hashed into the `h` variable.  If both parties do not provide identical
 prologue data, the handshake will fail due to a decryption error.  This is
 useful when the parties engaged in negotiation prior to the handshake and want
@@ -818,7 +818,7 @@ The confidentiality properties are:
      property, but brings other trade-offs.
 
  *  **5 = Encryption to a known recipient, strong forward secrecy.**  This
-    payload is encrypted based on an ephemeral-ephemeral DH and well as an
+    payload is encrypted based on an ephemeral-ephemeral DH as well as an
     ephemeral-static DH with the recipient's static key pair.  Assuming the
     ephemeral private keys are secure, and the recipient is not being actively
     impersonated by an attacker that has stolen its static private key, this
@@ -1046,7 +1046,7 @@ sequence of messages.  Noise has two ways to handle this.
 9.1. Dummy static public keys
 ------------------------------
 
-Consider a protocol where an initiator will authenticate itself if requested by
+Consider a protocol where an initiator will authenticate herself if requested by
 the responder.  This could be viewed as the initiator choosing between patterns
 like `Noise_NX` and `Noise_XX` based on some value inside the responder's first
 handshake payload.  
@@ -1067,17 +1067,16 @@ authentications (initiator only, responder only, both, or none).
 -------------------------------------------------
 
 Consider a protocol where the initiator can attempt zero-RTT encryption based
-on the responder's static public key.  If the responder has changed their
-static public key, the parties will need to switch to a "fallback" handshake
-where the responder transmits the new static public key and the initiator
-resends the zero-RTT data.
+on the responder's static public key.  If the responder has changed his static
+public key, the parties will need to switch to a "fallback" handshake where the
+responder transmits the new static public key and the initiator resends the
+zero-RTT data.
 
 This can be handled by both parties re-initalizing their `HandshakeState` and
 simply executing a different handshake.  Public keys that were exchanged in the
 first handshake can be represented as pre-messages in the second handshake.  If
-any important negotiation occurred in the first handshake, the first
-handshake's `h` variable should be provided as prologue to the second
-handshake.
+any negotiation occurred in the first handshake, the first handshake's `h`
+variable should be provided as prologue to the second handshake.
 
 By way of example, this section defines the **Noise Pipe** protocol.  This
 protocol uses two patterns defined in the previous section: `Noise_XX` is used
@@ -1216,8 +1215,8 @@ needed:
 ===================
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
-names for the handshake pattern, the DH functions, the cipher functions, and
-the hash function.  For example: 
+ASCII names for the handshake pattern, the DH functions, the cipher functions,
+and the hash function, with underscore separators.  For example: 
 
  * `Noise_XX_25519_AESGCM_SHA256`
 
@@ -1384,9 +1383,9 @@ The GCM security limit is 2^56 bytes because:
    The probability an attacker could rule out a random guess on a 2^56 byte
    plaintext is less than 1 in 1 million (roughly (2^52 * 2^52) / 2^128).
 
-Big-endian is preferred because:
+Big-endian length fields are recommended because:
 
-  * Any Noise length fields are likely to be handled by parsing code where 
+  * Length fields are likely to be handled by parsing code where 
     big-endian "network byte order" is traditional.
   * Some ciphers use big-endian internally (e.g. GCM, SHA2).
   * While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use 
@@ -1397,7 +1396,7 @@ The `MixKey()` design uses `HKDF` because:
 
   * HKDF is a conservative and widely used design.
 
-`MixHash()` is used instead of `MixKey()` because:
+`MixHash()` is used instead of sending all inputs through `MixKey()` because:
 
   * `MixHash()` is more efficient than `MixKey()`.
   * `MixHash()` avoids any IPR concerns regarding mixing identity data into
