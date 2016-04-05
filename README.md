@@ -13,6 +13,10 @@ Only a few Pandoc features are used:
 
  - Metadata at top of file
 
- - Zero-numbered lists (WARNING: the Github display of these numbered lists
+ - Reference links use Pandoc's "implicit_header_references" (clicking on these
+   links in the Github display doesn't do anything)
+
+ - Zero-numbered lists (the Github display of these numbered lists
    shows them starting at 1, instead of 0)
 
+ - Table of contents and metadata headers added to output
