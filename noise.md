@@ -759,71 +759,70 @@ confidentiality provided to the sender.
 
 The authentication properties are:
 
- *  **0 = No authentication.**  This payload may have been sent by any party,
-     including an active attacker.
+ 0. **No authentication.**  This payload may have been sent by any party,
+    including an active attacker.
 
- *  **1 = Sender authentication *vulnerable* to key-compromise impersonation
+ 1. **Sender authentication *vulnerable* to key-compromise impersonation
     (KCI)**.  The sender authentication is based on a static-static DH
     (`"dhss"`) involving both parties' static key pairs.  If the recipient's
     long-term private key has been compromised, this authentication can be
     forged.  Note that a future version of Noise might include signatures,
     which could improve this security property, but brings other trade-offs.
 
- *  **2 = Sender authentication *resistant* to key-compromise impersonation
-     (KCI)**.  The sender authentication is based on an ephemeral-static DH
-     (`"dhes"` or `"dhse"`) between the sender's static key pair and the
-     recipient's ephemeral key pair.  Assuming the corresponding private keys 
-     are secure, this authentication cannot be forged.
+ 2. **Sender authentication *resistant* to key-compromise impersonation
+    (KCI)**.  The sender authentication is based on an ephemeral-static DH
+    (`"dhes"` or `"dhse"`) between the sender's static key pair and the
+    recipient's ephemeral key pair.  Assuming the corresponding private keys 
+    are secure, this authentication cannot be forged.
 
 The confidentiality properties are:
 
- *   **0 = No confidentiality.**  This payload is sent in cleartext.
+ 0. **No confidentiality.**  This payload is sent in cleartext.
 
- *   **1 = Encryption to an ephemeral recipient.**  This payload has forward
-     secrecy, since encryption involves an ephemeral-ephemeral DH (`"dhee"`).
-     However, the sender has not authenticated the recipient, so this payload
-     might be sent to any party, including an active attacker.
+ 1. **Encryption to an ephemeral recipient.**  This payload has forward
+    secrecy, since encryption involves an ephemeral-ephemeral DH (`"dhee"`).
+    However, the sender has not authenticated the recipient, so this payload
+    might be sent to any party, including an active attacker.
 
- *   **2 = Encryption to a known recipient, forward secrecy for sender
-     compromise only, vulnerable to replay.** This payload is encrypted based
-     only on DHs involving the recipient's static key pair.  If the recipient's
-     static private key is compromised, even at a later date, this payload can
-     be decrypted.  This message can also be replayed, since there's no
-     ephemeral contribution from the recipient.
+ 2. **Encryption to a known recipient, forward secrecy for sender
+    compromise only, vulnerable to replay.** This payload is encrypted based
+    only on DHs involving the recipient's static key pair.  If the recipient's
+    static private key is compromised, even at a later date, this payload can
+    be decrypted.  This message can also be replayed, since there's no
+    ephemeral contribution from the recipient.
 
- *   **3 = Encryption to a known recipient, weak forward secrecy.**  This
-     payload is encrypted based on an ephemeral-ephemeral DH and also an
-     ephemeral-static DH involving the recipient's static key pair.  However,
-     the binding between the recipient's alleged ephemeral public key and the
-     recipient's static public key hasn't been verified by the sender, so the
-     recipient's alleged ephemeral public key may have been forged by an active
-     attacker.  In this case, the attacker could later compromise the
-     recipient's static private key to decrypt the payload. Note that a future
-     version of Noise might include signatures, which could improve this
-     security property, but brings other trade-offs.
+ 3. **Encryption to a known recipient, weak forward secrecy.**  This
+    payload is encrypted based on an ephemeral-ephemeral DH and also an
+    ephemeral-static DH involving the recipient's static key pair.  However,
+    the binding between the recipient's alleged ephemeral public key and the
+    recipient's static public key hasn't been verified by the sender, so the
+    recipient's alleged ephemeral public key may have been forged by an active
+    attacker.  In this case, the attacker could later compromise the
+    recipient's static private key to decrypt the payload. Note that a future
+    version of Noise might include signatures, which could improve this
+    security property, but brings other trade-offs.
 
- *   **4 = Encryption to a known recipient, weak forward secrecy if the
-     sender's private key has been compromised.**  This payload is encrypted
-     based on an ephemeral-ephemeral DH, and also based on an ephemeral-static
-     DH involving the recipient's static key pair.  However, the binding
-     between the recipient's alleged ephemeral public and the recipient's
-     static public key has only been verified based on DHs involving both those
-     public keys and the sender's static private key.  Thus, if the sender's
-     static private key was previously compromised, the recipient's alleged
-     ephemeral public key may have been forged by an active attacker.  In this
-     case, the attacker could later compromise the intended recipient's static
-     private key to decrypt the payload (this is a variant of a "KCI" attack
-     enabling a "weak forward secrecy" attack). Note that a future version of
-     Noise might include signatures, which could improve this security
-     property, but brings other trade-offs.
+ 4. **Encryption to a known recipient, weak forward secrecy if the
+    sender's private key has been compromised.**  This payload is encrypted
+    based on an ephemeral-ephemeral DH, and also based on an ephemeral-static
+    DH involving the recipient's static key pair.  However, the binding
+    between the recipient's alleged ephemeral public and the recipient's
+    static public key has only been verified based on DHs involving both those
+    public keys and the sender's static private key.  Thus, if the sender's
+    static private key was previously compromised, the recipient's alleged
+    ephemeral public key may have been forged by an active attacker.  In this
+    case, the attacker could later compromise the intended recipient's static
+    private key to decrypt the payload (this is a variant of a "KCI" attack
+    enabling a "weak forward secrecy" attack). Note that a future version of
+    Noise might include signatures, which could improve this security
+    property, but brings other trade-offs.
 
- *  **5 = Encryption to a known recipient, strong forward secrecy.**  This
+ 5. **Encryption to a known recipient, strong forward secrecy.**  This
     payload is encrypted based on an ephemeral-ephemeral DH as well as an
     ephemeral-static DH with the recipient's static key pair.  Assuming the
     ephemeral private keys are secure, and the recipient is not being actively
     impersonated by an attacker that has stolen its static private key, this
     payload cannot be decrypted.
-
 
 For one-way handshakes, the below-listed security properties apply to the
 handshake payload as well as transport payloads.
@@ -953,38 +952,37 @@ metadata such as IP addresses.
 
 The properties for the relevant public key are:
 
-  * **0.** Transmitted in clear.
+  0. Transmitted in clear.
 
-  * **1.**  Encrypted with forward secrecy, but can be probed by an
-   anonymous initiator.
+  1. Encrypted with forward secrecy, but can be probed by an
+     anonymous initiator.
 
-  * **2.**  Encrypted with forward secrecy, but sent to an anonymous responder. 
+  2. Encrypted with forward secrecy, but sent to an anonymous responder. 
 
-  * **3.**  Not transmitted, but a passive attacker can check candidates for
-    the responder's private key and determine whether the candidate is correct.
+  3. Not transmitted, but a passive attacker can check candidates for
+     the responder's private key and determine whether the candidate is correct.
 
-  * **4.** Encrypted to responder's static public key, without forward secrecy.
-    If an attacker learns the responder's private key they can decrypt the
-    initiator's public key. 
+  4. Encrypted to responder's static public key, without forward secrecy.
+     If an attacker learns the responder's private key they can decrypt the
+     initiator's public key. 
 
-  * **5.**  Not transmitted, but a passive attacker can check candidates for
-    the responder's private key and initiator's public key and determine if
-    both candidates are correct.
+  5. Not transmitted, but a passive attacker can check candidates for
+     the responder's private key and initiator's public key and determine if
+     both candidates are correct.
 
-  * **6.** Encrypted but with weak forward secrecy.  An active attacker who
-    pretends to be the initiator without the initiator's static private key,
-    then later learns the initiator private key, can then decrypt the
-    responder's public key.
+  6. Encrypted but with weak forward secrecy.  An active attacker who
+     pretends to be the initiator without the initiator's static private key,
+     then later learns the initiator private key, can then decrypt the
+     responder's public key.
 
-  * **7.** Not transmitted, but an active attacker who pretends to be the
-    initator without the initiator's static private key, then later learns a
-    candidate for the initiator private key, can then check whether the
-    candidate is correct.
+  7. Not transmitted, but an active attacker who pretends to be the
+     initator without the initiator's static private key, then later learns a
+     candidate for the initiator private key, can then check whether the
+     candidate is correct.
 
-  * **8.** Encrypted with forward secrecy to an authenticated party.
+  8. Encrypted with forward secrecy to an authenticated party.
 
-
-Identity hiding properties for static public keys:
+<!-- end of list - necesary to trick Markdown into seeing the following -->
 
                Initiator      Responder              
                ---------      ---------
