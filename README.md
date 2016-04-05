@@ -1,23 +1,18 @@
 
-Overview
+Noise
 ---------
 Noise is a framework for crypto protocols based on Diffie-Hellman key agreement.
 
-Specifications
+Specification
 ---------------
-<https://github.com/trevp/noise/blob/master/noise.md>
 
-Mailing List
--------------
-<https://moderncrypto.org/mailman/listinfo/noise>
+The Noise specification is stored in noise.md as Pandoc Markdown.  The Makefile
+processes the source file to produce HTML and PDF.
 
-Implementations
-----------------
+Only a few Pandoc features are used:
 
-There are in-progress implementations at:
+ - Metadata at top of file
 
-<https://github.com/centromere/cacophony>
+ - Zero-numbered lists (WARNING: the Github display of these numbered lists
+   shows them starting at 1, instead of 0)
 
-<https://github.com/trevp/screech> 
-
-<https://github.com/titanous/noise>

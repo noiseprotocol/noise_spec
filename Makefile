@@ -1,7 +1,7 @@
 
 default:
 	pandoc noise.md -s --toc \
-	        -f markdown+yaml_metadata_block+startnum+multiline_tables \
+	        -f markdown+yaml_metadata_block+startnum \
 		--template template_pandoc.html \
 		--css=spec_markdown.css \
 		-o noise.html
