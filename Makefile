@@ -6,7 +6,7 @@ default:
 		--css=spec_markdown.css \
 		-o noise.html
 	pandoc noise.md -s --toc \
-	        -f markdown+yaml_metadata_block \
+	        -f markdown+yaml_metadata_block+startnum \
 		--template template_pandoc.latex \
 		-o noise.pdf
 
