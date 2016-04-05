@@ -6,7 +6,7 @@ Noise is a framework for crypto protocols based on Diffie-Hellman key agreement.
 Specification
 ---------------
 
-The Noise specification is stored in noise.md as Pandoc Markdown.  The Makefile
+The Noise specification is stored in [noise.md]() as Pandoc Markdown.  The Makefile
 processes the source file to produce HTML and PDF.
 
 Only a few Pandoc features are used:
