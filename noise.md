@@ -1356,7 +1356,7 @@ Hash output lengths of 256 bits are supported because:
   * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit
     security level.
   * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing 
-    smaller inputs (due to smaller block size), then their larger brethren
+    smaller inputs (due to smaller block size), than their larger brethren
     (SHA2-512 and BLAKE2b).
   * SHA2-256 and BLAKE2s are faster on 32-bit processors than their larger 
     brethren.
