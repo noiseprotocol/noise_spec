@@ -1,8 +1,8 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '26'
-date:       '2016-04-04'
+revision:   '27'
+date:       '2016-04-06'
 ---
 
 1. Introduction
@@ -262,13 +262,13 @@ Noise defines an additional function based on the above `HASH()` function:
    follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)   using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
 
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.  
-     
+
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
-   
+
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.  
 
      * Returns the pair `(output1, output2)`.
-    
+
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in length.  
 
 5. Processing rules for handshake and transport messages
@@ -354,18 +354,19 @@ A `SymmetricState` responds to the following methods:
  
   * **`InitializeSymmetric(protocol_name)`**:  Takes an arbitrary-length
    `protocol_name` byte sequence (see [Section 11](#protocol-names)).  Executes the following steps:
-    * If `protocol_name` is less than or equal to `HASHLEN` bytes in length,
-      sets `h` equal to `protocol_name` with zero bytes appended to make
-      `HASHLEN` bytes.  Otherwise sets `h = HASH(protocol_name)`.  
 
-    * Sets `ck = h`. 
+      * If `protocol_name` is less than or equal to `HASHLEN` bytes in length,
+        sets `h` equal to `protocol_name` with zero bytes appended to make
+        `HASHLEN` bytes.  Otherwise sets `h = HASH(protocol_name)`.  
 
-    * Calls `InitializeKey(empty)`.
+      * Sets `ck = h`. 
+
+      * Calls `InitializeKey(empty)`.
 
   * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
     input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
     bytes to match `k`.  Calls `InitializeKey(temp_k)`.
-   
+
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
@@ -377,17 +378,17 @@ A `SymmetricState` responds to the following methods:
   * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
     transport messages.  Executes the following steps:
 
-    * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen` is a
-      zero-length byte sequence.  
-   
-    * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
-      apiece to match `k`.  
-   
-    * Creates two new `CipherState` objects `c1` and `c2`.  
-   
-    * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
-   
-    * Returns the pair `(c1, c2)`.  
+      * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen` is a
+        zero-length byte sequence.  
+
+      * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
+        apiece to match `k`.  
+
+      * Creates two new `CipherState` objects `c1` and `c2`.  
+
+      * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
+
+      * Returns the pair `(c1, c2)`.  
 
 
 5.3. The `HandshakeState` object
@@ -423,68 +424,68 @@ A `HandshakeState` responds to the following methods:
     which may contain context information that both parties want to confirm is
     identical (see [Section 6](#prologue)).  Takes a set of DH keypairs and
     public keys for initializing local variables, any of which may be empty.
- 
-    * Derives a `protocol_name` byte sequence by combining the names for the
-      handshake pattern and crypto functions, as specified in [Section
-      11](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
 
-    * Calls `MixHash(prologue)`.
+      * Derives a `protocol_name` byte sequence by combining the names for the
+        handshake pattern and crypto functions, as specified in [Section
+        11](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
 
-    * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding
-      arguments.
-   
-    * Calls `MixHash()` once for each public key listed in the pre-messages
-      from `handshake_pattern`, with the specified public key as input (see
-      [Section 8](#handshake-patterns) for an explanation of pre-messages).  If both
-      initiator and responder have pre-messages, the initiator's public keys
-      are hashed first.
+      * Calls `MixHash(prologue)`.
 
-    * Sets `message_patterns` to the message patterns from `handshake_pattern`.
+      * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding
+        arguments.
 
-    * Sets `message_index = 0` (i.e. the first message pattern).
+      * Calls `MixHash()` once for each public key listed in the pre-messages
+        from `handshake_pattern`, with the specified public key as input (see
+        [Section 8](#handshake-patterns) for an explanation of pre-messages).  If both
+        initiator and responder have pre-messages, the initiator's public keys
+        are hashed first.
+
+      * Sets `message_patterns` to the message patterns from `handshake_pattern`.
+
+      * Sets `message_index = 0` (i.e. the first message pattern).
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
+  
+      * Fetches the next message pattern from `message_patterns[message_index]`,
+        increments `message_index`, and sequentially processes each token from
+        the message pattern:
 
-    * Fetches the next message pattern from `message_patterns[message_index]`,
-      increments `message_index`, and sequentially processes each token from
-      the message pattern:
+          * For `"e"`:  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
+            value for `e`.  Appends `e.public_key` to the buffer.  Calls
+            `MixHash(e.public_key)`.
 
-      * For `"e"`:  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
-        value for `e`.  Appends `e.public_key` to the buffer.  Calls
-        `MixHash(e.public_key)`.
+          * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
-      * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
-      
-      * For `"dhxy"`:  Calls `MixKey(DH(x, ry))`.
+          * For `"dhxy"`:  Calls `MixKey(DH(x, ry))`.
 
-    * Appends `EncryptAndHash(payload)` to the buffer.  
-    
-    * If there are no more message patterns returns two new `CipherState`
-      objects by calling `Split()`.
+      * Appends `EncryptAndHash(payload)` to the buffer.  
+
+      * If there are no more message patterns returns two new `CipherState`
+        objects by calling `Split()`.
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
     message's plaintext payload into.
 
-    * Fetches the message pattern from `message_patterns[message_index]`,
-      increments `message_index`, and sequentially processes each token from
-      the message pattern:
+      * Fetches the message pattern from `message_patterns[message_index]`,
+        increments `message_index`, and sequentially processes each token from
+        the message pattern:
 
-      * For `"e"`: Sets `re` to the next `DHLEN` bytes from the message. Calls
-        `MixHash(re.public_key)`. 
-      
-      * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
-        `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
-        to `DecryptAndHash(temp)`.  
-      
-      * For `"dhxy"`:  Calls `MixKey(DH(y, rx))`.  
+          * For `"e"`: Sets `re` to the next `DHLEN` bytes from the message. Calls
+            `MixHash(re.public_key)`. 
 
-    * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
-      the output into `payload_buffer`.
-  
-    * If there are no more message patterns returns two new `CipherState`
-      objects by calling `Split()`.
+          * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
+            `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
+            to `DecryptAndHash(temp)`.  
+
+          * For `"dhxy"`:  Calls `MixKey(DH(y, rx))`.  
+
+      * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
+        the output into `payload_buffer`.
+
+      * If there are no more message patterns returns two new `CipherState`
+        objects by calling `Split()`.
 
 6. Prologue 
 ============
@@ -530,14 +531,14 @@ using pre-shared symmetric keys, the following changes are made:
 8. Handshake patterns 
 ======================
 
-A **message pattern** is some sequence of tokens from the set `("e", "s",
-"dhee", "dhes", "dhse", "dhss")`.  A **handshake pattern** consists of:
+A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse", "dhss")`.  
+A **handshake pattern** consists of:
 
   * A pattern for the initiator's **pre-message** that is either:
-    * `"s"`
-    * `"e"`
-    * `"s, e"`
-    * empty
+      * `"s"`
+      * `"e"`
+      * `"s, e"`
+      * empty
 
   * A pattern for the responder's pre-message that takes the same
    range of values as the initiator's pre-message.
@@ -1012,9 +1013,9 @@ The patterns in the previous sections are useful examples which we are naming
 for convenience.  Other valid patterns could be constructed, for example:
 
  * It would be easy to modify `Noise_X` or `Noise_IK` to transmit the sender's
-   static public key in cleartext instead of encrypted by changing `"e, dhes,
-   s, dhss"` to `"e, s, dhes, dhss"`.  This would worsen identity hiding, so
-   we're not bothering to name those patterns.
+   static public key in cleartext instead of encrypted by changing `"e, dhes, s, dhss"` to 
+   `"e, s, dhes, dhss"`.  This would worsen identity hiding, so we're not 
+   bothering to name those patterns.
 
  * It would be easy to make `Noise_KK` or `Noise_IK` slightly more efficient by
    removing the `"dhss"`.  This would worsen security properties for the
