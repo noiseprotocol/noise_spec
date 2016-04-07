@@ -532,6 +532,7 @@ using pre-shared symmetric keys, the following changes are made:
 ======================
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse", "dhss")`.  
+
 A **handshake pattern** consists of:
 
   * A pattern for the initiator's **pre-message** that is either:
