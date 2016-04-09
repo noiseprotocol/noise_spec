@@ -602,11 +602,11 @@ Noise patterns must be **valid** in the following senses:
 
  * After performing a DH between a remote public key and any local private key
    that is not a "fresh" ephemeral private key, the local party must not send
-   any payloads or static public keys, nor complete the handshake, unless they
-   have also performed a DH between a "fresh" ephemeral private key and the
-   remote public key.  A "fresh" ephemeral private key is one that was created
-   by processing an `"e"` token when sending a message (as opposed to an
-   ephemeral private key passed in during initialization).
+   any encrypted data unless they have also performed a DH between a "fresh"
+   ephemeral private key and the remote public key.  A "fresh" ephemeral
+   private key is one that was created by processing an `"e"` token when
+   sending a message (as opposed to an ephemeral private key passed in during
+   initialization).
 
 Patterns failing the first check will obviously abort the program.  
 
