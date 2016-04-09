@@ -72,8 +72,10 @@ Each party maintains the following variables:
    provides some confidentiality and key confirmation during the handshake
    phase.
 
-To send a handshake message, the sender sequentially processes each token from
-a message pattern.  The possible tokens are:
+A handshake message consists of some DH public keys followed by a **payload**.
+The payload may contain certificates or other data chosen by the application.
+To send a handshake message, the sender specifies the payload and sequentially
+processes each token from a message pattern.  The possible tokens are:
 
  * **`"e"`**: The sender generates a new ephemeral key pair and stores it in
    the `e` variable, writes the ephemeral public key as cleartext into the
@@ -105,9 +107,12 @@ handshake pattern:
 The initiator sends the first message, which is simply an ephemeral public key.
 The responder sends back its own ephemeral public key.  Then a DH is performed
 and the output is hashed into `ck`, which is the final shared key from the
-handshake.  Note that a cleartext payload is sent in the first handshake
-message, and an encrypted payload is sent in the response handshake message.
-The application may send whatever payloads it wants.
+handshake.  
+
+Note that a cleartext payload is sent in the first message, after the cleartext
+ephemeral public key, and an encrypted payload is sent in the response message,
+after the cleartext ephemeral public key.  The application may send whatever
+payloads it wants.
 
 The responder can send its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
@@ -215,16 +220,21 @@ functions is defined below.  Some concrete functions are defined in [Section
 
 Noise depends on the following **DH functions** (and an associated constant):
 
- * **`GENERATE_KEYPAIR()`**: Generates a new DH keypair.
+ * **`GENERATE_KEYPAIR()`**: Generates a new DH key pair.  A DH key pair
+   consists of `public_key` and `private_key` elements.  A `public_key`
+   represents an encoding of a DH public key into a byte sequence of
+   length `DHLEN`.  The `public_key` encoding details are specific to each set
+   of DH functions.
 
- * **`DH(privkey, pubkey)`**: Performs a DH calculation and returns an output
-   sequence of bytes.  If the function detects an invalid public key, the
-   output may be all zeros or any other value that doesn't leak information
-   about the private key.  For reasons discussed in [Section 9.1](#dummy-static-public-keys)
-   it is recommended for the function to have a **null public key value** that
+ * **`DH(key_pair, public_key)`**: Performs a DH calculation between the
+   private key in `key_pair` and `public_key` and returns an output sequence of
+   bytes.  If the function detects an invalid `public_key`, the output may be
+   all zeros or any other value that doesn't leak information about the private
+   key.  For reasons discussed in [Section 9.1](#dummy-static-public-keys) it
+   is recommended for the function to have a **null public key value** that
    always yields the same output, regardless of private key.  For example, the
-   DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) always map a DH public key of all
-   zeros to an output of all zeros.
+   DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) 
+   always map a DH public key of all zeros to an output of all zeros.
 
  * **`DHLEN`** = A constant specifying the size of public keys in bytes.
 
@@ -422,7 +432,7 @@ A `HandshakeState` responds to the following methods:
     `initiator` boolean specifying this party's role as either initiator or
     responder.  Takes a `prologue` byte sequence which may be zero-length, or
     which may contain context information that both parties want to confirm is
-    identical (see [Section 6](#prologue)).  Takes a set of DH keypairs and
+    identical (see [Section 6](#prologue)).  Takes a set of DH key pairs and
     public keys for initializing local variables, any of which may be empty.
 
       * Derives a `protocol_name` byte sequence by combining the names for the
@@ -1138,9 +1148,9 @@ needed:
 10.1. The `25519` DH functions
 ----------------------------
 
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 keypair.
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve25519 DH function (aka "X25519"
+ * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka "X25519"
    in [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
    value is all zeros, which will always produce an output of all zeros.  Other
    invalid public key values will also produce an output of all zeros.
@@ -1150,9 +1160,9 @@ needed:
 10.2. The `448` DH functions
 --------------------------
 
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 keypair.
+ * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
  
- * **`DH(privkey, pubkey)`**: Executes the Curve448 DH function (aka "X448" in
+ * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448" in
    [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
    value is all zeros, which will always produce an output of all zeros.  Other
    invalid public key values will also produce an output of all zeros.
@@ -1226,8 +1236,8 @@ and the hash function, with underscore separators.  For example:
 
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-If a pre-shared symmetric key is in use, then the prefix `NoisePSK_` is used
-instead of `Noise_`:
+If a pre-shared symmetric key is in use, then the prefix `"NoisePSK_"` is used
+instead of `"Noise_"`:
 
  * `NoisePSK_XX_25519_AESGCM_SHA256`
 
