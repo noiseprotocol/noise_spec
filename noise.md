@@ -202,10 +202,8 @@ Assuming each payload contains a zero-length plaintext, and DH public keys are
 56 bytes, the message sizes will be:
 
  1. 56 bytes (one cleartext public key and a cleartext payload)
-
- 2. 144 bytes (two public keys, the second encrypted, and an encrypted payload)
-
- 3. 88 bytes (one encrypted public key and an encrypted payload)
+ 2. 144 bytes (two public keys, the second encrypted, and encrypted payload)
+ 3. 88 bytes (one encrypted public key and encrypted payload)
 
 If pre-shared symmetric keys are used, the first message grows in size to 72
 bytes, since the first payload becomes encrypted.
@@ -271,12 +269,9 @@ Noise defines an additional function based on the above `HASH()` function:
    arbitrary length.  Returns two byte sequences of length `HASHLEN`, as
    follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)   using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
 
-     * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.  
-
+     * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
-
-     * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.  
-
+     * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
      * Returns the pair `(output1, output2)`.
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in length.  
@@ -357,7 +352,6 @@ A `SymmetricState` object contains a `CipherState` plus the following
 variables:
 
   * **`ck`**: A chaining key of `HASHLEN` bytes.
- 
   * **`h`**: A hash output of `HASHLEN` bytes.
 
 A `SymmetricState` responds to the following methods:   
@@ -409,11 +403,8 @@ variables, any of which may be `empty`.  `Empty` is a special value which
 indicates the variable has not yet been initialized.
 
   * **`s`**: The local static key pair 
-
   * **`e`**: The local ephemeral key pair
-
   * **`rs`**: The remote party's static public key
-
   * **`re`**: The remote party's ephemeral public key 
 
 A `HandshakeState` also has the following variables:
@@ -1189,36 +1180,28 @@ needed:
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-256(input)` 
-
  * **`HASHLEN`** = 32
-
  * **`BLOCKLEN`** = 64
 
 10.6. The `SHA512` hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA2-512(input)` 
- 
  * **`HASHLEN`** = 64
-
  * **`BLOCKLEN`** = 128
 
 10.7. The `BLAKE2s` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
-
  * **`HASHLEN`** = 32
-
  * **`BLOCKLEN`** = 64
 
 10.8. The `BLAKE2b` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2b(input)` with digest length 64.
-
  * **`HASHLEN`** = 64
-
  * **`BLOCKLEN`** = 128
 
 11. Protocol names 
@@ -1229,22 +1212,16 @@ ASCII names for the handshake pattern, the DH functions, the cipher functions,
 and the hash function, with underscore separators.  For example: 
 
  * `Noise_XX_25519_AESGCM_SHA256`
-
  * `Noise_N_25519_ChaChaPoly_BLAKE2s`
-
  * `Noise_XXfallback_448_AESGCM_SHA512`
-
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
 If a pre-shared symmetric key is in use, then the prefix `"NoisePSK_"` is used
 instead of `"Noise_"`:
 
  * `NoisePSK_XX_25519_AESGCM_SHA256`
-
  * `NoisePSK_N_25519_ChaChaPoly_BLAKE2s` 
- 
  * `NoisePSK_XXfallback_448_AESGCM_SHA512`
-
  * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
 
 12. Application responsibilities
