@@ -1257,9 +1257,10 @@ An application built on Noise must consider several issues:
 
  * **Type fields**:  Applications are recommended to include a single-byte type
    field prior to each Noise handshake message (and prior to the length field,
-   if one is included).  Applications would reject messages with unknown type.
-   This allows extending the handshake with handshake re-initialization or
-   other alternative messages in the future.
+   if one is included).  The default value is recommended to be zero.
+   Applications would reject messages with an unknown value.  This allows
+   extending the handshake with new versions that specify handshake
+   re-initialization or other alternative messages in the future.
 
 13. Security considerations
 ===========================
