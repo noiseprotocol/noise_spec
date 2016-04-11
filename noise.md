@@ -1,7 +1,7 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '28'
+revision:   '29draft'
 date:       '2016-04-10'
 ---
 
@@ -1101,13 +1101,13 @@ Below are the three patterns used for Noise Pipes:
 
     Noise_IK(s, rs):                   
       <- s                         
-      ------
+      ...
       -> e, dhes, s, dhss          
       <- e, dhee, dhes             
                                         
     Noise_XXfallback(s, rs, re):                   
       <- e
-      ------
+      ...
       -> e, dhee, s, dhse
       <- s, dhse
 
