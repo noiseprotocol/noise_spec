@@ -236,7 +236,8 @@ Noise depends on the following **DH functions** (and an associated constant):
    DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) 
    always map a DH public key of all zeros to an output of all zeros.
 
- * **`DHLEN`** = A constant specifying the size of public keys in bytes.
+ * **`DHLEN`** = A constant specifying the size of public keys in bytes.  Must
+   be at least 32 bytes.
 
 Noise depends on the following **cipher functions**:
 
