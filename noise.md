@@ -68,7 +68,7 @@ Each party maintains the following variables:
    are used to encrypt static public keys and handshake payloads, incrementing
    `n` with each encryption.  Encryption with `k` uses an "AEAD" cipher mode
    and includes the current `h` value as "associated data" which is covered by
-   the AEAD authentication tag.  Encryption of static public keys and payloads
+   the AEAD authentication.  Encryption of static public keys and payloads
    provides some confidentiality and key confirmation during the handshake
    phase.
 
@@ -126,9 +126,10 @@ the responder's static key, successful decryption by the initiator of the
 second message's payload serves to authenticate the responder to the initiator.
 
 Note that the second message's payload may contain a zero-length plaintext, but
-the payload ciphertext will still contain an authentication tag, since
-encryption is with an AEAD mode.  The second message's payload can also be used
-to deliver certificates for the responder's static public key.
+the payload ciphertext will still contain authentication data (such as an
+authentication tag or "synthetic IV"), since encryption is with an AEAD mode.
+The second message's payload can also be used to deliver certificates for the
+responder's static public key.
 
 The initiator can send *its* static public key (under encryption), and
 authenticate itself, using a handshake pattern with one additional message:
@@ -167,9 +168,10 @@ the payloads are opaque to Noise.
 
 A Noise **transport message** is simply an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of an encrypted payload plus
-a 16-byte authentication tag.  The details depend on the AEAD cipher function,
-e.g. AES256-GCM, or ChaCha-Poly1305, but the 16-byte authentication tag
-typically occurs at the end of the ciphertext.
+16 bytes of authentication data.  The details depend on the AEAD cipher
+function, e.g. AES256-GCM, or ChaCha-Poly1305, but typically either a 16-byte
+authentication tag is appended to the ciphertext, or a 16-byte synthetic
+IV is prepended to the ciphertext.
 
 A Noise **handshake message** is also less than or equal to 65535 bytes.  It
 begins with a sequence of one or more DH public keys, as determined by its
@@ -242,8 +244,8 @@ Noise depends on the following **cipher functions**:
    key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
    unique for the key `k`.  Returns the ciphertext.  Encryption must be done
    with an "AEAD" encryption mode with the associated data `ad` and returns a
-   ciphertext that is the same size as the plaintext plus 16 bytes for an
-   authentication tag.
+   ciphertext that is the same size as the plaintext plus 16 bytes for 
+   authentication data.
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
    key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
@@ -1176,7 +1178,7 @@ needed:
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with 128-bit tags.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
+ AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with a 128-bit tag appended to the ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
 
 10.5. The `SHA256` hash function
 ------------------------------
@@ -1360,7 +1362,7 @@ Cipher keys are 256 bits because:
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
 
-The authentication tag is 128 bits because:
+The authentication data is 128 bits because:
 
   * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
     truncated.
