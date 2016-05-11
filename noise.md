@@ -245,7 +245,8 @@ Noise depends on the following **cipher functions**:
    unique for the key `k`.  Returns the ciphertext.  Encryption must be done
    with an "AEAD" encryption mode with the associated data `ad` and returns a
    ciphertext that is the same size as the plaintext plus 16 bytes for 
-   authentication data.
+   authentication data.  The entire ciphertext must be indistinguishable from
+   random if the key is secret. 
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
    key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
