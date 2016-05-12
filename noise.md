@@ -1135,12 +1135,54 @@ needed.  It could have the following meanings:
 
 9.3. Protocol indistinguishability
 -----------------------------------
+Parties may wish to hide what protocol they are executing from an eavesdropper.
+For example, suppose parties are using Noise Pipes, and want to hide whether
+they are performing a full handshake, abbreviated handshake, or fallback
+handshake.  
+
+This is fairly easy:
+
+ * The first three messages have their payloads padded with random bytes to
+   a constant size, regardless of which handshake is executed.
+
+ * Instead of a `type` byte, the responder uses trial decryption to
+   differentiate between an initial message using `Noise_XX` or `Noise_IK`
+
+ * Instead of a `type` byte, an initiator who sent a `Noise_IK` initial
+   message uses trial decryption to differentiate between a response using
+   `Noise_IK` or `Noise_XXfallback`. 
+
+This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect
+the parties are using Noise, even if it can't distinguish the handshakes.  To
+make the ephemerals indistinguishable from random, techniques like
+[Elligator](https://elligator.cr.yp.to) could be used.
+
 
 9.4. Channel binding
 ---------------------
+Parties may wish to execute a Noise protocol, then perform authentication at the 
+application layer using signatures, passwords, or something else.
 
-9.5. Extra forward secrecy
----------------------------
+To support this, Noise libraries should expose the final value of `h` to the
+application as a **handshake hash** which uniquely identifies the Noise
+session.
+
+Parties can then sign the handshake hash, or hash it along with their password,
+to get an authentication token which has a "channel binding" property: the token
+can't be used by the receiving party with a different sesssion.
+
+
+9.5. Secondary symmetric keys 
+------------------------------
+
+To hedge against future cryptanalysts decrypting old stored data, an application
+might send messages for a second key agreement protocol inside the Noise
+handshake payloads (e.g. a post-quantum or non-elliptic-curve key agreement).
+
+The second key agreement should derive a 32-byte secondary secret key `ssk`.  To
+make the transport keys a function of both the Noise key agreement and `ssk` the
+`Split()` step is modified to call `HKDF(ck, ssk)` instead of `HKDF(ck,
+zerolen)`.
 
 
 10. DH functions, cipher functions, and hash functions
@@ -1327,9 +1369,8 @@ This section collects various security considerations:
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key (e.g. if setting her public keys to invalid values causes
    DH outputs of zero, as is the case for the `25519` and `448` DH functions).
-   If a higher-level protocol wants a unique "channel binding" value for
-   referring to a Noise session it should use the value of `h` after the final
-   handshake message, not `ck`.
+   This is why a higher-level protocol should use the handshake hash (`h`) for
+   a unique channel binding, instead of `ck`.
 
  * **Implementation fingerprinting**:  If this protocol is used in settings
    with anonymous parties, care should be taken that implementations behave
