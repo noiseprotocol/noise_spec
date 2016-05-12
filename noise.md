@@ -1378,9 +1378,9 @@ The `MixKey()` design uses `HKDF` because:
     "extra" hashing might mitigate the impact of hash function weakness.
   * HKDF is well-known and is used in similar ways in other protocols (e.g.
     Signal, IPsec).
-  * HKDF and HMAC are widely-used constructions.  If weakness is found in a
+  * HKDF and HMAC are widely-used constructions.  If some weakness is found in a
     hash function, cryptanalysts will likely analyze that weakness in the
-    context of HMAC and HKDF, and we'll benefit from that analysis.
+    context of HKDF and HMAC.
 
 `MixHash()` is used instead of sending all inputs through `MixKey()` because:
 
