@@ -1074,15 +1074,19 @@ handshake, the first handshake's `h` variable should be provided as prologue to
 the second handshake.
 
 By way of example, this section defines the **Noise Pipe** compound protocol.
-This protocol uses two patterns defined in the previous section: `Noise_XX` is
-used for an initial handshake if the parties haven't communicated before, after
-which the initiator can cache the responder's static public key.  `Noise_IK` is
-used for a zero-RTT handshake.  
+This protocol uses three handshake patterns - two defined in the previous
+section, and a new one:
 
-If the responder fails to decrypt the first `Noise_IK` message (perhaps due to
-changing her static key), the responder will initiate a new `Noise_XXfallback`
-handshake identical to `Noise_XX` except re-using the ephemeral public key from
-the first `Noise_IK` message as a pre-message public key.
+ * `Noise_XX` is used for an initial **full handshake** if the parties haven't communicated before, after
+which the initiator can cache the responder's static public key.  
+
+ * `Noise_IK` is used for a zero-RTT **abbreviated handshake**.  
+
+ * If the responder fails to decrypt the first `Noise_IK` message (perhaps due
+   to changing her static key), the responder will initiate a new **fallback
+   handshake** using the `Noise_XXfallback` pattern which is identical to
+   `Noise_XX` except re-using the ephemeral public key from the first
+   `Noise_IK` message as a pre-message public key.
 
 Below are the three patterns used for Noise Pipes:
 
@@ -1115,18 +1119,18 @@ part of the Noise message proper, but simply signals when re-initialization is
 needed.  It could have the following meanings:
 
  * If `type == 0` in the initiator's first message then the initiator is
-   performing a `Noise_XX` handshake.
+   performing a `Noise_XX` handshake *(full handshake)*.
 
  * If `type == 1` in the initiator's first message then the initiator is
-   performing a `Noise_IK` handshake.
+   performing a `Noise_IK` handshake *(attempted abbreviated handshake)*.
 
  * If `type == 0` in the responder's first `Noise_IK` response then the
-   responder accepted the `Noise_IK` message.
+   responder accepted the `Noise_IK` message *(successful abbreviated handshake)*.
 
  * If `type == 1` in the responder's first `Noise_IK` response then the
    responder failed to authenticate the initiator's `Noise_IK` message and is
    performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
-   public key as a pre-message.
+   public key as a pre-message *(fallback handshake)*.
 
 
 9.3. Protocol indistinguishability
