@@ -278,7 +278,9 @@ Noise defines an additional function based on the above `HASH()` function:
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
      * Returns the pair `(output1, output2)`.
 
-   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in length.  
+   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
+   length.  This function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
+   with the `chaining_key` as HKDF `salt`, and zero-length `info`.
 
 5. Processing rules for handshake and transport messages
 =========================================================
@@ -1410,7 +1412,7 @@ The Noise specification (this document) is hereby placed in the public domain.
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
-and also by HOMQV and SIGMA from Hugo Krawzcyk.
+and also by HOMQV and SIGMA from Hugo Krawczyk.
 
 General feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld,
 Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
