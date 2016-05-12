@@ -1162,33 +1162,33 @@ needed:
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from [NIST SP 800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with a 128-bit tag appended to the ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
+ AES256-GCM from [SP-800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with a 128-bit tag appended to the ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
 
 10.5. The `SHA256` hash function
 ------------------------------
 
- * **`HASH(input)`**: `SHA2-256(input)` 
+ * **`HASH(input)`**: `SHA-256` from [FIPS 180-4](http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf).
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
 10.6. The `SHA512` hash function
 ------------------------------
 
- * **`HASH(input)`**: `SHA2-512(input)` 
+ * **`HASH(input)`**: `SHA-512`  from [FIPS 180-4](http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf).
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
 10.7. The `BLAKE2s` hash function
 -------------------------------
 
- * **`HASH(input)`**: `BLAKE2s(input)` with digest length 32.
+ * **`HASH(input)`**: `BLAKE2s` from [RFC 7693](https://www.ietf.org/rfc/rfc7693.txt) with digest length 32.
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
 10.8. The `BLAKE2b` hash function
 -------------------------------
 
- * **`HASH(input)`**: `BLAKE2b(input)` with digest length 64.
+ * **`HASH(input)`**: `BLAKE2b` from [RFC 7693](https://www.ietf.org/rfc/rfc7693.txt) with digest length 64.
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
