@@ -36,9 +36,7 @@ when sending or receiving that message.  A **handshake pattern** specifies the
 sequential exchange of messages that comprise a handshake.
 
 A handshake pattern can be instantiated by **DH functions**, **cipher
-functions**, and a **hash function** to give a concrete **Noise protocol**.  An
-application using a Noise protocol must handle some **application
-responsibilities** on its own, such as indicating message lengths.
+functions**, and a **hash function** to give a concrete **Noise protocol**.
 
 2.2. Handshake state machine
 -----------------------------
@@ -106,8 +104,7 @@ handshake pattern:
 
 The initiator sends the first message, which is simply an ephemeral public key.
 The responder sends back its own ephemeral public key.  Then a DH is performed
-and the output is hashed into `ck`, which is the final shared key from the
-handshake.  
+and the output is hashed into a shared secret key.
 
 Note that a cleartext payload is sent in the first message, after the cleartext
 ephemeral public key, and an encrypted payload is sent in the response message,
@@ -163,8 +160,8 @@ Restricting message size has several advantages:
 All Noise messages can be processed without parsing, since there are no type or
 length fields.  Of course, Noise messages might be encapsulated within a
 higher-level protocol that contains type and length information.  Noise
-messages might also encapsulate payloads that require parsing of some sort, but
-the payloads are opaque to Noise.
+messages might encapsulate payloads that require parsing of some sort, but
+payloads are handled by the application, not by Noise.
 
 A Noise **transport message** is simply an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of an encrypted payload plus
@@ -218,6 +215,11 @@ A Noise protocol is instantiated with a concrete set of **DH functions**,
 functions is defined below.  Some concrete functions are defined in [Section
 10](#dh-functions-cipher-functions-and-hash-functions).
 
+Notation:
+
+ * The `||` operator concatenates byte sequences.
+ * The `byte()` function constructs a single byte.
+ 
 Noise depends on the following **DH functions** (and an associated constant):
 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH key pair.  A DH key pair
@@ -257,7 +259,8 @@ Noise depends on the following **cipher functions**:
 Noise depends on the following **hash function** (and associated constants):
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
-   collision-resistant hash function and returns an output of `HASHLEN` bytes.
+   collision-resistant cryptographic hash function and returns an output of
+   `HASHLEN` bytes.
 
  * **`HASHLEN`** = A constant specifying the size in bytes of the hash output.
    Must be 32 or 64.
@@ -266,20 +269,22 @@ Noise depends on the following **hash function** (and associated constants):
    function uses internally to divide its input for iterative processing.  This
    is needed to use the hash function with HMAC (`BLOCKLEN` is `B` in [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)).
 
-Noise defines an additional function based on the above `HASH()` function:
+Noise defines additional functions based on the above `HASH()` function:
+
+ * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) 
+   using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
    length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
-   follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
-
+   follows.  
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
      * Returns the pair `(output1, output2)`.
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
-   length.  Also note that this function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
+   length.  Also note that the `HKDF()` function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 5. Processing rules for handshake and transport messages
@@ -380,10 +385,12 @@ A `SymmetricState` responds to the following methods:
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
-    plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.
+    plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.  Note that if 
+    `k` is `empty`, the `EncryptWithAd()` call will set `ciphertext` equal to  `plaintext`.
 
   * **`DecryptAndHash(ciphertext)`**: Sets `plaintext = DecryptWithAd(h,
-    ciphertext)`, calls `MixHash(ciphertext)`, and returns `plaintext`.  
+    ciphertext)`, calls `MixHash(ciphertext)`, and returns `plaintext`.  Note that if 
+    `k` is `empty`, the `DecryptWithAd()` call will set `plaintext` equal to `ciphertext`. 
 
   * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
     transport messages.  Executes the following steps:
