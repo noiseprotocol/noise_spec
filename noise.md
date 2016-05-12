@@ -55,10 +55,10 @@ Each party maintains the following variables:
  * **`rs, re`**: The remote party's static and ephemeral public keys (which may
    be empty).
 
- * **`h`**: A value that hashes all the handshake data that's been sent and
-   received.
+ * **`h`**: A **handshake hash** value that hashes all the handshake data that's
+   been sent and received.
 
- * **`ck`**: A "chaining key" that hashes all previous DH outputs.  Once the
+ * **`ck`**: A **chaining key** that hashes all previous DH outputs.  Once the
    handshake completes, the chaining key will be used to derive the encryption
    keys for transport messages.
  
