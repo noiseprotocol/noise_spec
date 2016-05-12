@@ -599,18 +599,18 @@ second message.
 
 Handshake patterns must be **valid** in the following senses:
 
- * Parties can only send a static public key if they were initialized with a
+ 1. Parties can only send a static public key if they were initialized with a
    static key pair, and can only perform DH between private keys and public
    keys they possess.
 
- * Parties must not send their static public key, or a fresh ephemeral public
+ 2. Parties must not send their static public key, or a fresh ephemeral public
    key, more than once per handshake.  
 
- * Parties must send a fresh ephemeral public key at the start of the first
+ 3. Parties must send a fresh ephemeral public key at the start of the first
    message they send (i.e. the first token of the first message pattern in each
    direction must be `"e"`).
 
- * After performing a DH between a remote public key and any local private key
+ 4. After performing a DH between a remote public key and any local private key
    that is not a "fresh" ephemeral private key, the local party must not send
    any encrypted data unless they have also performed a DH between a "fresh"
    ephemeral private key and the remote public key.  A "fresh" ephemeral
@@ -618,7 +618,7 @@ Handshake patterns must be **valid** in the following senses:
    sending a message (as opposed to an ephemeral private key passed in during
    initialization).
 
-Patterns failing the first check will obviously abort the program.  
+Patterns failing the first check are obviously nonsensical.
 
 The second check outlaws redundant transmission of values to simplify
 implementation and testing.
