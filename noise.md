@@ -169,7 +169,7 @@ the payloads are opaque to Noise.
 A Noise **transport message** is simply an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of an encrypted payload plus
 16 bytes of authentication data.  The details depend on the AEAD cipher
-function, e.g. AES256-GCM, or ChaCha-Poly1305, but typically either a 16-byte
+function, e.g. AES256-GCM, or ChaCha20-Poly1305, but typically either a 16-byte
 authentication tag is appended to the ciphertext, or a 16-byte synthetic
 IV is prepended to the ciphertext.
 
@@ -269,8 +269,8 @@ Noise depends on the following **hash function** (and associated constants):
 Noise defines an additional function based on the above `HASH()` function:
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
-   sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
-   arbitrary length.  Returns two byte sequences of length `HASHLEN`, as
+   sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
    follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
 
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
@@ -523,8 +523,8 @@ using pre-shared symmetric keys, the following changes are made:
  * Protocol names ([Section 11](#protocol-names)) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
 
  * `Initialize()` takes an additional `psk` argument, which is a sequence of
-   bytes.  Immediately after `MixHash(prologue)` it sets `ck, temp = HKDF(ck,
-   psk)`, then calls `MixHash(temp)`.  This mixes the pre-shared key into the
+   32 bytes.  Immediately after `MixHash(prologue)` it sets `ck, temp = HKDF(ck, psk)`, 
+   then calls `MixHash(temp)`.  This mixes the pre-shared key into the
    chaining key, and also mixes a one-way function of the pre-shared key into
    the `h` value to ensure that `h` is a function of all handshake inputs.
 
@@ -1313,8 +1313,8 @@ This section collects various security considerations:
    a different set of cryptographic operations then bad interactions could
    occur.
 
- * **Pre-shared symmetric keys**:  Pre-shared symmetric keys should be secret
-   values with 256 bits of entropy (or more).
+ * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
+   values with 256 bits of entropy.
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
