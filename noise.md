@@ -597,11 +597,14 @@ second message.
 8.1 Pattern validity 
 ----------------------
 
-Noise patterns must be **valid** in the following senses:
+Handshake patterns must be **valid** in the following senses:
 
  * Parties can only send a static public key if they were initialized with a
    static key pair, and can only perform DH between private keys and public
    keys they possess.
+
+ * Parties must not send their static public key, or a fresh ephemeral public
+   key, more than once per handshake.  
 
  * Parties must send a fresh ephemeral public key at the start of the first
    message they send (i.e. the first token of the first message pattern in each
@@ -617,7 +620,10 @@ Noise patterns must be **valid** in the following senses:
 
 Patterns failing the first check will obviously abort the program.  
 
-The second and third checks are necessary because Noise uses DH outputs
+The second check outlaws redundant transmission of values to simplify
+implementation and testing.
+
+The third and fourth checks are necessary because Noise uses DH outputs
 involving ephemeral keys to randomize the shared secret keys.  Noise also uses
 ephemeral public keys to randomize PSK-based encryption.  Patterns failing
 these checks could result in subtle but catastrophic security flaws.  
