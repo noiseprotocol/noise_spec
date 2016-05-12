@@ -1315,6 +1315,13 @@ This section collects various security considerations:
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
 
+ * **Hash collisions**:  If an attacker can find hash collisions on prologue
+   data or the handshake hash, they may be able to perform "transcript
+   collision" attacks that trick the parties into having different views of
+   handshake data.  It is important to use Noise with
+   collision-resistant hash functions, and replace the hash function at any
+   sign of weakness.
+
 14. Rationale
 =============
 
