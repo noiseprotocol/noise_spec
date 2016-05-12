@@ -271,7 +271,7 @@ Noise defines an additional function based on the above `HASH()` function:
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence of
    arbitrary length.  Returns two byte sequences of length `HASHLEN`, as
-   follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)   using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
+   follows.   (The `HMAC-HASH(key, data)` function applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) using the `HASH()` function; the `||` operator concatenates byte sequences; the `byte()` function constructs a single byte):   
 
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
@@ -279,7 +279,7 @@ Noise defines an additional function based on the above `HASH()` function:
      * Returns the pair `(output1, output2)`.
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
-   length.  This function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
+   length.  Also note that this function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
    with the `chaining_key` as HKDF `salt`, and zero-length `info`.
 
 5. Processing rules for handshake and transport messages
