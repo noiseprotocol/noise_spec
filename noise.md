@@ -426,9 +426,6 @@ A `HandshakeState` also has the following variables:
     pattern is a sequence of tokens from the set `("s", "e", "dhee", "dhes",
     "dhse", "dhss")`.
 
-  * **`message_index`**: An integer indicating the next pattern to fetch from
-    `message_patterns`.
-
 A `HandshakeState` responds to the following methods:
 
   * **`Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)`**:
@@ -456,14 +453,11 @@ A `HandshakeState` responds to the following methods:
 
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
-      * Sets `message_index = 0` (i.e. the first message pattern).
-
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.
   
-      * Fetches the next message pattern from `message_patterns[message_index]`,
-        increments `message_index`, and sequentially processes each token from
-        the message pattern:
+      * Fetches and deletes the next message pattern from `message_patterns`,
+        then sequentially processes each token from the message pattern:
 
           * For `"e"`:  Sets `e = GENERATE_KEYPAIR()`, overwriting any previous
             value for `e`.  Appends `e.public_key` to the buffer.  Calls
@@ -482,9 +476,8 @@ A `HandshakeState` responds to the following methods:
     containing a Noise handshake message, and a `payload_buffer` to write the
     message's plaintext payload into.
 
-      * Fetches the message pattern from `message_patterns[message_index]`,
-        increments `message_index`, and sequentially processes each token from
-        the message pattern:
+      * Fetches and deletes the next message pattern from `message_patterns`,
+        then sequentially processes each token from the message pattern:
 
           * For `"e"`: Sets `re` to the next `DHLEN` bytes from the message. Calls
             `MixHash(re.public_key)`. 
