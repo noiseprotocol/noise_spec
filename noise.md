@@ -169,9 +169,9 @@ the payloads are opaque to Noise.
 A Noise **transport message** is simply an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of an encrypted payload plus
 16 bytes of authentication data.  The details depend on the AEAD cipher
-function, e.g. AES256-GCM, or ChaCha20-Poly1305, but typically either a 16-byte
-authentication tag is appended to the ciphertext, or a 16-byte synthetic
-IV is prepended to the ciphertext.
+function, e.g. AES256-GCM, or ChaCha20-Poly1305, but typically the
+authentication data is either a 16-byte authentication tag appended to the
+ciphertext, or a 16-byte synthetic IV prepended to the ciphertext.
 
 A Noise **handshake message** is also less than or equal to 65535 bytes.  It
 begins with a sequence of one or more DH public keys, as determined by its
@@ -280,7 +280,7 @@ Noise defines an additional function based on the above `HASH()` function:
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
    length.  Also note that this function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
-   with the `chaining_key` as HKDF `salt`, and zero-length `info`.
+   with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 5. Processing rules for handshake and transport messages
 =========================================================
@@ -679,8 +679,6 @@ The following example handshake patterns represent interactive protocols.
       _N = no static key for responder
       _K = static key for responder known to initiator
       _X = static key for responder transmitted to initiator
-      _R = static key for responder transmitted to initiator, but only 
-           after the initiator has revealed their identity
 
 
     Noise_NN():                      Noise_KN(s):              
@@ -720,18 +718,8 @@ The following example handshake patterns represent interactive protocols.
       <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
       -> s, dhse
 
-    Noise_XR(s, rs):
-      -> e
-      <- e, dhee
-      -> s, dhse
-      <- s, dhse
-
 The `Noise_XX` pattern is the most generically useful, since it is efficient
-and supports mutual authentication and transmission of static public keys.  The
-`Noise_XR` pattern is similar to `Noise_XX` but is less efficient, and offers
-stronger identity-hiding for the responder rather than the initiator.  (This is
-similar to the distinction between SIGMA-I and SIGMA-R; see [Section
-8.5](#identity-hiding) for more analysis on identity-hiding.)
+and supports mutual authentication and transmission of static public keys.
 
 All interactive patterns allow some encryption of handshake payloads:
 
@@ -890,15 +878,8 @@ received.
      <- e, dhee, s, dhse            2                1                 
      -> s, dhse                     2                5                 
      <-                             2                5                 
-                                                                        
-    Noise_XR                                                            
-      -> e                          0                0                  
-      <- e, dhee                    0                1                 
-      -> s, dhse                    2                1                 
-      <- s, dhse                    2                5                 
-      ->                            2                5                 
-                                                                        
-                                                                        
+
+
     Noise_KN                                                            
       -> s                                                              
       ...                                                               
@@ -1006,7 +987,6 @@ The properties for the relevant public key are:
     Noise_XN       2              -
     Noise_XK       8              3
     Noise_XX       8              1
-    Noise_XR       2              8
     Noise_KN       7              -
     Noise_KK       5              5
     Noise_KX       7              6
