@@ -1374,7 +1374,13 @@ Big-endian length fields are recommended because:
 
 The `MixKey()` design uses `HKDF` because:
 
-  * HKDF is a conservative and widely used design.
+  * HKDF applies multiple layers of hashing between each `MixKey()` input.  This
+    "extra" hashing might mitigate the impact of hash function weakness.
+  * HKDF is well-known and is used in similar ways in other protocols (e.g.
+    Signal, IPsec).
+  * HKDF and HMAC are widely-used constructions.  If weakness is found in a
+    hash function, cryptanalysts will likely analyze that weakness in the
+    context of HMAC and HKDF, and we'll benefit from that analysis.
 
 `MixHash()` is used instead of sending all inputs through `MixKey()` because:
 
