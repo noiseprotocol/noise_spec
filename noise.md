@@ -1330,7 +1330,7 @@ The recommended hash function families are SHA2 and BLAKE2 because:
   * SHA2 is often used alongside AES.
   * BLAKE2 is fast and similar to ChaCha20.
 
-Hash output lengths of 256 bits are supported because:
+Hash output lengths of both 256 bits and 512 bits are supported because:
 
   * SHA-256 and BLAKE2s have sufficient collision-resistance at the 128-bit
     security level.
@@ -1346,7 +1346,7 @@ Cipher keys and pre-shared keys are 256 bits because:
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
   * Pre-shared key length is fixed to simplify testing and implementation, and
-    deter users from mistakenly using low-entropy passwords as pre-shared keys.
+    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
 
 The authentication data in a ciphertext is 128 bits because:
 
@@ -1383,6 +1383,20 @@ The `MixKey()` design uses `HKDF` because:
      session keys (see KEA+).
   * `MixHash()` produces a non-secret `h` value that might be useful to
      higher-level protocols, e.g. for channel-binding.
+
+The `h` value hashes handshake ciphertext instead of plaintext because:
+
+  * This ensures `h` is a non-secret value that can be used for channel-binding or
+    other purposes without leaking secret information.
+  * This provides stronger guarantees against ciphertext malleability. 
+
+Session termination is left to the application because:
+
+  * Providing a termination signal in Noise doesn't help the application much, 
+    since the application still has to use the signal correctly.
+  * For an application with its own termination signal, having a 
+    second termination signal in Noise is likely to be confusing rather than helpful.
+
 
 
 15. IPR
