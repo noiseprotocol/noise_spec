@@ -1328,7 +1328,7 @@ The recommended hash function families are SHA2 and BLAKE2 because:
 
   * SHA2 is widely available.
   * SHA2 is often used alongside AES.
-  * BLAKE2 is similar to ChaCha20.
+  * BLAKE2 is fast and similar to ChaCha20.
 
 Hash output lengths of 256 bits are supported because:
 
@@ -1340,11 +1340,13 @@ Hash output lengths of 256 bits are supported because:
   * SHA-256 and BLAKE2s are faster on 32-bit processors than their larger 
     brethren.
 
-Cipher keys are 256 bits because:
+Cipher keys and pre-shared keys are 256 bits because:
 
   * 256 bits is a conservative length for cipher keys when considering 
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
+  * Pre-shared key length is fixed to simplify testing and implementation, and
+    deter users from mistakenly using low-entropy passwords as pre-shared keys.
 
 The authentication data in a ciphertext is 128 bits because:
 
