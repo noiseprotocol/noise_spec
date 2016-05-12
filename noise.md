@@ -277,7 +277,7 @@ Noise defines additional functions based on the above `HASH()` function:
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
    length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
-   follows.  
+   follows:  
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
@@ -1031,12 +1031,8 @@ for convenience.  Other valid patterns could be constructed, for example:
    included in Noise.  These patterns also introduce new complexity around the
    lifetimes of semi-ephemeral key pairs, so are not discussed further here.
 
-9. Complex protocols
-=====================
-
-A handshake pattern specifies a fixed sequence of messages.  In some cases
-parties executing a handshake pattern may discover a need to send a different
-sequence of messages.  Noise has two ways to handle this.
+9. Advanced uses
+=================
 
 9.1. Dummy static public keys
 ------------------------------
@@ -1058,8 +1054,8 @@ It also doesn't reveal which option was chosen from message sizes.  It could be
 extended to allow a `Noise_XX` pattern to support any permutation of
 authentications (initiator only, responder only, both, or none).
 
-9.2. Handshake re-initialization and Noise Pipes
--------------------------------------------------
+9.2. Compound protocols and "Noise Pipes"
+------------------------------------------
 
 Consider a protocol where the initiator can attempt zero-RTT encryption based
 on the responder's static public key.  If the responder has changed his static
@@ -1073,9 +1069,12 @@ first handshake can be represented as pre-messages in the second handshake.  If
 any negotiation occurred in the first handshake, the first handshake's `h`
 variable should be provided as prologue to the second handshake.
 
-By way of example, this section defines the **Noise Pipe** protocol.  This
-protocol uses two patterns defined in the previous section: `Noise_XX` is used
-for an initial handshake if the parties haven't communicated before, after
+Using handshake re-initialization to dynamically switch from one Noise protocol
+to another results in a **compound protocol**.
+
+By way of example, this section defines the **Noise Pipe** compound protocol.
+This protocol uses two patterns defined in the previous section: `Noise_XX` is
+used for an initial handshake if the parties haven't communicated before, after
 which the initiator can cache the responder's static public key.  `Noise_IK` is
 used for a zero-RTT handshake.  
 
@@ -1126,6 +1125,17 @@ needed:
    public key as a pre-message.
 
  * In all other cases, `type` will be 0.
+
+
+9.3. Protocol indistinguishability
+-----------------------------------
+
+9.4. Channel binding
+---------------------
+
+9.5. Extra forward secrecy
+---------------------------
+
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
@@ -1225,11 +1235,11 @@ An application built on Noise must consider several issues:
 
  * **Choosing crypto functions**:  The `25519` DH functions are recommended for
    typical uses, though the `448` DH functions might offer some extra security
-   margin in case a cryptanalytic attack is developed against elliptic curve
+   in case a cryptanalytic attack is developed against elliptic curve
    cryptography.  The `448` DH functions should be used with a 512-bit hash
    like `SHA512` or `BLAKE2b`.  The `25519` DH functions may be used with a
    256-bit hash like `SHA256` or `BLAKE2s`, though a 512-bit hash might offer
-   some extra security margin in case a cryptanalytic attack is developed
+   some extra security in case a cryptanalytic attack is developed
    against the smaller hash functions.
 
  * **Extensibility**:  Applications are recommended to use an extensible data
