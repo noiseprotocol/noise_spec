@@ -1332,12 +1332,12 @@ The recommended hash function families are SHA2 and BLAKE2 because:
 
 Hash output lengths of 256 bits are supported because:
 
-  * SHA2-256 and BLAKE2s have sufficient collision-resistance at the 128-bit
+  * SHA-256 and BLAKE2s have sufficient collision-resistance at the 128-bit
     security level.
-  * SHA2-256 and BLAKE2s require less RAM, and less calculation when processing 
+  * SHA-256 and BLAKE2s require less RAM, and less calculation when processing 
     smaller inputs (due to smaller block size), than their larger brethren
-    (SHA2-512 and BLAKE2b).
-  * SHA2-256 and BLAKE2s are faster on 32-bit processors than their larger 
+    (SHA-512 and BLAKE2b).
+  * SHA-256 and BLAKE2s are faster on 32-bit processors than their larger 
     brethren.
 
 Cipher keys are 256 bits because:
@@ -1346,7 +1346,7 @@ Cipher keys are 256 bits because:
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
 
-The authentication data is 128 bits because:
+The authentication data in a ciphertext is 128 bits because:
 
   * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
     truncated.
