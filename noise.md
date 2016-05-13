@@ -1505,7 +1505,7 @@ Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
 
 Thanks to Tom Ritter and Karthikeyan Bhargavan for editorial feedback.
 
-Moxie Marlinspike, Hugo Krawzcyk, Samuel Neves, Christian Winnerlein, J.P.
+Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
 derivation design.
 
