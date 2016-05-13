@@ -400,18 +400,12 @@ A `SymmetricState` responds to the following methods:
     `k` is `empty`, the `DecryptWithAd()` call will set `plaintext` equal to `ciphertext`. 
 
   * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
-    transport messages.  Executes the following steps:
-
-      * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)` where `zerolen` is a
-        zero-length byte sequence.  
-
-      * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes
-        apiece to match `k`.  
-
+    transport messages.  Executes the following steps, where `zerolen` is a zero-length
+    byte sequence:
+      * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)`.
+      * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes.
       * Creates two new `CipherState` objects `c1` and `c2`.  
-
       * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
-
       * Returns the pair `(c1, c2)`.  
 
 
@@ -427,7 +421,7 @@ indicates the variable has not yet been initialized.
   * **`rs`**: The remote party's static public key
   * **`re`**: The remote party's ephemeral public key 
 
-A `HandshakeState` also has the following variables:
+A `HandshakeState` also has a variable to track the remaining portion of the handshake pattern:
 
   * **`message_patterns`**: A sequence of message patterns.  Each message
     pattern is a sequence of tokens from the set `("s", "e", "dhee", "dhes",
