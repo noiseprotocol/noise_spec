@@ -102,8 +102,8 @@ handshake pattern:
       -> e
       <- e, dhee    
 
-The initiator sends the first message, which is simply an ephemeral public key.
-The responder sends back its own ephemeral public key.  Then a DH is performed
+The **initiator** sends the first message, which is simply an ephemeral public key.
+The **responder** sends back its own ephemeral public key.  Then a DH is performed
 and the output is hashed into a shared secret key.
 
 Note that a cleartext payload is sent in the first message, after the cleartext
@@ -135,11 +135,9 @@ authenticate itself, using a handshake pattern with one additional message:
       <- e, dhee, s, dhse
       -> s, dhse
 
-The following sections flesh out the details, and add some complications (such
-as pre-shared symmetric keys, and "pre-messages" that represent knowledge of
-the other party's public keys before the handshake).  However, the core of
-Noise is this simple system of variables, tokens, and processing rules, which
-allow concise expression of a range of protocols.
+The following sections flesh out the details, and add some complications.
+However, the core of Noise is this simple system of variables, tokens, and
+processing rules, which allow concise expression of a range of protocols.
 
 3.  Message format
 ===================
@@ -1175,11 +1173,13 @@ can't be used by the receiving party with a different sesssion.
 9.5. Secondary symmetric keys 
 ------------------------------
 
-To hedge against future cryptanalysts decrypting old stored data, an application
-might send messages for a second key agreement protocol inside the Noise
-handshake payloads (e.g. a post-quantum or non-elliptic-curve key agreement).
+To hedge against advances in cryptanalysis allowing decryption of old stored
+data, an application might send messages for a second key agreement protocol
+inside the Noise handshake payloads.  For example, the second key agreement
+could use a post-quantum or non-elliptic curve algorithm that might remain
+unbroken even if future cryptanalysis can break the main DH functions.
 
-The second key agreement should derive a 32-byte secondary secret key `ssk`.  To
+The second key agreement should derive a 32-byte **secondary symmetric key** `ssk`.  To
 make the transport keys a function of both the Noise key agreement and `ssk` the
 `Split()` step is modified to call `HKDF(ck, ssk)` instead of `HKDF(ck,
 zerolen)`.
