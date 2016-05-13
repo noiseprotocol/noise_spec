@@ -213,11 +213,14 @@ A Noise protocol is instantiated with a concrete set of **DH functions**,
 functions is defined below.  Some concrete functions are defined in [Section
 10](#dh-functions-cipher-functions-and-hash-functions).
 
-Notation:
+The following notation will be used in algorithm pseudocode:
 
  * The `||` operator concatenates byte sequences.
  * The `byte()` function constructs a single byte.
- 
+
+4.1. DH functions
+------------------
+
 Noise depends on the following **DH functions** (and an associated constant):
 
  * **`GENERATE_KEYPAIR()`**: Generates a new DH key pair.  A DH key pair
@@ -239,6 +242,9 @@ Noise depends on the following **DH functions** (and an associated constant):
  * **`DHLEN`** = A constant specifying the size of public keys in bytes.  Must
    be at least 32 bytes.
 
+4.2. Cipher functions
+----------------------
+
 Noise depends on the following **cipher functions**:
 
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
@@ -253,6 +259,9 @@ Noise depends on the following **cipher functions**:
    key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
    data `ad`.  Returns the plaintext, unless authentication fails, in which
    case an error is signaled to the caller.
+
+4.3. Hash functions
+--------------------
 
 Noise depends on the following **hash function** (and associated constants):
 
@@ -285,8 +294,8 @@ Noise defines additional functions based on the above `HASH()` function:
    length.  Also note that the `HKDF()` function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
-5. Processing rules for handshake and transport messages
-=========================================================
+5. Processing rules
+====================
 
 To precisely define the processing rules we adopt an object-oriented
 terminology, and present three "objects" which encapsulate state variables and
