@@ -436,7 +436,7 @@ A `HandshakeState` also has the following variables:
 A `HandshakeState` responds to the following methods:
 
   * **`Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)`**:
-    Takes a valid handshake pattern (see [Section 8](#handshake-patterns)) and an
+    Takes a valid `handshake_pattern` (see [Section 8](#handshake-patterns)) and an
     `initiator` boolean specifying this party's role as either initiator or
     responder.  Takes a `prologue` byte sequence which may be zero-length, or
     which may contain context information that both parties want to confirm is
