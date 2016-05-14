@@ -1371,9 +1371,15 @@ This section collects various security considerations:
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key (e.g. if setting her public keys to invalid values causes
-   DH outputs of zero, as is the case for the `25519` and `448` DH functions).
+   DH outputs of all zeros, as is the case for the `25519` and `448` DH functions).
    This is why a higher-level protocol should use the handshake hash (`h`) for
    a unique channel binding, instead of `ck`.
+
+ * **Misusing public keys as secrets**: Public keys must not be treated as
+   pre-shared secrets.  For example, a `Noise_NK` initiator might send an
+   invalid ephemeral public key to cause a DH output of all zeros, so the
+   responder must not assume that the initiator knows the responder's static
+   public key.
 
  * **Implementation fingerprinting**:  If this protocol is used in settings
    with anonymous parties, care should be taken that implementations behave
@@ -1386,6 +1392,8 @@ This section collects various security considerations:
    handshake data.  It is important to use Noise with
    collision-resistant hash functions, and replace the hash function at any
    sign of weakness.
+
+
 
 14. Rationale
 =============
@@ -1495,9 +1503,11 @@ Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
 and also by HOMQV and SIGMA from Hugo Krawczyk.
 
 General feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld,
-Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
+Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, and Rhys
+Weatherley.
 
-Thanks to Tom Ritter and Karthikeyan Bhargavan, and David Wong for editorial feedback.
+Thanks to Tom Ritter, Karthikeyan Bhargavan, and David Wong for editorial
+feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
