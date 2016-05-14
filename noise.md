@@ -404,8 +404,8 @@ A `SymmetricState` responds to the following methods:
     byte sequence:
       * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)`.
       * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes.
-      * Creates two new `CipherState` objects `c1` and `c2`.  
-      * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.  
+      * Creates two new `CipherState` objects `c1` and `c2`.
+      * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.
       * Returns the pair `(c1, c2)`.  
 
 
@@ -1497,7 +1497,7 @@ and also by HOMQV and SIGMA from Hugo Krawczyk.
 General feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld,
 Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, and Tony Arcieri.
 
-Thanks to Tom Ritter and Karthikeyan Bhargavan for editorial feedback.
+Thanks to Tom Ritter and Karthikeyan Bhargavan, and David Wong for editorial feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
