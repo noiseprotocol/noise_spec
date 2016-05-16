@@ -1077,7 +1077,7 @@ which the initiator can cache the responder's static public key.
  * `Noise_IK` is used for a zero-RTT **abbreviated handshake**.  
 
  * If the responder fails to decrypt the first `Noise_IK` message (perhaps due
-   to changing her static key), the responder will initiate a new **fallback
+   to changing his static key), the responder will initiate a new **fallback
    handshake** using the `Noise_XXfallback` pattern which is identical to
    `Noise_XX` except re-using the ephemeral public key from the first
    `Noise_IK` message as a pre-message public key.
