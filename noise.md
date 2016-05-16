@@ -2,7 +2,7 @@
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '29draft'
-date:       '2016-05-12'
+date:       '2016-05-16'
 ---
 
 1. Introduction
@@ -38,8 +38,8 @@ sequential exchange of messages that comprise a handshake.
 A handshake pattern can be instantiated by **DH functions**, **cipher
 functions**, and a **hash function** to give a concrete **Noise protocol**.
 
-2.2. Handshake state machine
------------------------------
+2.2. Overview of handshake state machine
+-----------------------------------------
 
 The core of Noise is a set of variables maintained by each party during a
 handshake, and rules for sending and receiving handshake messages by
@@ -62,13 +62,12 @@ Each party maintains the following variables:
  
  * **`k, n`**: An encryption key `k` (which may be empty) and a counter-based
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
-   new `k` is also calculated from the same inputs.  The key `k` and nonce `n`
-   are used to encrypt static public keys and handshake payloads, incrementing
-   `n` with each encryption.  Encryption with `k` uses an "AEAD" cipher mode
-   and includes the current `h` value as "associated data" which is covered by
-   the AEAD authentication.  Encryption of static public keys and payloads
-   provides some confidentiality and key confirmation during the handshake
-   phase.
+   new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
+   static public keys and handshake payloads.  Encryption with `k` uses an
+   "AEAD" cipher mode and includes the current `h` value as "associated data"
+   which is covered by the AEAD authentication.  Encryption of static public
+   keys and payloads provides some confidentiality and key confirmation during
+   the handshake phase.
 
 A handshake message consists of some DH public keys followed by a **payload**.
 The payload may contain certificates or other data chosen by the application.
@@ -92,9 +91,8 @@ processes each token from a message pattern.  The possible tokens are:
    zero.
 
 After processing the final token in a handshake message, the sender then writes
-the payload (which may be zero-length) into the message buffer, encrypting it
-if `k` is non-empty, and hashes the output along with the old `h` to derive a
-new `h`.
+the payload into the message buffer, encrypting it if `k` is non-empty, and
+hashes the output along with the old `h` to derive a new `h`.
 
 As a simple example, an unauthenticated DH handshake is described by the
 handshake pattern:
@@ -174,8 +172,8 @@ message pattern.  Following the public keys will be a single payload which can
 be used to convey certificates or other handshake data, but can also contain a
 zero-length plaintext.
 
-Static public keys and payloads will be in cleartext if they occur in a
-handshake pattern prior to a DH operation, and will be AEAD ciphertexts if
+Static public keys and payloads will be in cleartext if they are sent in a
+handshake prior to a DH operation, and will be AEAD ciphertexts if
 they occur after a DH operation.  (If Noise is being used with pre-shared
 symmetric keys, this rule is different: *all* static public keys and payloads
 will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
@@ -231,16 +229,14 @@ Noise depends on the following **DH functions** (and an associated constant):
 
  * **`DH(key_pair, public_key)`**: Performs a DH calculation between the
    private key in `key_pair` and `public_key` and returns an output sequence of
-   bytes.  If the function detects an invalid `public_key`, the output may be
-   all zeros or any other value that doesn't leak information about the private
-   key.  For reasons discussed in [Section 9.1](#dummy-static-public-keys) it
-   is recommended for the function to have a **null public key value** that
-   always yields the same output, regardless of private key.  For example, the
-   DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) 
-   always map a DH public key of all zeros to an output of all zeros.
+   bytes of length `DHLEN`.  If the function detects an invalid `public_key`,
+   the output may be all zeros or any other value that doesn't leak information
+   about the private key.  For reasons discussed in [Section 9.1](#dummy-static-public-keys) it is recommended for the function to have a
+   **null public key value** that always yields the same output, regardless of
+   private key.  For example, the DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) always map a DH public key of all zeros to an output of all zeros.
 
- * **`DHLEN`** = A constant specifying the size of public keys in bytes.  Must
-   be at least 32 bytes.
+ * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
+   outputs.  For security reasons, `DHLEN` must be 32 or greater.
 
 4.2. Cipher functions
 ----------------------
@@ -314,7 +310,7 @@ object beneath it.  From lowest-layer to highest, the objects are:
    `SymmetricState`, which can be deleted once the handshake is finished.
 
  * A **`HandshakeState`** object contains a `SymmetricState` plus DH variables
-   `(s, e, rs, re)` and some variables representing the handshake pattern.
+   `(s, e, rs, re)` and a variable representing the handshake pattern.
    During the handshake phase each party has a single `HandshakeState`, which
    can be deleted once the handshake is finished.
 
@@ -386,8 +382,8 @@ A `SymmetricState` responds to the following methods:
       * Calls `InitializeKey(empty)`.
 
   * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
-    input_key_material)`.  If `HASHLEN` is 64, then `temp_k` is truncated to 32
-    bytes to match `k`.  Calls `InitializeKey(temp_k)`.
+    input_key_material)`.  If `HASHLEN` is 64, then truncates `temp_k` to 32
+    bytes.  Calls `InitializeKey(temp_k)`.
 
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
@@ -616,10 +612,10 @@ Handshake patterns must be **valid** in the following senses:
    any encrypted data unless they have also performed a DH between a "fresh"
    ephemeral private key and the remote public key.  A "fresh" ephemeral
    private key is one that was created by processing an `"e"` token when
-   sending a message (as opposed to an ephemeral private key passed in during
+   sending a message (as opposed to a "semi-ephemeral" private key passed in during
    initialization).
 
-Patterns failing the first check are obviously nonsensical.
+Patterns failing the first check are obviously nonsense.
 
 The second check outlaws redundant transmission of values to simplify
 implementation and testing.
@@ -837,9 +833,6 @@ payloads are only listed if they have different security properties than the
 previous handshake payload sent from the same party.  If two transport payloads
 are listed, the security properties for the second only apply if the first was
 received.
-
-\pagebreak
-
 
                              Authentication   Confidentiality
                              --------------   ---------------
@@ -1221,7 +1214,7 @@ zerolen)`.
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
  `AEAD_CHACHA20_POLY1305` from [RFC 7539](https://www.ietf.org/rfc/rfc7539.txt).  The 96-bit nonce is formed 
  by encoding 32 bits of zeros followed by little-endian encoding of `n`.
- (Earlier implementations of ChaCha20 used a 64-bit nonce, in which case it's
+ (Earlier implementations of ChaCha20 used a 64-bit nonce; with these implementations it's
  compatible to encode `n` directly into the ChaCha20 nonce without the 32-bit
  zero prefix).
 
