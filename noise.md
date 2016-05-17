@@ -1322,20 +1322,29 @@ An application built on Noise must consider several issues:
 
 This section collects various security considerations:
 
- * **Session termination**:  Preventing attackers from truncating a stream of transport
-   messages is an application responsibility.  See previous section.
-
- * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
-   in security as the volume of data encrypted under a single key increases.
-   Due to this, parties should not send more than 2^56 bytes (roughly 72
-   petabytes) encrypted by a single key.  If sending such large volumes of data
-   is a possibility, different cipher functions should be chosen.
+ * **Session termination**:  Preventing attackers from truncating a stream of
+   transport messages is an application responsibility.  See previous section.
 
  * **Rollback**:  If parties decide on a Noise protocol based on some previous
    negotiation that is not included as prologue, then a rollback attack might
    be possible.  This is a particular risk with handshake re-initialization,
    and requires careful attention if a Noise handshake is preceded by
    communication between the parties.
+
+ * **Misusing public keys as secrets**: It might be tempting to use a pattern
+   with a pre-message public key and assume that a successful handshake implies
+   the other party's knowledge of the public key.  Unfortunately, this is not
+   true.  For example, a `Noise_NK` initiator might send an invalid ephemeral
+   public key to cause a known DH output of all zeros, despite not knowing the
+   responder's static public key.  If the parties want to authenticate with a
+   shared secret, it must be passed in as a PSK.
+
+ * **Channel binding**:  Depending on the DH functions, it might be possible
+   for a malicious party to engage in multiple sessions that derive the same
+   shared secret key (e.g. if setting her public keys to invalid values causes
+   DH outputs of all zeros, as is the case for the `25519` and `448` DH functions).
+   This is why a higher-level protocol should use the handshake hash (`h`) for
+   a unique channel binding, instead of `ck`.
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
@@ -1361,23 +1370,11 @@ This section collects various security considerations:
  * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
    values with 256 bits of entropy.
 
- * **Channel binding**:  Depending on the DH functions, it might be possible
-   for a malicious party to engage in multiple sessions that derive the same
-   shared secret key (e.g. if setting her public keys to invalid values causes
-   DH outputs of all zeros, as is the case for the `25519` and `448` DH functions).
-   This is why a higher-level protocol should use the handshake hash (`h`) for
-   a unique channel binding, instead of `ck`.
-
- * **Misusing public keys as secrets**: Public keys must not be treated as
-   pre-shared secrets.  For example, a `Noise_NK` initiator might send an
-   invalid ephemeral public key to cause a DH output of all zeros, so the
-   responder must not assume that the initiator knows the responder's static
-   public key.
-
- * **Implementation fingerprinting**:  If this protocol is used in settings
-   with anonymous parties, care should be taken that implementations behave
-   identically in all cases.  This may require mandating exact behavior for
-   handling of invalid DH public keys.
+ * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
+   in security as the volume of data encrypted under a single key increases.
+   Due to this, parties should not send more than 2^56 bytes (roughly 72
+   petabytes) encrypted by a single key.  If sending such large volumes of data
+   is a possibility, different cipher functions should be chosen.
 
  * **Hash collisions**:  If an attacker can find hash collisions on prologue
    data or the handshake hash, they may be able to perform "transcript
@@ -1386,7 +1383,10 @@ This section collects various security considerations:
    collision-resistant hash functions, and replace the hash function at any
    sign of weakness.
 
-
+ * **Implementation fingerprinting**:  If this protocol is used in settings
+   with anonymous parties, care should be taken that implementations behave
+   identically in all cases.  This may require mandating exact behavior for
+   handling of invalid DH public keys.
 
 14. Rationale
 =============
