@@ -1495,9 +1495,9 @@ The Noise specification (this document) is hereby placed in the public domain.
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
 and also by HOMQV and SIGMA from Hugo Krawczyk.
 
-General feedback on the spec came from: Moxie Marlinspike, Jason Donenfeld,
-Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, and Rhys
-Weatherley.
+General feedback on the spec and design came from: Moxie Marlinspike, Jason
+Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
+Rhys Weatherley, and Alex Wied.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, and David Wong for editorial
 feedback.
