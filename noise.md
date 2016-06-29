@@ -1395,7 +1395,7 @@ This section collects various design rationale:
 
 Nonces are 64 bits in length because:
 
-  * Some ciphers (e.g. Salsa20) only have 64 bit nonces.
+  * Some ciphers only have 64 bit nonces (e.g. Salsa20).
   * 64 bit nonces were used in the initial specification and implementations 
     of ChaCha20, so Noise nonces can be used with these implementations.
   * 64 bits makes it easy for the entire nonce to be treated as an integer 
