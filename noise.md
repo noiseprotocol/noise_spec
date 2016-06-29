@@ -591,7 +591,7 @@ second message.
       -> e, dhes 
       <- e, dhee
 
-8.1 Pattern validity 
+8.1. Pattern validity 
 ----------------------
 
 Handshake patterns must be **valid** in the following senses:
