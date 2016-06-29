@@ -63,8 +63,9 @@ Each party maintains the following variables:
  * **`k, n`**: An encryption key `k` (which may be empty) and a counter-based
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
-   static public keys and handshake payloads.  Encryption with `k` uses an
-   "AEAD" cipher mode and includes the current `h` value as "associated data"
+   static public keys and handshake payloads.  Encryption with `k` uses some
+   "AEAD" cipher mode (in the sense of [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) 
+   and includes the current `h` value as "associated data"
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
    the handshake phase.
@@ -246,7 +247,7 @@ Noise depends on the following **cipher functions**:
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
    key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
    unique for the key `k`.  Returns the ciphertext.  Encryption must be done
-   with an "AEAD" encryption mode with the associated data `ad` and returns a
+   with an "AEAD" encryption mode with the associated data `ad` (using the terminology from [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) and returns a
    ciphertext that is the same size as the plaintext plus 16 bytes for 
    authentication data.  The entire ciphertext must be indistinguishable from
    random if the key is secret. 
@@ -1451,7 +1452,7 @@ Big-endian length fields are recommended because:
     little-endian, these will likely be handled by specialized libraries, so 
     there's not a strong argument for aligning with them.
 
-Cipher nonces are encoded as big-endian for AES-GCM, and little-endian for ChaCha20, because:
+Cipher nonces are big-endian for AES-GCM, and little-endian for ChaCha20, because:
 
   * ChaCha20 uses a little-endian block counter internally.
   * AES-GCM uses a big-endian block counter internally.
