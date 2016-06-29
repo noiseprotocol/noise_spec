@@ -1419,7 +1419,7 @@ Hash output lengths of both 256 bits and 512 bits are supported because:
   * SHA-256 and BLAKE2s are faster on 32-bit processors than their larger 
     brethren.
 
-Cipher keys and pre-shared keys are 256 bits because:
+Cipher keys and pre-shared symmetric keys are 256 bits because:
 
   * 256 bits is a conservative length for cipher keys when considering 
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
