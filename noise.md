@@ -1488,6 +1488,12 @@ Session termination is left to the application because:
   * For an application with its own termination signal, having a 
     second termination signal in Noise is likely to be confusing rather than helpful.
 
+Explicit random nonces (like TLS "Random" fields) are not used because:
+
+  * The use of one-time ephemeral public keys makes explicit nonces unnecessary.
+  * Explicit nonces increase message size.
+  * Explicit nonces make it easier to add "backdoors" into crypto implementations.
+  
 
 
 15. IPR
