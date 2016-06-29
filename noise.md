@@ -1344,10 +1344,10 @@ This section collects various security considerations:
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
-   shared secret key since setting public keys to invalid values might cause
+   shared secret key by setting public keys to invalid values that cause
    predictable DH output (as in previous bullet).  This is why a higher-level
    protocol should use the handshake hash (`h`) for a unique channel binding,
-   instead of `ck`.
+   instead of `ck`, as explained in [Section 9.4](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
