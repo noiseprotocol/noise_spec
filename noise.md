@@ -1451,6 +1451,12 @@ Big-endian length fields are recommended because:
     little-endian, these will likely be handled by specialized libraries, so 
     there's not a strong argument for aligning with them.
 
+Cipher nonces are encoded as big-endian for AES-GCM, and little-endian for ChaCha20, because:
+
+  * ChaCha20 uses a little-endian block counter internally.
+  * AES-GCM uses a big-endian block counter internally.
+  * It makes sense to use consistent endianness in the cipher code.
+
 The `MixKey()` design uses `HKDF` because:
 
   * HKDF applies multiple layers of hashing between each `MixKey()` input.  This
