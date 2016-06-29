@@ -1335,17 +1335,19 @@ This section collects various security considerations:
  * **Misusing public keys as secrets**: It might be tempting to use a pattern
    with a pre-message public key and assume that a successful handshake implies
    the other party's knowledge of the public key.  Unfortunately, this is not
-   true.  For example, a `Noise_NK` initiator might send an invalid ephemeral
-   public key to cause a known DH output of all zeros, despite not knowing the
-   responder's static public key.  If the parties want to authenticate with a
-   shared secret, it must be passed in as a PSK.
+   the case, since setting public keys to invalid values might cause
+   predictable DH output.  For example, a `Noise_NK_25519` initiator might
+   send an invalid ephemeral public key to cause a known DH output of all
+   zeros, despite not knowing the responder's static public key.  If the
+   parties want to authenticate with a shared secret, it must be passed in as a
+   PSK.
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
-   shared secret key (e.g. if setting her public keys to invalid values causes
-   DH outputs of all zeros, as is the case for the `25519` and `448` DH functions).
-   This is why a higher-level protocol should use the handshake hash (`h`) for
-   a unique channel binding, instead of `ck`.
+   shared secret key since setting public keys to invalid values might cause
+   predictable DH output (as in previous bullet).  This is why a higher-level
+   protocol should use the handshake hash (`h`) for a unique channel binding,
+   instead of `ck`.
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
