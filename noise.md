@@ -1103,7 +1103,7 @@ Below are the three patterns used for Noise Pipes:
 
 Note that in the fallback case, the initiator and responder roles are switched:
 If Alice inititates a `Noise_IK` handshake with Bob, Bob might initiate a
-`Noise_XX_fallback` handshake.
+`Noise_XXfallback` handshake.
 
 There needs to be some way for the recipient of a message to distinguish
 whether it's the next message in the current handshake pattern, or requires
@@ -1493,7 +1493,7 @@ The Noise specification (this document) is hereby placed in the public domain.
 =====================
 
 Noise is inspired by the NaCl and CurveCP protocols from Dan Bernstein et al.,
-and also by HOMQV and SIGMA from Hugo Krawczyk.
+by HOMQV and SIGMA from Hugo Krawczyk, and by Ntor from Ian Goldberg et al.
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
