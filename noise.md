@@ -1032,8 +1032,8 @@ for convenience.  Other valid patterns could be constructed, for example:
 9.1. Dummy static public keys
 ------------------------------
 
-Consider a protocol where an initiator will authenticate herself if requested by
-the responder.  This could be viewed as the initiator choosing between patterns
+Consider a protocol where an initiator will authenticate herself if the responder
+requests it.  This could be viewed as the initiator choosing between patterns
 like `Noise_NX` and `Noise_XX` based on some value inside the responder's first
 handshake payload.  
 
@@ -1127,6 +1127,9 @@ needed.  It could have the following meanings:
    performing a `Noise_XXfallback` handshake, using the initiator's ephemeral
    public key as a pre-message *(fallback handshake)*.
 
+Note that the `type` byte doesn't need to be explicitly authenticated (as
+prologue, or additional AEAD data), since it's implicitly authenticated if the
+message is processed succesfully.
 
 9.3. Protocol indistinguishability
 -----------------------------------
@@ -1137,14 +1140,14 @@ handshake.
 
 This is fairly easy:
 
- * The first three messages have their payloads padded with random bytes to
+ * The first three messages can have their payloads padded with random bytes to
    a constant size, regardless of which handshake is executed.
 
- * Instead of a `type` byte, the responder uses trial decryption to
-   differentiate between an initial message using `Noise_XX` or `Noise_IK`
+ * Instead of a `type` byte, the responder can use trial decryption to
+   differentiate between an initial message using `Noise_XX` or `Noise_IK`.
 
  * Instead of a `type` byte, an initiator who sent a `Noise_IK` initial
-   message uses trial decryption to differentiate between a response using
+   message can use trial decryption to differentiate between a response using
    `Noise_IK` or `Noise_XXfallback`. 
 
 This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect
@@ -1152,6 +1155,28 @@ the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
 [Elligator](https://elligator.cr.yp.to) could be used.
 
+9.4. Noise Pipe variations
+---------------------------
+
+The Noise Pipe framework can be generalized in a few ways:
+
+ * **Different patterns**:  Instead of using `Noise_XX` for a full handshake
+   and `Noise_IK` for an abbreviated handshake, you can use any pattern that
+   ends with `X` for the full handshake, and any pattern that ends with `K` for
+   the abbreviated handshake.  The resulting compound protocols can be
+   indicated as "XX/IK" (default Noise Pipes), "NX/NK" for Pipes without client
+   authentication, "XX/XK" for deferred client authentication, "IX/IK" for no
+   client identity hiding, etc.
+
+ * **Semi-static public keys**:  Instead of using the responder's static public
+   key for the abbreviated handshake, the responder could transmit a
+   "semi-static" public key during the initial session.  The initiator will
+   cache both the actual static and semi-static public keys.  For the
+   abbreviated handshake, the actual static public key will be used as
+   prologue, and the semi-static public key will be treated as the static `"s"`
+   value.  This allows the responder to replace its semi-static key pair more
+   frequently than its actual static key pair, for improved forward security and 
+   "key-compromise impersonation" resistance.
 
 9.4. Channel binding
 ---------------------
