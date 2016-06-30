@@ -1519,8 +1519,9 @@ Session termination is left to the application because:
 Explicit random nonces (like TLS "Random" fields) are not used because:
 
   * One-time ephemeral public keys make explicit nonces unnecessary.
+  * Explicit nonces allow reuse of ephemeral public keys.  However reusing ephemerals (with periodic replacement) is more complicated, requires a secure time source, is less secure in case of ephemeral compromise, and only provides a small optimization, since key generation can be done for a fraction of the cost of a DH operation.
   * Explicit nonces increase message size.
-  * Explicit nonces make it easier to "backdoor" crypto implementations.
+  * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
   
 
 
