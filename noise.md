@@ -1178,7 +1178,7 @@ The Noise Pipe framework can be generalized in a few ways:
    frequently than its actual static key pair, for improved forward security and 
    "key-compromise impersonation" resistance.
 
-9.4. Channel binding
+9.5. Channel binding
 ---------------------
 Parties may wish to execute a Noise protocol, then perform authentication at the 
 application layer using signatures, passwords, or something else.
@@ -1192,7 +1192,7 @@ to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
 
 
-9.5. Secondary symmetric keys 
+9.6. Secondary symmetric keys 
 ------------------------------
 
 To hedge against advances in cryptanalysis allowing decryption of old stored
