@@ -64,7 +64,7 @@ Each party maintains the following variables:
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
-   "AEAD" cipher mode (in the sense of [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) 
+   **AEAD** cipher mode (in the sense of [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) 
    and includes the current `h` value as "associated data"
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
@@ -429,10 +429,18 @@ A `HandshakeState` responds to the following methods:
   * **`Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)`**:
     Takes a valid `handshake_pattern` (see [Section 8](#handshake-patterns)) and an
     `initiator` boolean specifying this party's role as either initiator or
-    responder.  Takes a `prologue` byte sequence which may be zero-length, or
+    responder.  
+    
+    Takes a `prologue` byte sequence which may be zero-length, or
     which may contain context information that both parties want to confirm is
-    identical (see [Section 6](#prologue)).  Takes a set of DH key pairs and
-    public keys for initializing local variables, any of which may be empty.
+    identical (see [Section 6](#prologue)).  
+    
+    Takes a set of DH key pairs `(s, e)` and
+    public keys `(rs, re)` for initializing local variables, any of which may be empty.
+    Public keys are only passed in if the `handshake_pattern` uses pre-messages 
+    (see [Section 8](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
+    left empty, since they are created and exchanged during the handshake; but there are
+    exceptions (see [Section 9.2](compound-protocols-and-noise-pipes)).
 
       * Derives a `protocol_name` byte sequence by combining the names for the
         handshake pattern and crypto functions, as specified in [Section
@@ -533,6 +541,12 @@ using pre-shared symmetric keys, the following changes are made:
    ephemeral public key's value as a random nonce to prevent re-using the same
    `k` and `n` for different messages.
 
+ * `Initialize()` is modified when processing an `"e"` pre-message token in a "dependent"
+   handshake pattern (see [Section 8.1](#pattern-validity)) to call `MixKey()` on the
+   ephemeral public key immediately after calling `MixHash()` on it.  This
+   accomplishes the same randomization as the previous bullet, but needs to be
+   applied to pre-messages for dependent patterns.
+
 8. Handshake patterns 
 ======================
 
@@ -601,20 +615,23 @@ Handshake patterns must be **valid** in the following senses:
    static key pair, and can only perform DH between private keys and public
    keys they possess.
 
- 2. Parties must not send their static public key, or a fresh ephemeral public
-   key, more than once per handshake.  
+ 2. Parties must not send their static public key, or an ephemeral public key,
+    more than once per handshake (i.e. ignoring the pre-messages, there must be
+    no more than one occurrence of "e", and one occurrence of "s", in the
+    messages sent by any party).
 
- 3. Parties must send a fresh ephemeral public key at the start of the first
+ 3. Parties must send an ephemeral public key at the start of the first
    message they send (i.e. the first token of the first message pattern in each
-   direction must be `"e"`).
+   direction must be `"e"`).  To support "compound protocols" 
+   (see [Section 9.2](#compound-protocols-and-noise-pipes)) an exception is 
+   allowed if the party's ephemeral public key was used as a "pre-message".  A 
+   handshake pattern that relies on this exception is a **dependent pattern**, and can only be used
+   according to the rules in [Section 9.2](#compound-protocols-and-noise-pipes).
 
  4. After performing a DH between a remote public key and any local private key
-   that is not a "fresh" ephemeral private key, the local party must not send
-   any encrypted data unless they have also performed a DH between a "fresh"
-   ephemeral private key and the remote public key.  A "fresh" ephemeral
-   private key is one that was created by processing an `"e"` token when
-   sending a message (as opposed to a "semi-ephemeral" private key passed in during
-   initialization).
+    that is not an ephemeral private key, the local party must not send any
+    encrypted data unless they have also performed a DH between an ephemeral
+    private key and the remote public key.  
 
 Patterns failing the first check are obviously nonsense.
 
@@ -1017,15 +1034,6 @@ for convenience.  Other valid patterns could be constructed, for example:
    `"dhss"` is not performed.  This DH operation could be added to provide more
    resilience in case the ephemerals are generated by a bad RNG.
 
- * Pre-knowledge of ephemeral public keys is not demonstrated in any of the
-   above patterns.  This pre-knowledge could be used to implement a "pre-key"
-   or "semi-ephemeral key" handshake, where the forward-secrecy and
-   KCI-resistance of zero-RTT data is improved since the pre-distributed
-   "semi-ephemeral" key can be changed more frequently than the responder's
-   static key.  These patterns might benefit from signatures, which are not yet
-   included in Noise.  These patterns also introduce new complexity around the
-   lifetimes of semi-ephemeral key pairs, so are not discussed further here.
-
 9. Advanced uses
 =================
 
@@ -1064,9 +1072,16 @@ switch from one "simple" Noise protocol to another results in a **compound
 protocol**.
 
 Public keys that were exchanged in the first handshake can be represented as
-pre-messages in the second handshake.  If any negotiation occurred in the first
-handshake, the first handshake's `h` variable should be provided as prologue to
-the second handshake.
+pre-messages in the second handshake.  If an ephemeral public key was sent in the 
+first handshake and used as a pre-message in the second handshake, that party can avoid
+sending a new ephemeral by using a "dependent" pattern (see [Section 8.1](pattern-validity)).
+
+Re-initializing with a dependent pattern is only allowed if the new handshake and
+old handshake have different protocol names (see [Section 11](#protocol-names)) 
+and the rules for handling PSKs are followed (see [Section 7](#pre-shared-symmetric-keys)).
+
+If any negotiation occurred in the first handshake, the first handshake's `h`
+variable should be provided as prologue to the second handshake.
 
 By way of example, this section defines the **Noise Pipe** compound protocol.
 This protocol uses three handshake patterns - two defined in the previous
@@ -1081,7 +1096,7 @@ which the initiator can cache the responder's static public key.
    to changing his static key), the responder will initiate a new **fallback
    handshake** using the `Noise_XXfallback` pattern which is identical to
    `Noise_XX` except re-using the ephemeral public key from the first
-   `Noise_IK` message as a pre-message public key.
+   `Noise_IK` message as a pre-message public key (thus is a "dependent" pattern).
 
 Below are the three patterns used for Noise Pipes:
 
@@ -1539,7 +1554,7 @@ Noise is inspired by:
   * The [SIGMA](http://webee.technion.ac.il/~hugo/sigma.html) and [HOMQV](https://eprint.iacr.org/2010/638) protocols from Hugo Krawczyk.
   * The [Ntor](http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf) protocol from Ian Goldberg et al.
   * The [analysis of OTR](http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf) by Mario Di Raimondo et al.
-  * The analysis by [Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
+  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
