@@ -555,9 +555,9 @@ A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee"
 A **handshake pattern** consists of:
 
   * A pattern for the initiator's **pre-message** that is either:
-      * `"s"`
       * `"e"`
-      * `"s, e"`
+      * `"s"`
+      * `"e, s"`
       * empty
 
   * A pattern for the responder's pre-message that takes the same
