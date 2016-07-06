@@ -2,7 +2,7 @@
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '30draft'
-date:       '2016-07-01'
+date:       '2016-07-06'
 ---
 
 1. Introduction
@@ -1055,8 +1055,7 @@ For example, if you don't care about identity hiding, you could apply a "noidh" 
 
 
 Other tranformations might add or remove `"dhss"` operations, or defer DH operations
-until later.  The "fallback" transformation will be discussed in 
-[Section 9.3](#variant-patterns-for-noise-pipes).
+until later.
 
 9. Advanced uses
 =================
@@ -1170,73 +1169,7 @@ Note that the `type` byte doesn't need to be explicitly authenticated (as
 prologue, or additional AEAD data), since it's implicitly authenticated if the
 message is processed succesfully.
 
-9.3. Variant patterns for Noise Pipes
---------------------------------------
-Instead of using `Noise_XX` for a full handshake and `Noise_IK` for an
-abbreviated handshake ("XX/IK"), you could use the following
-combinations:
-
- * **NX/NK**:  If initiator authentication isn't needed you could use `Noise_NX`
-   for a full handshake, and `Noise_NK` for an abbreviated handshake.
-   `Noise_NXfallback` (see below) is used for the fallback handshake.
-
- * **XX/XK**:  If you desire stronger identity hiding for the initiator than
-   `Noise_IK`, you can replace it with `Noise_XK`.
-
- * **IX/IKnoidh**:  If identity hiding isn't needed, and you prefer the
-   initiator to always immediately identify itself (`Noise_IX` instead of
-   `Noise_XX`), then you can use `Noise_IKnoidh` for an abbreviated handshake,
-   and `Noise_IXfallback` for the fallback handshake.  `Noise_IKnoidh` is used
-   instead of `Noise_IK` because `Noise_IK` doesn't sent the initiator's static
-   public key in the clear, so can't fallback to `Noise_IX`.
-
-The "fallback" handshakes are all derived using the "fallback" transformation
-which simply converts the first message in a handshake pattern to a
-pre-message.  Then the second message becomes the first, and so on.  Note that
-these fallback patterns are "dependent" patterns since both parties don't
-transmit a fresh ephemeral, so they can only be used according to
-the rules in [Section 9.2](#compound-protocols-and-noise-pipes).
-
-The following table shows the original pattern on the left, and the 
-transformed fallback pattern on the right:
-
-    Noise_NX(s, rs):                 Noise_NXfallback(s, re):        
-      -> e                             <- e                       
-      <- e, dhee, s, dhse              ...                        
-                                       -> e, dhee, s, dhse        
-                                                                  
-    Noise_XX(s, rs):                 Noise_XXfallback(s, rs, re):     
-      -> e                             <- e                       
-      <- e, dhee, s, dhse              ...                        
-      -> s, dhse                       -> e, dhee, s, dhse        
-                                       <- s, dhse                 
-                                                                  
-    Noise_IX(s, rs):                 Noise_IXfallback(s, rs, re): 
-      -> e, s                          <- e, s                    
-      <- e, dhee, dhes, s, dhse        ...                        
-                                       -> e, dhee, dhes, s, dhse  
-
-9.4. Semi-static keys for Noise Pipes
---------------------------------------
-
-Instead of using the responder's static public key for the abbreviated
-handshake, the responder could transmit a "semi-static" public key during the
-initial session, inside one of the message payloads.  
-
-The initiator would cache both the actual static and semi-static public keys.
-For the abbreviated handshake, the actual static public key will be used as
-prologue, and the semi-static public key will be treated as the static `"s"`
-value.  
-
-This allows the responder to replace its semi-static key pair more frequently
-than its actual static key pair, for improved forward security and
-"key-compromise impersonation" resistance.
-
-To avoid frequent fallback handshakes, the responder may transmit a new
-semi-static public key within an abbreviated handshake, so that a fallback
-handshake is only incurred when the responder's actual static public key changes.
-
-9.5. Protocol indistinguishability
+9.3. Protocol indistinguishability
 -----------------------------------
 Parties may wish to hide what protocol they are executing from an eavesdropper.
 For example, suppose parties are using Noise Pipes, and want to hide whether
@@ -1260,7 +1193,7 @@ the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
 [Elligator](https://elligator.cr.yp.to) could be used.
 
-9.6. Channel binding
+9.4. Channel binding
 ---------------------
 Parties may wish to execute a Noise protocol, then perform authentication at the 
 application layer using signatures, passwords, or something else.
@@ -1274,7 +1207,7 @@ to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
 
 
-9.7. Secondary symmetric keys 
+9.5. Secondary symmetric keys 
 ------------------------------
 
 To hedge against advances in cryptanalysis allowing decryption of old stored
@@ -1454,7 +1387,7 @@ This section collects various security considerations:
    shared secret key by setting public keys to invalid values that cause
    predictable DH output (as in previous bullet).  This is why a higher-level
    protocol should use the handshake hash (`h`) for a unique channel binding,
-   instead of `ck`, as explained in [Section 9.6](#channel-binding).
+   instead of `ck`, as explained in [Section 9.4](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
