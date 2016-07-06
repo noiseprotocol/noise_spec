@@ -1621,7 +1621,7 @@ Noise is inspired by:
   * The [SIGMA](http://webee.technion.ac.il/~hugo/sigma.html) and [HOMQV](https://eprint.iacr.org/2010/638) protocols from Hugo Krawczyk.
   * The [Ntor](http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf) protocol from Ian Goldberg et al.
   * The [analysis of OTR](http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf) by Mario Di Raimondo et al.
-  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
+  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of [Protocol 4](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
