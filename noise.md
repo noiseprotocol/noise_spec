@@ -344,9 +344,10 @@ variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-If incrementing `n` causes an arithmetic overflow (i.e. would result in `n`
-greater than 2^64 - 1) then any further `EncryptWithAd()` or `DecryptWithAd()`
-calls will signal an error to the caller.
+The maximum `n` value (2^64-1) is reserved for future use and must not be used.
+If incrementing `n` results in 2^64-1 (the maximum value), then any further
+`EncryptWithAd()` or `DecryptWithAd()` calls will signal an error to the
+caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
@@ -1392,8 +1393,9 @@ This section collects various security considerations:
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
    follow the rules for nonces.  Nonces are not allowed to wrap back to zero
-   due to integer overflow.  This means parties are not allowed to send more
-   than 2^64 transport messages.
+   due to integer overflow, and the maximum nonce value is reserved for future
+   use.  This means parties are not allowed to send more than 2^64-1 transport
+   messages.
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
    ephemeral public key and perform a DH with it prior to sending any encrypted
