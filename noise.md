@@ -2,7 +2,7 @@
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '30draft'
-date:       '2016-07-06'
+date:       '2016-07-14'
 ---
 
 1. Introduction
@@ -181,6 +181,8 @@ will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport
 ciphertexts will expand each encrypted field (whether static public key or
 payload) by 16 bytes.
 
+\pagebreak
+
 For an example, consider the handshake pattern:
 
       -> e
@@ -281,7 +283,7 @@ Noise defines additional functions based on the above `HASH()` function:
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
    length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
-   follows:  
+   follows:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
@@ -722,23 +724,25 @@ The following example handshake patterns represent interactive protocols.
                                        -> e                       
                                        <- e, dhee, dhes, s, dhse  
 
-
     Noise_XN(s):                     Noise_IN(s):
       -> e                             -> e, s
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
-                                         
-    Noise_XK(s, rs):                 Noise_IK(s, rs):            
-      <- s                             <- s                         
-      ...                              ...                          
-      -> e, dhes                       -> e, dhes, s, dhss          
-      <- e, dhee                       <- e, dhee, dhes             
-      -> s, dhse                                                     
-                                        
-    Noise_XX(s, rs):                 Noise_IX(s, rs):
-      -> e                             -> e, s
-      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
-      -> s, dhse
+
+\newpage
+```
+Noise_XK(s, rs):                 Noise_IK(s, rs):            
+  <- s                             <- s                         
+  ...                              ...                          
+  -> e, dhes                       -> e, dhes, s, dhss          
+  <- e, dhee                       <- e, dhee, dhes             
+  -> s, dhse                                                     
+                                    
+Noise_XX(s, rs):                 Noise_IX(s, rs):
+  -> e                             -> e, s
+  <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
+  -> s, dhse
+```
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
@@ -1024,6 +1028,7 @@ However, to construct new patterns we can apply some **transformation** to an ex
 
 For example, if you don't care about identity hiding, you could apply a "noidh" transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible.  This transforms the patterns from the left column to the right column:
 
+
     Noise_X(s, rs):                  Noise_Xnoidh(s, rs):         
       <- s                             <- s                      
       ...                              ...                       
@@ -1053,6 +1058,7 @@ For example, if you don't care about identity hiding, you could apply a "noidh" 
     Noise_IX(s, rs):                 Noise_IXnoidh(s, rs):       
       -> e, s                          -> e, s                   
       <- e, dhee, dhes, s, dhse        <- e, s, dhee, dhes, dhse 
+
 
 
 Other tranformations might add or remove `"dhss"` operations, or defer DH operations
@@ -1556,7 +1562,7 @@ Noise is inspired by:
   * The [SIGMA](http://webee.technion.ac.il/~hugo/sigma.html) and [HOMQV](https://eprint.iacr.org/2010/638) protocols from Hugo Krawczyk.
   * The [Ntor](http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf) protocol from Ian Goldberg et al.
   * The [analysis of OTR](http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf) by Mario Di Raimondo et al.
-  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of [Protocol 4](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
+  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
