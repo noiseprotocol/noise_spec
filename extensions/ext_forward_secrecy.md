@@ -125,7 +125,7 @@ Token handling for `ReadMessage()` is modified as follows:
 
 It is possible to imagine that `25519+448` might create a virtual DH
 function that is transparent to the rest of the Noise implementation.
-Public keys would be concatencations of the underlying values and
+Public keys would be concatenations of the underlying values and
 `DH(x, ry)` operations would transparently concatenate the outputs
 into a single input to `MixKey()`.
 
