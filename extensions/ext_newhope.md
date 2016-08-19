@@ -41,7 +41,7 @@ Because of this unusual algorithm shape, modifications are necessary
 to the API for DH functions in Noise.  These modifications are described
 below.
 
-The reference implementation of New Hope has two variants, which it
+The reference implementation of New Hope [2] has two variants, which it
 refers to as "ref" and "torref".  They differ in the generation of
 the public "a" value of the algorithm.  The "ref" variant does not
 use a constant-time algorithm to generate "a" which may create issues
@@ -89,7 +89,7 @@ follows:
 
  * **`DHLEN`** = 32, corresponding to the length of the shared outputs.
 
- * **`k.PUBLIC_DHLEN` is either 1824 or 2048 depending upon whether `k`
+ * **`k.PUBLIC_DHLEN`** is either 1824 or 2048 depending upon whether `k`
    is playing the Alice or Bob role in the handshake.
 
 3. Modifications to HandshakeState
@@ -106,14 +106,14 @@ initiator's ephemeral key as "Alice" and the responder's ephemeral key
 as "Bob".  Fallback patterns reverse this labelling.  Labelling a key
 will adjust its `PUBLIC_DHLEN` value as appropriate.
 
-All handshake tokens have the same behaviour as before except for `e`.
-In `WriteMesssage()` the `e` token is modified as follows:
+All handshake tokens have the same behaviour as before except for `"e"`.
+In `WriteMesssage()` the `"e"` token is modified as follows:
 
   * For `"e"`:  Sets `e = GENERATE_DEPENDENT_KEYPAIR(re)`, overwriting any
     previous value for `e`.  Appends `e.public_key` to the buffer.  Calls
     `MixHash(e.public_key)`.
 
-In `ReadMessage()` the `e` token is modified as follows:
+In `ReadMessage()` the `"e"` token is modified as follows:
 
   * For `"e"`: Sets `re` to the next `re.PUBLIC_DHLEN` bytes from the message,
     overwriting any previous value for `re`. Calls `MixHash(re.public_key)`. 
@@ -130,13 +130,7 @@ than the operations on `e` and `re`.
 4. Registered DH algorithm names
 ================================
 
-4.1. Generating dependent keys for existing DH algorithms
----------------------------------------------------------
-
-For `25519` and `448`, `GENERATE_DEPENDENT_KEYPAIR(r)` is defined to be
-the same as `GENERATE_KEYPAIR()` with the `r` parameter ignored.
-
-4.2. The `NewHope` DH function
+4.1. The `NewHope` DH function
 ------------------------------
 
  * **`GENERATE_DEPENDENT_KEYPAIR(r)`**: Returns the result of
@@ -151,8 +145,14 @@ the same as `GENERATE_KEYPAIR()` with the `r` parameter ignored.
 
  * **`PUBLIC_DHLEN`** = 1824 if the key is Alice or 2048 if the key is Bob.
 
-This algorithm must be compatible with the "torref" version of the reference
+The algorithm must be compatible with the "torref" version of the reference
 code from the New Hope authors.
+
+4.2. Generating dependent keys for existing DH algorithms
+---------------------------------------------------------
+
+For `25519` and `448`, `GENERATE_DEPENDENT_KEYPAIR(r)` is defined to be
+the same as `GENERATE_KEYPAIR()` with the `r` parameter ignored.
 
 5. Test vector definition
 =========================
@@ -176,3 +176,5 @@ component for ephemeral keys in test vectors.
 [1] Erdem Alkim, Léo Ducas, Thomas Pöppelmann, and Peter Schwabe:
 [Post-quantum key exchange – a new hope](https://cryptojedi.org/papers/#newhope).
 Proceedings of the 25th USENIX Security Symposium.
+
+[2] [Reference implementation of New Hope](https://cryptojedi.org/crypto/#newhope).

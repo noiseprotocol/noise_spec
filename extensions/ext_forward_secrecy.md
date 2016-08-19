@@ -31,7 +31,7 @@ using existing Noise primitives.  In a practical implementation,
 ==================
 
 The name of the DH function in the protocol name is modified to
-include a pair of identifiers separated by plus signs; for example:
+include a pair of identifiers separated by a plus sign; for example:
 
     Noise_XX_25519+448_AESGCM_SHA256
 
