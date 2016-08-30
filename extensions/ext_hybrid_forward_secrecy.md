@@ -156,9 +156,9 @@ The transformation rules are:
    the sequence `"e, dhee, f, dhff"`.
  * A singleton token `"e"` in the original pattern that is not followed by
    `"dhee"` is replaced with the sequence `"e, f"`.
- * If the pattern contains `"e"' in its pre-message, then `"f"` is added
+ * If the pattern contains `"e"` in its pre-message, then `"f"` is added
    to the pre-message.
- * If the pattern contains `"re"' in its pre-message, then `"rf"` is added
+ * If the pattern contains `"re"` in its pre-message, then `"rf"` is added
    to the pre-message.
 
 The following examples demonstrate the transformation:
