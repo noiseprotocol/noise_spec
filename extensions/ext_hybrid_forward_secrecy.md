@@ -79,7 +79,7 @@ ephemeral keys only.
 Two extra variables are added to the state:
 
  * `f`: The local ephemeral forward secrecy key pair.
- * `rf`: The remote party's ephemeral forward secrecy key.
+ * `rf`: The remote party's ephemeral forward secrecy public key.
 
 Both of these variables are instances of the second DH function from
 the protocol name.  If the protocol name does not include a second
@@ -102,7 +102,7 @@ Two new tokens are added for use in defining message patterns:
 
 Token handling for `WriteMessage()` is modified as follows:
 
- * For `"f"`:  Sets `e = GENERATE_KEYPAIR_F()`, overwriting any previous
+ * For `"f"`:  Sets `f = GENERATE_KEYPAIR_F()`, overwriting any previous
    value for `f`.  Appends `EncryptAndHash(f.public_key)` to the buffer.
 
  * For `"dhff"`:  Calls `MixKey(DH_F(f, rf))`.
@@ -152,10 +152,8 @@ This extension defines a transformation named `hfs` that modifies an
 existing interactive pattern into one involving hybrid forward secrecy.
 The transformation rules are:
 
- * A sequence of tokens `"e, dhee"` in the original pattern is replaced with
-   the sequence `"e, dhee, f, dhff"`.
- * A singleton token `"e"` in the original pattern that is not followed by
-   `"dhee"` is replaced with the sequence `"e, f"`.
+ * All occurrences of the `"e"` token are replaced with `"e, f"`.
+ * All occurrences of the `"dhee"` token are replaced with `"dhee, dhff"`.
  * If the pattern contains `"e"` in its pre-message, then `"f"` is added
    to the pre-message.
  * If the pattern contains `"re"` in its pre-message, then `"rf"` is added
@@ -165,23 +163,23 @@ The following examples demonstrate the transformation:
 
     Noise_NNhfs():
       -> e, f
-      <- e, dhee, f, dhff
+      <- e, f, dhee, dhff
 
     Noise_XXhfs(s, rs):
       -> e, f
-      <- e, dhee, f, dhff, s, dhse
+      <- e, f, dhee, dhff, s, dhse
       -> s, dhse
 
     Noise_IKhfs(s, rs):
       <- s
       ...
       -> e, f, dhes, s, dhss
-      <- e, dhee, f, dhff, dhes
+      <- e, f, dhee, dhff, dhes
 
     Noise_XXfallback+hfs(s, rs, re, rf):
       <- e, f
       ...
-      -> e, dhee, f, dhff, s, dhse
+      -> e, f, dhee, dhff, s, dhse
       <- s, dhse
 
 When pattern transformations are composed, we use a plus sign as a separator,
@@ -215,28 +213,159 @@ be scenarios where plaintext `"f"` values from both parties makes sense.
 Also, the default `hfs` pattern transformation will usually leave the
 first `"f"` token in the clear.
 
-5.3. Other hybrid patterns
+5.3. Hybrid pattern list
+------------------------
+
+Standard interactive Noise patterns that are transformed with `hfs` fall
+into two broad categories: fully hybrid and partially hybrid.
+
+Fully hybrid patterns are those where the first two `"dhxy"` operations
+in the pattern are `"dhee"` and `"dhff"`.  All values that would have been
+encrypted in the original pattern are now encrypted with a hybrid key
+combining outputs from both DH algorithms.  Any message payloads and
+static public key values that were previously sent in the clear are
+still in the clear.
+
+The following patterns are fully hybrid:
+
+    Noise_NNhfs():
+      -> e, f
+      <- e, f, dhee, dhff
+
+    Noise_NXhfs(rs):
+      -> e, f
+      <- e, f, dhee, dhff, s, dhse
+
+    Noise_XNhfs(s):
+      -> e, f
+      <- e, f, dhee, dhff
+      -> s, dhse
+
+    Noise_XXhfs(s, rs):
+      -> e, f
+      <- e, f, dhee, dhff, s, dhse
+      -> s, dhse
+
+    Noise_KNhfs(s):
+      -> s
+      ...
+      -> e, f
+      <- e, f, dhee, dhff, dhes
+
+    Noise_KXhfs(s, rs):
+      -> s
+      ...
+      -> e, f
+      <- e, f, dhee, dhff, dhes, s, dhse
+
+    Noise_INhfs(s):
+      -> e, f, s
+      <- e, f, dhee, dhff, dhes
+
+    Noise_IXhfs(s, rs):
+      -> e, f, s
+      <- e, f, dhee, dhff, dhes, s, dhse 
+
+    Noise_XXfallback+hfs(s, rs, re):                   
+      <- e, f
+      ...
+      -> e, f, dhee, dhff, s, dhse
+      <- s, dhse
+
+    Noise_NXnoidh+hfs(rs):
+      -> e, f
+      <- e, f, s, dhee, dhff, dhse
+
+    Noise_XXnoidh+hfs(s, rs):
+      -> e, f
+      <- e, f, s, dhee, dhff, dhse
+      -> s, dhse
+
+    Noise_KXnoidh+hfs(s, rs):
+      -> s
+      ...
+      -> e, f
+      <- e, f, s, dhee, dhff, dhes, dhse
+
+    Noise_IXnoidh+hfs(s, rs):
+      -> e, f, s
+      <- e, f, s, dhee, dhff, dhes, dhse
+
+Partially hybrid patterns are those where a `"dhxy"` operation involving a
+static public key precedes the first `"dhee"` operation.  Static public
+key values and message payloads that precede the first `"dhff"` operation
+will be encrypted only with the classical DH algorithm.  If that algorithm
+falls to a future attack, then message payloads or static public keys that
+were previously encrypted may be revealed.
+
+The following patterns are partially hybrid:
+
+    Noise_NKhfs(rs):
+      <- s
+      ...
+      -> e, f, dhes
+      <- e, f, dhee, dhff
+
+    Noise_XKhfs(s, rs):
+      <- s
+      ...
+      -> e, f, dhes
+      <- e, f, dhee, dhff
+      -> s, dhse
+
+    Noise_KKhfs(s, rs):
+      -> s
+      <- s
+      ...
+      -> e, f, dhes, dhss
+      <- e, f, dhee, dhff, dhes
+
+    Noise_IKhfs(s, rs):
+      <- s
+      ...
+      -> e, f, dhes, s, dhss
+      <- e, f, dhee, dhff, dhes
+
+    Noise_IKnoidh+hfs(s, rs):
+      <- s
+      ...
+      -> e, f, s, dhes, dhss
+      <- e, f, dhee, dhff, dhes
+
+As can be seen, all of the standard interactive patterns that end in
+`"K"` become partially hybrid when transformed with `hfs`.
+
+It is disappointing that `"IK+hfs"` is partially hybrid because it means
+that a post-quantum Noise Pipes is not a simple matter of transforming
+`"XX"`, `"IK"`, and `"XXfallback"` with `hfs`.
+
+5.4. Other hybrid patterns
 --------------------------
 
-Not all patterns that are created with the `hfs` transformation may be
-useful or safe.  The `Noise_IKhfs` pattern described earlier does not
-protect the initiator's static public key with the extra forward secrecy.
-This may make `s` vulnerable to future cryptanalysis.  To address this,
-another transformation could be applied to move the critical values
-later in the handshake:
+Partially hybrid patterns can be improved by using another transformation
+to move static public key values to later in the handshake to hide identity
+information:
 
     Noise_IKhfs+xyz(s, rs):
       <- s
       ...
       -> e, f, dhes
-      <- e, dhee, f, dhff
-      -> s, dhss
-      <- dhes
+      <- e, f, dhee, dhff
+      -> s, dhss, dhse
 
-This does tend to increase the number of turn-arounds.  More experimentation
-is required before such a transformation can be standardized.  This extension
-provides the basic tools that could be used to define such a transformation
-later.
+The `"dhes"` token in the first message could also be moved to the
+third message.  Although for Noise Pipes we would like the first
+message to trigger fallback if the initiator is not in possession
+of the responder's current static public key.  The responder's static
+public key value is not as secret as the initator's - any party can
+connect to the responder with `"XX"` and retrieve the responder's
+static public key without needing to mount an attack against archived
+communications.
+
+Transforming patterns in this way tends to increase the number of
+turn-arounds.  More experimentation is required before such a
+transformation can be standardized.  This extension provides the basic
+tools that could be used to define such a transformation later.
 
 Other transformations are also possible for hybrid forward secrecy.
 The New Hope algorithm allows for Alice to generate a public "a" value
@@ -246,11 +375,11 @@ Alice to be the server/responder rather than the client/initiator:
 
     Noise_XXreversehfs(s, rs):
       -> e
-      <- e, dhee, f, s, dhse
+      <- e, f, dhee, s, dhse
       -> f, dhff, s, dhse
 
 As before, other tokens may need to be moved to be covered by the
-extra forward secrecy so as to create a useful pattern.
+hybrid forward secrecy so as to create a useful pattern.
 
 6. Discussion
 =============
