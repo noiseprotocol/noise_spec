@@ -197,7 +197,7 @@ The transformation rules are:
  * The first occurrence of the `"e"` token is replaced with `"e, f"`.
  * The second occurrence of the `"e"` token is replaced with `"e, g"`.
  * If `"e"` appears in the pre-message, then it is considered the first
-   occurrence of the `"e"` token and the next occurence in the pattern
+   occurrence of the `"e"` token and the next occurrence in the pattern
    body is replaced with `"e, g"`.
  * All occurrences of the `"dhee"` token are replaced with `"dhee, fg"`.
  * If the pattern contains `"e"` in its pre-message, then `"f"` is added
