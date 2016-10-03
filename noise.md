@@ -1029,40 +1029,31 @@ For example, if you don't care about identity hiding, you could apply a "noidh" 
       <- s                             <- s
       ...                              ...
       -> e, es, s, ss                  -> e, s, es, ss
-                                                             
+
     Noise_NX(rs):                    Noise_NXnoidh(rs):
       -> e                             -> e
       <- e, ee, s, es                  <- e, s, ee, es
-      ->                               ->
-                                                                 
+
     Noise_XX(s, rs):                 Noise_XXnoidh(s, rs):
       -> e                             -> e
       <- e, ee, s, es                  <- e, s, ee, es
       -> s, se                         -> s, se
-      <-                               <-
                                                                  
     Noise_KX(s, rs):                 Noise_KXnoidh(s, rs):                    
       -> s                             -> s
       ...                              ...
       -> e                             -> e
       <- e, ee, se, s, es              <- e, s, ee, se, es
-      ->                               ->
-      <-                               <-
-                                                                 
+
     Noise_IK(s, rs):                 Noise_IKnoidh(s, rs):
       <- s                             <- s
       ...                              ...
       -> e, es, s, ss                  -> e, s, es, ss
       <- e, ee, se                     <- e, ee, se
-      ->                               ->
-      <-                               <-
-                                                                 
+
     Noise_IX(s, rs):                 Noise_IXnoidh(s, rs):
       -> e, s                          -> e, s
       <- e, ee, se, s, es              <- e, s, ee, se, es
-      ->                               ->
-      <-                               <-
-
 
 
 Other tranformations might add or remove `"ss"` operations, or defer DH operations
@@ -1216,22 +1207,6 @@ session.
 Parties can then sign the handshake hash, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
-
-
-9.5. Secondary symmetric keys 
-------------------------------
-
-To hedge against advances in cryptanalysis allowing decryption of old stored
-data, an application might send messages for a second key agreement protocol
-inside the Noise handshake payloads.  For example, the second key agreement
-could use a post-quantum or non-elliptic curve algorithm that might remain
-unbroken even if future cryptanalysis can break the main DH functions.
-
-The second key agreement should derive a 32-byte **secondary symmetric key** `ssk`.  To
-make the transport keys a function of both the Noise key agreement and `ssk` the
-`Split()` step is modified to call `HKDF(ck, ssk)` instead of `HKDF(ck,
-zerolen)`.
-
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
