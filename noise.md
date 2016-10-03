@@ -1544,8 +1544,8 @@ Noise is inspired by:
   * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
-Donenfeld, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri,
-Rhys Weatherley, and Alex Wied.
+Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
+Touset, Tony Arcieri, and Alex Wied.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, and Klaus Hartke for
 editorial feedback.
