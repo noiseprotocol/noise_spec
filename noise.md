@@ -84,12 +84,11 @@ processes each token from a message pattern.  The possible tokens are:
    into the message buffer, encrypting it if `k` is non-empty, and hashes the
    output along with the old `h` to derive a new `h`.
 
- * **`"dhee", "dhse", "dhes", "dhss"`**: The sender performs a DH between its
-   corresponding local key pair (whether `s` or `e` is determined by the first
-   letter following `"dh"`) and the remote public key (whether `rs` or `re` is
-   determined by the second letter following `"dh"`).  The result is hashed
-   along with the old `ck` to derive a new `ck` and `k`, and `n` is set to
-   zero.
+ * **`"ee", "se", "es", "ss"`**: A DH is performed between the initiator's key
+   pair (whether static or ephemeral is determined by the first letter) and the
+   responder's key pair (whether static or ephemeral is determined by the
+   second letter).  The result is hashed along with the old `ck` to derive a
+   new `ck` and `k`, and `n` is set to zero.
 
 After processing the final token in a handshake message, the sender then writes
 the payload into the message buffer, encrypting it if `k` is non-empty, and
@@ -99,7 +98,7 @@ As a simple example, an unauthenticated DH handshake is described by the
 handshake pattern:
 
       -> e
-      <- e, dhee    
+      <- e, ee
 
 The **initiator** sends the first message, which is simply an ephemeral public key.
 The **responder** sends back its own ephemeral public key.  Then a DH is performed
@@ -114,10 +113,10 @@ The responder can send its static public key (under encryption) and
 authenticate itself via a slightly different pattern:
 
       -> e
-      <- e, dhee, s, dhse
+      <- e, ee, s, es
 
 In this case, the final `ck` and `k` values are a hash of both DH results.
-Since the `dhse` token indicates a DH between the initiator's ephemeral key and
+Since the `es` token indicates a DH between the initiator's ephemeral key and
 the responder's static key, successful decryption by the initiator of the
 second message's payload serves to authenticate the responder to the initiator.
 
@@ -131,8 +130,8 @@ The initiator can send *its* static public key (under encryption), and
 authenticate itself, using a handshake pattern with one additional message:
 
       -> e
-      <- e, dhee, s, dhse
-      -> s, dhse
+      <- e, ee, s, es
+      -> s, se
 
 The following sections flesh out the details, and add some complications.
 However, the core of Noise is this simple system of variables, tokens, and
@@ -186,8 +185,8 @@ payload) by 16 bytes.
 For an example, consider the handshake pattern:
 
       -> e
-      <- e, dhee, s, dhse
-      -> s, dhse
+      <- e, ee, s, es
+      -> s, se
 
 The first message consists of a cleartext public key (`"e"`) followed by a
 cleartext payload (remember that a payload is implicit at the end of each
@@ -424,8 +423,8 @@ indicates the variable has not yet been initialized.
 A `HandshakeState` also has a variable to track the remaining portion of the handshake pattern:
 
   * **`message_patterns`**: A sequence of message patterns.  Each message
-    pattern is a sequence of tokens from the set `("s", "e", "dhee", "dhes",
-    "dhse", "dhss")`.
+    pattern is a sequence of tokens from the set `("s", "e", "ee", "es",
+    "se", "ss")`.
 
 A `HandshakeState` responds to the following methods:
 
@@ -474,7 +473,7 @@ A `HandshakeState` responds to the following methods:
 
           * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
-          * For `"dhxy"`:  Calls `MixKey(DH(x, ry))`.
+          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initator`, otherwise `MixKey(DH(y, rx))`.
 
       * Appends `EncryptAndHash(payload)` to the buffer.  
 
@@ -495,7 +494,7 @@ A `HandshakeState` responds to the following methods:
             `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
             to `DecryptAndHash(temp)`.  
 
-          * For `"dhxy"`:  Calls `MixKey(DH(y, rx))`.  
+          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initator`, otherwise `MixKey(DH(y, rx))`.
 
       * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
         the output into `payload_buffer`.
@@ -553,7 +552,7 @@ using pre-shared symmetric keys, the following changes are made:
 8. Handshake patterns 
 ======================
 
-A **message pattern** is some sequence of tokens from the set `("e", "s", "dhee", "dhes", "dhse", "dhss")`.  
+A **message pattern** is some sequence of tokens from the set `("e", "s", "ee", "es", "se", "ss")`.  
 
 A **handshake pattern** consists of:
 
@@ -580,7 +579,7 @@ The following handshake pattern describes an unauthenticated DH handshake:
 
     Noise_NN():
       -> e
-      <- e, dhee
+      <- e, ee
 
 The handshake pattern name is `Noise_NN`.  This naming convention will be
 explained in [Section 8.3](#interactive-patterns).  The empty parentheses indicate that
@@ -606,8 +605,8 @@ second message.
     Noise_NK(rs):
       <- s
       ...
-      -> e, dhes 
-      <- e, dhee
+      -> e, es 
+      <- e, ee
 
 8.1. Pattern validity 
 ----------------------
@@ -670,18 +669,18 @@ send any messages using it (as this would violate the rules in [Section 8.1](#pa
     Noise_N(rs):
       <- s
       ...
-      -> e, dhes
+      -> e, es
 
     Noise_K(s, rs):
       -> s
       <- s
       ...
-      -> e, dhes, dhss
+      -> e, es, ss
 
     Noise_X(s, rs):
       <- s
       ...
-      -> e, dhes, s, dhss
+      -> e, es, s, ss
 
 `Noise_N` is a conventional DH-based public-key encryption.  The other patterns
 add sender authentication, where the sender's public key is either known to the
@@ -705,41 +704,41 @@ The following example handshake patterns represent interactive protocols.
       _X = static key for responder transmitted to initiator
 
 
-    Noise_NN():                      Noise_KN(s):              
-      -> e                             -> s                       
-      <- e, dhee                       ...                        
-                                       -> e                       
-                                       <- e, dhee, dhes           
-                                             
+    Noise_NN():                      Noise_KN(s):
+      -> e                             -> s
+      <- e, ee                         ...
+                                       -> e
+                                       <- e, ee, es
+
     Noise_NK(rs):                    Noise_KK(s, rs):
-      <- s                             -> s                       
+      <- s                             -> s
       ...                              <- s                       
-      -> e, dhes                       ...                        
-      <- e, dhee                       -> e, dhes, dhss           
-                                       <- e, dhee, dhes           
-                                              
-    Noise_NX(rs):                    Noise_KX(s, rs):          
-      -> e                             -> s                       
-      <- e, dhee, s, dhse              ...                        
-                                       -> e                       
-                                       <- e, dhee, dhes, s, dhse  
+      -> e, es                         ...
+      <- e, ee                         -> e, es, ss
+                                       <- e, ee, se
+
+    Noise_NX(rs):                    Noise_KX(s, rs):
+      -> e                             -> s
+      <- e, ee, s, es                  ...
+                                       -> e
+                                       <- e, ee, se, s, es
 
     Noise_XN(s):                     Noise_IN(s):
       -> e                             -> e, s
-      <- e, dhee                       <- e, dhee, dhes             
-      -> s, dhse                                                     
+      <- e, ee                         <- e, ee, se
+      -> s, se                                                     
 
-    Noise_XK(s, rs):                 Noise_IK(s, rs):            
+    Noise_XK(s, rs):                 Noise_IK(s, rs):
       <- s                             <- s                         
-      ...                              ...                          
-      -> e, dhes                       -> e, dhes, s, dhss          
-      <- e, dhee                       <- e, dhee, dhes             
-      -> s, dhse                                                     
-                                        
+      ...                              ...
+      -> e, es                         -> e, es, s, ss
+      <- e, ee                         <- e, ee, se
+      -> s, se                                                     
+
     Noise_XX(s, rs):                 Noise_IX(s, rs):
       -> e                             -> e, s
-      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
-      -> s, dhse
+      <- e, ee, s, es                  <- e, ee, se, s, es
+      -> s, se
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
@@ -784,14 +783,14 @@ The authentication properties are:
 
  1. **Sender authentication *vulnerable* to key-compromise impersonation
     (KCI)**.  The sender authentication is based on a static-static DH
-    (`"dhss"`) involving both parties' static key pairs.  If the recipient's
+    (`"ss"`) involving both parties' static key pairs.  If the recipient's
     long-term private key has been compromised, this authentication can be
     forged.  Note that a future version of Noise might include signatures,
     which could improve this security property, but brings other trade-offs.
 
  2. **Sender authentication *resistant* to key-compromise impersonation
     (KCI)**.  The sender authentication is based on an ephemeral-static DH
-    (`"dhes"` or `"dhse"`) between the sender's static key pair and the
+    (`"es"` or `"se"`) between the sender's static key pair and the
     recipient's ephemeral key pair.  Assuming the corresponding private keys 
     are secure, this authentication cannot be forged.
 
@@ -800,7 +799,7 @@ The confidentiality properties are:
  0. **No confidentiality.**  This payload is sent in cleartext.
 
  1. **Encryption to an ephemeral recipient.**  This payload has forward
-    secrecy, since encryption involves an ephemeral-ephemeral DH (`"dhee"`).
+    secrecy, since encryption involves an ephemeral-ephemeral DH (`"ee"`).
     However, the sender has not authenticated the recipient, so this payload
     might be sent to any party, including an active attacker.
 
@@ -858,93 +857,93 @@ received.
                              --------------   ---------------
     Noise_N                         0                2
     Noise_K                         1                2
-    Noise_X                         1                2                  
+    Noise_X                         1                2
                                                                         
                                                                         
     Noise_NN                                                            
       -> e                          0                0
-      <- e, dhee                    0                1
+      <- e, ee                      0                1
       ->                            0                1
                                                                         
     Noise_NK                                                            
       <- s                                                              
       ...                                                               
-      -> e, dhes                    0                2                 
-      <- e, dhee                    2                1                 
-      ->                            0                5                 
+      -> e, es                      0                2
+      <- e, ee                      2                1
+      ->                            0                5
                                                                         
     Noise_NX                                                            
-      -> e                          0                0                  
-      <- e, dhee, s, dhse           2                1                 
-      ->                            0                5                 
+      -> e                          0                0
+      <- e, ee, s, es               2                1
+      ->                            0                5
                                                                         
                                                                         
     Noise_XN                                                            
-      -> e                          0                0                 
-      <- e, dhee                    0                1                 
-      -> s, dhse                    2                1                 
-      <-                            0                5                 
+      -> e                          0                0
+      <- e, ee                      0                1
+      -> s, se                      2                1
+      <-                            0                5
                                                                         
     Noise_XK                                                            
       <- s                                                              
       ...                                                               
-      -> e, dhes                    0                2                 
-      <- e, dhee                    2                1                 
-      -> s, dhse                    2                5                 
-      <-                            2                5                 
+      -> e, es                      0                2
+      <- e, ee                      2                1
+      -> s, se                      2                5
+      <-                            2                5
                                                                         
     Noise_XX                                                            
-     -> e                           0                0                 
-     <- e, dhee, s, dhse            2                1                 
-     -> s, dhse                     2                5                 
-     <-                             2                5                 
+     -> e                           0                0
+     <- e, ee, s, es                2                1
+     -> s, se                       2                5
+     <-                             2                5
 
 
     Noise_KN                                                            
       -> s                                                              
       ...                                                               
-      -> e                          0                0                  
-      <- e, dhee, dhes              0                3                 
-      ->                            2                1                 
-      <-                            0                5                 
+      -> e                          0                0
+      <- e, ee, es                  0                3
+      ->                            2                1
+      <-                            0                5
                                                                         
     Noise_KK                                                            
       -> s                                                              
       <- s                                                              
       ...                                                               
-      -> e, dhes, dhss              1                2                 
-      <- e, dhee, dhes              2                4                 
-      ->                            2                5                 
-      <-                            2                5                 
+      -> e, es, ss                  1                2
+      <- e, ee, se                  2                4
+      ->                            2                5
+      <-                            2                5
                                                                      
     Noise_KX                                                            
       -> s                                                              
       ...                                                               
-      -> e                          0                0               
-      <- e, dhee, dhes, s, dhse     2                3               
-      ->                            2                5               
-      <-                            2                5               
+      -> e                          0                0
+      <- e, ee, se, s, es           2                3
+      ->                            2                5
+      <-                            2                5
                                                                      
                                                                      
     Noise_IN                                                         
-      -> e, s                       0                0               
-      <- e, dhee, dhes              0                3               
-      ->                            2                1               
-      <-                            0                5               
+      -> e, s                       0                0
+      <- e, ee, se                  0                3
+      ->                            2                1
+      <-                            0                5
                                                                      
     Noise_IK                                                         
       <- s                                                           
       ...                                                            
-      -> e, dhes, s, dhss           1                2               
-      <- e, dhee, dhes              2                4               
-      ->                            2                5               
-      <-                            2                5               
+      -> e, es, s, ss               1                2
+      <- e, ee, se                  2                4
+      ->                            2                5
+      <-                            2                5
                                                                      
     Noise_IX                                                         
-      -> e, s                       0                0               
-      <- e, dhee, dhes, s, dhse     2                3               
-      ->                            2                5               
-      <-                            2                5               
+      -> e, s                       0                0
+      <- e, ee, se, s, es           2                3
+      ->                            2                5
+      <-                            2                5
 
 8.5. Identity hiding
 ---------------------
@@ -1026,39 +1025,47 @@ However, to construct new patterns we can apply some **transformation** to an ex
 For example, if you don't care about identity hiding, you could apply a "noidh" transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible.  This transforms the patterns from the left column to the right column:
 
 
-    Noise_X(s, rs):                  Noise_Xnoidh(s, rs):         
-      <- s                             <- s                      
-      ...                              ...                       
-      -> e, dhes, s, dhss              -> e, s, dhes, dhss       
+    Noise_X(s, rs):                  Noise_Xnoidh(s, rs):
+      <- s                             <- s
+      ...                              ...
+      -> e, es, s, ss                  -> e, s, es, ss
+                                                             
+    Noise_NX(rs):                    Noise_NXnoidh(rs):
+      -> e                             -> e
+      <- e, ee, s, es                  <- e, s, ee, es
+      ->                               ->
                                                                  
-    Noise_NX(rs):                    Noise_NXnoidh(rs):          
-      -> e                             -> e                      
-      <- e, dhee, s, dhse              <- e, s, dhee, dhse       
+    Noise_XX(s, rs):                 Noise_XXnoidh(s, rs):
+      -> e                             -> e
+      <- e, ee, s, es                  <- e, s, ee, es
+      -> s, se                         -> s, se
+      <-                               <-
                                                                  
-    Noise_XX(s, rs):                 Noise_XXnoidh(s, rs):       
-      -> e                             -> e                      
-      <- e, dhee, s, dhse              <- e, s, dhee, dhse       
-      -> s, dhse                       -> s, dhse                
+    Noise_KX(s, rs):                 Noise_KXnoidh(s, rs):                    
+      -> s                             -> s
+      ...                              ...
+      -> e                             -> e
+      <- e, ee, se, s, es              <- e, s, ee, se, es
+      ->                               ->
+      <-                               <-
                                                                  
-    Noise_KX(s, rs):                 Noise_KXnoidh(s, rs):        
-      -> s                             -> s                      
-      ...                              ...                       
-      -> e                             -> e                      
-      <- e, dhee, dhes, s, dhse        <- e, s, dhee, dhes, dhse 
+    Noise_IK(s, rs):                 Noise_IKnoidh(s, rs):
+      <- s                             <- s
+      ...                              ...
+      -> e, es, s, ss                  -> e, s, es, ss
+      <- e, ee, se                     <- e, ee, se
+      ->                               ->
+      <-                               <-
                                                                  
-    Noise_IK(s, rs):                 Noise_IKnoidh(s, rs):       
-      <- s                             <- s                      
-      ...                              ...                       
-      -> e, dhes, s, dhss              -> e, s, dhes, dhss       
-      <- e, dhee, dhes                 <- e, dhee, dhes          
-                                                                 
-    Noise_IX(s, rs):                 Noise_IXnoidh(s, rs):       
-      -> e, s                          -> e, s                   
-      <- e, dhee, dhes, s, dhse        <- e, s, dhee, dhes, dhse 
+    Noise_IX(s, rs):                 Noise_IXnoidh(s, rs):
+      -> e, s                          -> e, s
+      <- e, ee, se, s, es              <- e, s, ee, se, es
+      ->                               ->
+      <-                               <-
 
 
 
-Other tranformations might add or remove `"dhss"` operations, or defer DH operations
+Other tranformations might add or remove `"ss"` operations, or defer DH operations
 until later.
 
 9. Advanced uses
@@ -1129,20 +1136,20 @@ Below are the three patterns used for Noise Pipes:
 
     Noise_XX(s, rs):  
       -> e
-      <- e, dhee, s, dhse  
-      -> s, dhse
+      <- e, ee, s, es
+      -> s, se
 
     Noise_IK(s, rs):                   
       <- s                         
       ...
-      -> e, dhes, s, dhss          
-      <- e, dhee, dhes             
+      -> e, es, s, ss          
+      <- e, ee, se
                                         
     Noise_XXfallback(s, rs, re):                   
       <- e
       ...
-      -> e, dhee, s, dhse
-      <- s, dhse
+      -> e, ee, s, se
+      <- s, es
 
 Note that in the fallback case, the initiator and responder roles are switched:
 If Alice initiates a `Noise_IK` handshake with Bob, Bob might initiate a
