@@ -414,13 +414,16 @@ A `SymmetricState` responds to the following methods:
 A `HandshakeState` object contains a `SymmetricState` plus the following
 variables, any of which may be `empty`.  `Empty` is a special value which
 indicates the variable has not yet been initialized.
-
+ 
   * **`s`**: The local static key pair 
   * **`e`**: The local ephemeral key pair
   * **`rs`**: The remote party's static public key
   * **`re`**: The remote party's ephemeral public key 
 
-A `HandshakeState` also has a variable to track the remaining portion of the handshake pattern:
+A `HandshakeState` also has variables to track its role, and the remaining
+portion of the handshake pattern:
+
+  * **`initiator`**: A boolean indicating the initiator or responder role.
 
   * **`message_patterns`**: A sequence of message patterns.  Each message
     pattern is a sequence of tokens from the set `("s", "e", "ee", "es",
@@ -450,8 +453,8 @@ A `HandshakeState` responds to the following methods:
 
       * Calls `MixHash(prologue)`.
 
-      * Sets the `s`, `e`, `rs`, and `re` variables to the corresponding
-        arguments.
+      * Sets the `initiator`, `s`, `e`, `rs`, and `re` variables to the
+        corresponding arguments.
 
       * Calls `MixHash()` once for each public key listed in the pre-messages
         from `handshake_pattern`, with the specified public key as input (see
@@ -473,7 +476,8 @@ A `HandshakeState` responds to the following methods:
 
           * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initator`, otherwise `MixKey(DH(y, rx))`.
+          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
+            `MixKey(DH(y, rx))`.
 
       * Appends `EncryptAndHash(payload)` to the buffer.  
 
@@ -494,7 +498,8 @@ A `HandshakeState` responds to the following methods:
             `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
             to `DecryptAndHash(temp)`.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initator`, otherwise `MixKey(DH(y, rx))`.
+          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
+            `MixKey(DH(y, rx))`.
 
       * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
         the output into `payload_buffer`.
