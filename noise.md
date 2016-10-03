@@ -729,20 +729,17 @@ The following example handshake patterns represent interactive protocols.
       <- e, dhee                       <- e, dhee, dhes             
       -> s, dhse                                                     
 
-\newpage
-```
-Noise_XK(s, rs):                 Noise_IK(s, rs):            
-  <- s                             <- s                         
-  ...                              ...                          
-  -> e, dhes                       -> e, dhes, s, dhss          
-  <- e, dhee                       <- e, dhee, dhes             
-  -> s, dhse                                                     
-                                    
-Noise_XX(s, rs):                 Noise_IX(s, rs):
-  -> e                             -> e, s
-  <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
-  -> s, dhse
-```
+    Noise_XK(s, rs):                 Noise_IK(s, rs):            
+      <- s                             <- s                         
+      ...                              ...                          
+      -> e, dhes                       -> e, dhes, s, dhss          
+      <- e, dhee                       <- e, dhee, dhes             
+      -> s, dhse                                                     
+                                        
+    Noise_XX(s, rs):                 Noise_IX(s, rs):
+      -> e                             -> e, s
+      <- e, dhee, s, dhse              <- e, dhee, dhes, s, dhse 
+      -> s, dhse
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
