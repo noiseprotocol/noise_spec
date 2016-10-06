@@ -3,6 +3,9 @@ title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '30'
 date:       '2016-07-14'
+bibliography: 'my.bib'
+link-citations: 'true'
+csl:        'ieee-with-url.csl'
 ---
 
 1. Introduction
@@ -64,7 +67,7 @@ Each party maintains the following variables:
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
-   **AEAD** cipher mode (in the sense of [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) 
+   **AEAD** cipher mode (in the sense of [@Rogaway:2002] 
    and includes the current `h` value as "associated data"
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
@@ -1564,3 +1567,8 @@ helpful discussion on using BLAKE2 with Noise.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
 versions.
+
+
+17. References
+===============
+
