@@ -170,7 +170,6 @@
       <if variable="URL">
         <group delimiter=". ">
           <group delimiter=": ">
-            <text term="available at" text-case="capitalize-first"/>
             <text variable="URL"/>
           </group>
           <group prefix="[" suffix="]" delimiter=": ">
@@ -326,11 +325,6 @@
               <text macro="issued"/>
             </group>
           </else>
-        </choose>
-        <choose>
-          <if variable="URL">
-            <text value=" [Online]"/>
-          </if>
         </choose>
       </group>
       <text macro="access"/>

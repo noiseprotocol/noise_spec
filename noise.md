@@ -1,8 +1,8 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '30'
-date:       '2016-07-14'
+revision:   '31draft'
+date:       '2016-10-06'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -67,7 +67,7 @@ Each party maintains the following variables:
    nonce `n`.  Whenever a new DH output causes a new `ck` to be calculated, a
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
-   **AEAD** cipher mode (in the sense of [@Rogaway:2002] 
+   **AEAD** cipher mode (in the sense of Rogaway [@Rogaway:2002]) 
    and includes the current `h` value as "associated data"
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
@@ -251,7 +251,7 @@ Noise depends on the following **cipher functions**:
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
    key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
    unique for the key `k`.  Returns the ciphertext.  Encryption must be done
-   with an "AEAD" encryption mode with the associated data `ad` (using the terminology from [Rogaway](http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf)) and returns a
+   with an "AEAD" encryption mode with the associated data `ad` (using the terminology from [@Rogaway:2002]) and returns a
    ciphertext that is the same size as the plaintext plus 16 bytes for 
    authentication data.  The entire ciphertext must be indistinguishable from
    random if the key is secret. 
@@ -275,11 +275,11 @@ Noise depends on the following **hash function** (and associated constants):
 
  * **`BLOCKLEN`** = A constant specifying the size in bytes that the hash
    function uses internally to divide its input for iterative processing.  This
-   is needed to use the hash function with HMAC (`BLOCKLEN` is `B` in [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt)).
+   is needed to use the hash function with HMAC (`BLOCKLEN` is `B` in [@rfc2104]).
 
 Noise defines additional functions based on the above `HASH()` function:
 
- * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [RFC 2104](https://www.ietf.org/rfc/rfc2104.txt) 
+ * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [@rfc2104] 
    using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
@@ -292,7 +292,7 @@ Noise defines additional functions based on the above `HASH()` function:
      * Returns the pair `(output1, output2)`.
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
-   length.  Also note that the `HKDF()` function is simply `HKDF` from [RFC 5869](https://www.ietf.org/rfc/rfc5869.txt) 
+   length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 5. Processing rules
@@ -1201,7 +1201,7 @@ This is fairly easy:
 This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect
 the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
-[Elligator](https://elligator.cr.yp.to) could be used.
+Elligator [@elligator] could be used.
 
 9.4. Channel binding
 ---------------------
@@ -1224,10 +1224,10 @@ can't be used by the receiving party with a different sesssion.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka "X25519"
-   in [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
-   value is all zeros, which will always produce an output of all zeros.  Other
-   invalid public key values will also produce an output of all zeros.
+ * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
+   "X25519" in [@rfc7748].  The null public key value is all zeros, which will
+   always produce an output of all zeros.  Other invalid public key values will
+   also produce an output of all zeros.
 
  * **`DHLEN`** = 32
 
@@ -1236,10 +1236,10 @@ can't be used by the receiving party with a different sesssion.
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448" in
-   [RFC 7748](https://www.ietf.org/rfc/rfc7748.txt)).  The null public key
-   value is all zeros, which will always produce an output of all zeros.  Other
-   invalid public key values will also produce an output of all zeros.
+ * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448"
+   in [@rfc7748].  The null public key value is all zeros, which will always
+   produce an output of all zeros.  Other invalid public key values will also
+   produce an output of all zeros.
 
  * **`DHLEN`** = 56
 
@@ -1247,43 +1247,45 @@ can't be used by the receiving party with a different sesssion.
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- `AEAD_CHACHA20_POLY1305` from [RFC 7539](https://www.ietf.org/rfc/rfc7539.txt).  The 96-bit nonce is formed 
- by encoding 32 bits of zeros followed by little-endian encoding of `n`.
- (Earlier implementations of ChaCha20 used a 64-bit nonce; with these implementations it's
- compatible to encode `n` directly into the ChaCha20 nonce without the 32-bit
- zero prefix).
+   `AEAD_CHACHA20_POLY1305` from [@rfc7539].  The 96-bit nonce is formed by
+   encoding 32 bits of zeros followed by little-endian encoding of `n`.
+   (Earlier implementations of ChaCha20 used a 64-bit nonce; with these
+   implementations it's compatible to encode `n` directly into the ChaCha20
+   nonce without the 32-bit zero prefix).
 
 10.4. The `AESGCM` cipher functions
 ---------------------------
 
- * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
- AES256-GCM from [SP-800-38D](http://csrc.nist.gov/publications/nistpubs/800-38D/SP-800-38D.pdf) with a 128-bit tag appended to the ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of `n`.
+ * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**: AES256
+   with GCM from [@nistgcm] with a 128-bit tag appended to the
+   ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros
+   followed by big-endian encoding of `n`.
 
 10.5. The `SHA256` hash function
 ------------------------------
 
- * **`HASH(input)`**: `SHA-256` from [FIPS 180-4](http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf).
+ * **`HASH(input)`**: `SHA-256` from [@nistsha2].
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
 10.6. The `SHA512` hash function
 ------------------------------
 
- * **`HASH(input)`**: `SHA-512`  from [FIPS 180-4](http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf).
+ * **`HASH(input)`**: `SHA-512`  from [@nistsha2].
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
 10.7. The `BLAKE2s` hash function
 -------------------------------
 
- * **`HASH(input)`**: `BLAKE2s` from [RFC 7693](https://www.ietf.org/rfc/rfc7693.txt) with digest length 32.
+ * **`HASH(input)`**: `BLAKE2s` from [@rfc7693] with digest length 32.
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
 10.8. The `BLAKE2b` hash function
 -------------------------------
 
- * **`HASH(input)`**: `BLAKE2b` from [RFC 7693](https://www.ietf.org/rfc/rfc7693.txt) with digest length 64.
+ * **`HASH(input)`**: `BLAKE2b` from [@rfc7693] with digest length 64.
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
@@ -1545,11 +1547,11 @@ The Noise specification (this document) is hereby placed in the public domain.
 
 Noise is inspired by:
 
-  * The [NaCl](https://nacl.cr.yp.to/) and [CurveCP](https://curvecp.org/) protocols from Dan Bernstein et al.
-  * The [SIGMA](http://webee.technion.ac.il/~hugo/sigma.html) and [HOMQV](https://eprint.iacr.org/2010/638) protocols from Hugo Krawczyk.
-  * The [Ntor](http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf) protocol from Ian Goldberg et al.
-  * The [analysis of OTR](http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf) by Mario Di Raimondo et al.
-  * The [analysis by Caroline Kudla and Kenny Paterson](http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf) of ["Protocol 4"](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387) by Simon Blake-Wilson et al.
+  * The NaCl and CurveCP protocols from Dan Bernstein et al [@nacl; @curvecp].
+  * The SIGMA and HOMQV protocols from Hugo Krawczyk [@sigma; @homqv].
+  * The Ntor protocol from Ian Goldberg et al [@ntor].
+  * The analysis of OTR by Mario Di Raimondo et al [@otr].
+  * The analysis by Caroline Kudla and Kenny Paterson of "Protocol 4" by Simon Blake-Wilson et al [@kudla2005; @blakewilson1997].
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
@@ -1569,6 +1571,5 @@ Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
 versions.
 
 
-17. References
-===============
-
+17.  References
+================
