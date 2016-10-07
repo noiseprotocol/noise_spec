@@ -19,7 +19,7 @@ header              = name wsp "(" wsp params wsp ")" wsp ":"
 
 params              = param *(wsp "," wsp param)
 
-param               = "e" / "s" / "re" / "rs"
+param               = "e" / "f" / "s" / "re" / "rf" / "rs"
 
 pre-message         = message-init [wsp message-resp] / message-resp
 
@@ -33,7 +33,7 @@ message-resp        = "<-" wsp message-tokens
 
 message-tokens      = message-token *(wsp "," wsp message-token)
 
-message-token       = "e" / "s" / "ee" / "ss" / "se" / "es"
+message-token       = "e" / "f" / "s" / "ee" / "ss" / "se" / "es" / "ff"
 
 ; Lexical tokens
 
