@@ -1,0 +1,50 @@
+
+; Defined using the ABNF syntax from RFC 5234.  The character set is US-ASCII.
+;
+; The "pattern-file" element is intended for a pattern dictionary file that
+; contains multiple pattern definitions.
+;
+; The "pattern-single" element is intended for applications that wish to
+; provide an API to define the specific pattern to use in a handshake.
+
+; Syntactic elements
+
+pattern-file        = *(wsp pattern) wsp
+
+pattern-single      = wsp pattern wsp
+
+pattern             = header wsp [pre-message wsp "..." wsp] messages
+
+header              = name wsp "(" wsp params wsp ")" wsp ":"
+
+params              = param *(wsp "," wsp param)
+
+param               = "e" / "s" / "re" / "rs"
+
+pre-message         = message-init [wsp message-resp] / message-resp
+
+messages            = *(message-pair wsp) message-init / message-pair
+
+message-pair        = message-init wsp message-resp
+
+message-init        = "->" wsp message-tokens
+
+message-resp        = "<-" wsp message-tokens
+
+message-tokens      = message-token *(wsp "," wsp message-token)
+
+message-token       = "e" / "s" / "ee" / "ss" / "se" / "es"
+
+; Lexical tokens
+
+name                = "Noise_" name-component *("+" name-component)
+
+name-component      = 1*(ALPHA / DIGIT)
+
+wsp                 = *(WSP / eol / comment)
+
+comment             = "//" *(VCHAR / WSP) eol
+
+eol                 = CRLF / LF
+
+; Imported from core ABNF (RFC 5234): VCHAR, WSP, CRLF, LF, ALPHA, DIGIT
