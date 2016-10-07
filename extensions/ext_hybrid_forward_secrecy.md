@@ -70,7 +70,7 @@ The following functions and constant definitions are added to Noise:
    from `GENERATE_KEYPAIR_F(r)` when `r` is not empty.
 
  * **`FFLEN`** = A constant specifying the size in bytes of the output
-   from `MIX_FF()`.
+   from `FF()`.
 
 This extension uses these functions to generate and operate with
 ephemeral keys only.
@@ -190,8 +190,8 @@ The transformation rules are:
 
  * All occurrences of the `"e"` token in the pre-message and message body
    are replaced with `"e, f"`.
- * All occurrences of the `"ee"` token in the pre-message and message body
-   are replaced with `"ee, ff"`.
+ * All occurrences of the `"ee"` token in the message body are replaced
+   with `"ee, ff"`.
  * If the pattern contains `"e"` in its parameters, then `"f"` is added
    to the parameters.
  * If the pattern contains `"re"` in its parameters, then `"rf"` is added
