@@ -5,7 +5,7 @@ default: noise.html noise.pdf
 
 noise.html: noise.md template_pandoc.html spec_markdown.css my.bib
 	pandoc noise.md -s --toc \
-	        -f markdown+yaml_metadata_block+startnum \
+	        -f markdown\
 		--template template_pandoc.html \
 		--css=spec_markdown.css \
 		--filter pandoc-citeproc \
@@ -13,7 +13,7 @@ noise.html: noise.md template_pandoc.html spec_markdown.css my.bib
 
 noise.pdf: noise.md template_pandoc.latex my.bib
 	pandoc noise.md -s --toc \
-	        -f markdown+yaml_metadata_block+startnum \
+	        -f markdown\
 		--template template_pandoc.latex \
 		--filter pandoc-citeproc \
 		-o noise.pdf

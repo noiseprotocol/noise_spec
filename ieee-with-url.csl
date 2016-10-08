@@ -114,7 +114,7 @@
   <macro name="title">
     <choose>
       <if type="bill book graphic legal_case legislation motion_picture song" match="any">
-        <text variable="title" font-style="italic"/>
+        <text variable="title" font-style="normal"/>
       </if>
       <else>
         <text variable="title" quotes="true"/>
@@ -146,7 +146,7 @@
             <group delimiter=", ">
               <group delimiter=" ">
                 <text term="in"/>
-                <text variable="container-title" font-style="italic"/>
+                <text variable="container-title" font-style="normal"/>
               </group>
               <text variable="event-place"/>
             </group>
@@ -229,7 +229,7 @@
           <if type="article-journal">
             <group delimiter=", ">
               <text macro="title"/>
-              <text variable="container-title" font-style="italic" form="short"/>
+              <text variable="container-title" font-style="normal" form="short"/>
               <text macro="locators"/>
               <text macro="page"/>
               <text macro="issued"/>
@@ -266,7 +266,7 @@
           <else-if type="webpage">
             <group delimiter=", " suffix=". ">
               <text macro="title"/>
-              <text variable="container-title" font-style="italic"/>
+              <text variable="container-title" font-style="normal"/>
               <text macro="issued"/>
             </group>
           </else-if>
@@ -290,7 +290,7 @@
           <else-if type="article-magazine article-newspaper broadcast interview manuscript map patent personal_communication song speech thesis webpage" match="any">
             <group delimiter=", ">
               <text macro="title"/>
-              <text variable="container-title" font-style="italic"/>
+              <text variable="container-title" font-style="normal"/>
               <text macro="locators"/>
               <text macro="publisher"/>
               <text macro="page"/>
@@ -302,7 +302,7 @@
               <text macro="title"/>
               <group delimiter=" ">
                 <text term="in"/>
-                <text variable="container-title" font-style="italic"/>
+                <text variable="container-title" font-style="normal"/>
               </group>
               <text macro="locators"/>
             </group>
@@ -316,7 +316,7 @@
           <else>
             <group delimiter=", " suffix=". ">
               <text macro="title"/>
-              <text variable="container-title" font-style="italic"/>
+              <text variable="container-title" font-style="normal"/>
               <text macro="locators"/>
             </group>
             <group delimiter=", ">
