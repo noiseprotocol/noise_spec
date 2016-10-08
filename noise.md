@@ -669,33 +669,29 @@ messages, encrypting them using the first `CipherState` returned by `Split()`.
 The second `CipherState` from `Split()` is discarded - the recipient must not
 send any messages using it (as this would violate the rules in [Section 8.1](#pattern-validity)).
 
-    Naming convention for one-way patterns:    
-      N = no static key for sender
-      K = static key for sender known to recipient
-      X = static key for sender transmitted to recipient
+One-way patterns are named with a single character, which indicates the 
+status of the sender's static key:
+
+ * **`N`** = **`N`**o static key for sender
+ * **`K`** = Static key for sender **`K`**nown to recipient
+ * **`X`** = Static key for sender **`X`**mitted ("transmitted") to recipient
 
 +-------------------------+
-|                         |
 |     Noise_N(rs):        |
 |       <- s              |
 |       ...               |
 |       -> e, es          |
-|                         |
 +-------------------------+
-|                         |
 |     Noise_K(s, rs):     |
 |       -> s              |
 |       <- s              |
 |       ...               |
 |       -> e, es, ss      |
-|                         |
 +-------------------------+
-|                         |
 |     Noise_X(s, rs):     |
 |       <- s              |
 |       ...               |
 |       -> e, es, s, ss   |
-|                         |
 +-------------------------+
 
 `Noise_N` is a conventional DH-based public-key encryption.  The other patterns
@@ -707,26 +703,29 @@ recipient beforehand (`Noise_K`) or transmitted under encryption (`Noise_X`).
 
 The following example handshake patterns represent interactive protocols.
 
-    Naming convention for interactive patterns:
+Interactive patterns are named with two characters, which indicate the 
+status of the initator and responder's static keys:
 
-                                                              
-     N_ = no static key for initiator                         
-     K_ = static key for initiator known to responder         
-     X_ = static key for initiator transmitted to responder   
-     I_ = static key for initiator immediately transmitted to 
-     responder, despite reduced or absent identity-hiding     
-                                                              
-     _N = no static key for responder                         
-     _K = static key for responder known to initiator         
-     _X = static key for responder transmitted to initiator   
+The first character refers to the initiator's static key:
+
+ * **`N`** = **`N`**o static key for initiator
+ * **`K`** = Static key for initiator **`K`**nown to responder
+ * **`X`** = Static key for initiator **`X`**mitted ("transmitted") to responder
+ * **`I`** = Static key for initiator **`I`**mmediately transmitted to responder,
+ despite reduced or absent identity hiding
+
+The second character refers to the responder's static key:
+
+ * **`N`** = **`N`**o static key for responder
+ * **`K`** = Static key for responder **`K`**nown to responder
+ * **`X`** = Static key for responder **`X`**mitted ("transmitted") to initiator
 
 +---------------------------+--------------------------------+
 |     Noise_NN():           |        Noise_KN(s):            |
 |       -> e                |          -> s                  |
 |       <- e, ee            |          ...                   |
 |                           |          -> e                  |
-|                           |          <- e, ee, es          |
-|                           |                                |
+|                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
 |     Noise_NK(rs):         |        Noise_KK(s, rs):        |
 |       <- s                |          -> s                  |
@@ -734,20 +733,17 @@ The following example handshake patterns represent interactive protocols.
 |        -> e, es           |          ...                   |
 |        <- e, ee           |          -> e, es, ss          |
 |                           |          <- e, ee, se          |
-|                           |                                |
 +---------------------------+--------------------------------+
 |      Noise_NX(rs):        |         Noise_KX(s, rs):       |
 |        -> e               |           -> s                 |
 |        <- e, ee, s, es    |           ...                  |
 |                           |           -> e                 |
 |                           |           <- e, ee, se, s, es  |
-|                           |                                |
 +---------------------------+--------------------------------+
 |      Noise_XN(s):         |         Noise_IN(s):           |
 |        -> e               |           -> e, s              |
 |        <- e, ee           |           <- e, ee, se         |
 |        -> s, se           |                                |
-|                           |                                |
 +---------------------------+--------------------------------+
 |      Noise_XK(s, rs):     |         Noise_IK(s, rs):       |
 |        <- s               |           <- s                 |      
@@ -755,13 +751,11 @@ The following example handshake patterns represent interactive protocols.
 |        -> e, es           |           -> e, es, s, ss      |
 |        <- e, ee           |           <- e, ee, se         |
 |        -> s, se           |                                |
-|                           |                                |
 +---------------------------+--------------------------------+
 |      Noise_XX(s, rs):     |         Noise_IX(s, rs):       |
 |        -> e               |           -> e, s              |
 |        <- e, ee, s, es    |           <- e, ee, se, s, es  |
 |        -> s, se           |                                |
-|                           |                                |
 +---------------------------+--------------------------------+
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
@@ -879,98 +873,98 @@ previous handshake payload sent from the same party.  If two transport payloads
 are listed, the security properties for the second only apply if the first was
 received.
 
-+---------------------------------------------------------------+
-|     Pattern               Authentication   Confidentiality    |
-+---------------------------------------------------------------+
-|     Noise_N                      0                2           |
-+---------------------------------------------------------------+
-|     Noise_K                      1                2           |
-+---------------------------------------------------------------+
-|     Noise_X                      1                2           |
-+---------------------------------------------------------------+
-|     Noise_NN                                                  |             
-|       -> e                       0                0           |               
-|       <- e, ee                   0                1           |               
-|       ->                         0                1           |               
-+---------------------------------------------------------------+
-|     Noise_NK                                                  |                                 
-|       <- s                                                    |                                                     
-|       ...                                                     |                                 
-|       -> e, es                   0                2           |               
-|       <- e, ee                   2                1           |               
-|       ->                         0                5           |               
-+---------------------------------------------------------------+
-|     Noise_NX                                                  |             
-|       -> e                       0                0           |               
-|       <- e, ee, s, es            2                1           |               
-|       ->                         0                5           |               
-+---------------------------------------------------------------+
-|     Noise_XN                                                  |                                 
-|       -> e                       0                0           |               
-|       <- e, ee                   0                1           |               
-|       -> s, se                   2                1           |               
-|       <-                         0                5           |               
-|                                                               |                                 
-+---------------------------------------------------------------+
-|     Noise_XK                                                  |                                 
-|       <- s                                                    |                                 
-|       ...                                                     |                                 
-|       -> e, es                   0                2           |               
-|       <- e, ee                   2                1           |               
-|       -> s, se                   2                5           |               
-|       <-                         2                5           |               
-+---------------------------------------------------------------+
-|     Noise_XX                                                  |                                 
-|      -> e                        0                0           |               
-|      <- e, ee, s, es             2                1           |               
-|      -> s, se                    2                5           |               
-|      <-                          2                5           |               
-+---------------------------------------------------------------+
-|     Noise_KN                                                  |                                 
-|       -> s                                                    |                                 
-|       ...                                                     |                                 
-|       -> e                       0                0           |               
-|       <- e, ee, es               0                3           |               
-|       ->                         2                1           |               
-|       <-                         0                5           |               
-+---------------------------------------------------------------+
-|     Noise_KK                                                  |                                 
-|       -> s                                                    |                                 
-|       <- s                                                    |                                 
-|       ...                                                     |                                 
-|       -> e, es, ss               1                2           |               
-|       <- e, ee, se               2                4           |               
-|       ->                         2                5           |               
-|       <-                         2                5           |               
-+---------------------------------------------------------------+
-|     Noise_KX                                                  |                           
-|       -> s                                                    |                           
-|       ...                                                     |                                 
-|       -> e                       0                0           |               
-|       <- e, ee, se, s, es        2                3           |               
-|       ->                         2                5           |               
-|       <-                         2                5           |               
-+---------------------------------------------------------------+
-|     Noise_IN                                                  |    
-|       -> e, s                    0                0           |         
-|       <- e, ee, se               0                3           |         
-|       ->                         2                1           |         
-|       <-                         0                5           |         
-+---------------------------------------------------------------+
-|     Noise_IK                                                  |                        
-|       <- s                                                    |                        
-|       ...                                                     |                        
-|       -> e, es, s, ss            1                2           |         
-|       <- e, ee, se               2                4           |         
-|       ->                         2                5           |         
-|       <-                         2                5           |         
-+---------------------------------------------------------------+
-|     Noise_IX                                                  |                        
-|       -> e, s                    0                0           |         
-|       <- e, ee, se, s, es        2                3           |         
-|       ->                         2                5           |         
-|       <-                         2                5           |         
-+---------------------------------------------------------------+
++--------------------------------------------------------------+
+|                          Authentication   Confidentiality    |
++--------------------------------------------------------------+
+|     Noise_N                     0                2           |
++--------------------------------------------------------------+
+|     Noise_K                     1                2           |
++--------------------------------------------------------------+
+|     Noise_X                     1                2           |
++--------------------------------------------------------------+
+|     Noise_NN                                                 |             
+|       -> e                      0                0           |               
+|       <- e, ee                  0                1           |               
+|       ->                        0                1           |               
++--------------------------------------------------------------+
+|     Noise_NK                                                 |                                 
+|       <- s                                                   |
+|       ...                                                    |                                 
+|       -> e, es                  0                2           |               
+|       <- e, ee                  2                1           |               
+|       ->                        0                5           |               
++--------------------------------------------------------------+
+|     Noise_NX                                                 |             
+|       -> e                      0                0           |               
+|       <- e, ee, s, es           2                1           |               
+|       ->                        0                5           |               
++--------------------------------------------------------------+
+|     Noise_XN                                                 |                                 
+|       -> e                      0                0           |               
+|       <- e, ee                  0                1           |               
+|       -> s, se                  2                1           |               
+|       <-                        0                5           |               
+|                                                              |                                 
++--------------------------------------------------------------+
+|     Noise_XK                                                 |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e, es                  0                2           |               
+|       <- e, ee                  2                1           |               
+|       -> s, se                  2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     Noise_XX                                                 |                                 
+|      -> e                       0                0           |               
+|      <- e, ee, s, es            2                1           |               
+|      -> s, se                   2                5           |               
+|      <-                         2                5           |               
++--------------------------------------------------------------+
+|     Noise_KN                                                 |                                 
+|       -> s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, se              0                3           |               
+|       ->                        2                1           |               
+|       <-                        0                5           |               
++--------------------------------------------------------------+
+|     Noise_KK                                                 |                                 
+|       -> s                                                   |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e, es, ss              1                2           |               
+|       <- e, ee, se              2                4           |               
+|       ->                        2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     Noise_KX                                                 |                           
+|       -> s                                                   |                           
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, se, s, es       2                3           |               
+|       ->                        2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     Noise_IN                                                 |    
+|       -> e, s                   0                0           |         
+|       <- e, ee, se              0                3           |         
+|       ->                        2                1           |         
+|       <-                        0                5           |         
++--------------------------------------------------------------+
+|     Noise_IK                                                 |                        
+|       <- s                                                   |                        
+|       ...                                                    |                        
+|       -> e, es, s, ss           1                2           |         
+|       <- e, ee, se              2                4           |         
+|       ->                        2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
+|     Noise_IX                                                 |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, se, s, es       2                3           |         
+|       ->                        2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
 
 
 8.5. Identity hiding
@@ -1023,24 +1017,41 @@ The properties for the relevant public key are:
 
 <!-- end of list - necesary to trick Markdown into seeing the following -->
 
-               Initiator      Responder              
-               ---------      ---------
-    Noise_N        -              3
-    Noise_K        5              5
-    Noise_X        4              3
-    Noise_NN       -              -
-    Noise_NK       -              3
-    Noise_NX       -              1
-    Noise_XN       2              -
-    Noise_XK       8              3
-    Noise_XX       8              1
-    Noise_KN       7              -
-    Noise_KK       5              5
-    Noise_KX       7              6
-    Noise_IN       0              -
-    Noise_IK       4              3
-    Noise_IX       0              6
 
++------------------------------------------+
+|                Initiator      Responder  |           
++------------------------------------------+
+|     Noise_N        -              3      |
++------------------------------------------+
+|     Noise_K        5              5      |
++------------------------------------------+
+|     Noise_X        4              3      |
++------------------------------------------+
+|     Noise_NN       -              -      |
++------------------------------------------+
+|     Noise_NK       -              3      |
++------------------------------------------+
+|     Noise_NX       -              1      |
++------------------------------------------+
+|     Noise_XN       2              -      |
++------------------------------------------+
+|     Noise_XK       8              3      |
++------------------------------------------+
+|     Noise_XX       8              1      |
++------------------------------------------+
+|     Noise_KN       7              -      |
++------------------------------------------+
+|     Noise_KK       5              5      |
++------------------------------------------+
+|     Noise_KX       7              6      |
++------------------------------------------+
+|     Noise_IN       0              -      |
++------------------------------------------+
+|     Noise_IK       4              3      |
++------------------------------------------+
+|     Noise_IX       0              6      |
++------------------------------------------+
+     
 
 
 8.6. More patterns 
@@ -1053,38 +1064,32 @@ However, to construct new patterns we can apply some **transformation** to an ex
 For example, if you don't care about identity hiding, you could apply a "noidh" transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible.  This transforms the patterns from the left column to the right column:
 
 +-------------------------------+-----------------------------+
-|                               |                             |
 |     Noise_X(s, rs):           |      Noise_Xnoidh(s, rs):   |
 |       <- s                    |        <- s                 |
 |       ...                     |        ...                  |
 |       -> e, es, s, ss         |        -> e, s, es, ss      |
 +-------------------------------+-----------------------------+
-|                               |                             |
 |     Noise_NX(rs):             |      Noise_NXnoidh(rs):     |           
 |       -> e                    |        -> e                 |
 |       <- e, ee, s, es         |        <- e, s, ee, es      |          
 +-------------------------------+-----------------------------+
-|                               |                             |
 |     Noise_XX(s, rs):          |      Noise_XXnoidh(s, rs):  |              
 |       -> e                    |        -> e                 |
 |       <- e, ee, s, es         |        <- e, s, ee, es      |          
 |       -> s, se                |        -> s, se             |   
 +-------------------------------+-----------------------------+
-|                               |                             |                     
 |     Noise_KX(s, rs):          |      Noise_KXnoidh(s, rs):  |                                  
 |       -> s                    |        -> s                 |
 |       ...                     |        ...                  |
 |       -> e                    |        -> e                 |
 |       <- e, ee, se, s, es     |        <- e, s, ee, se, es  |              
 +-------------------------------+-----------------------------+
-|                               |                             |                 
 |     Noise_IK(s, rs):          |      Noise_IKnoidh(s, rs):  |
 |       <- s                    |        <- s                 |
 |       ...                     |        ...                  |
 |       -> e, es, s, ss         |        -> e, s, es, ss      |          
 |       <- e, ee, se            |        <- e, ee, se         |       
 +-------------------------------+-----------------------------+
-|                               |                             |
 |     Noise_IX(s, rs):          |      Noise_IXnoidh(s, rs):  |
 |       -> e, s                 |        -> e, s              |
 |       <- e, ee, se, s, es     |        <- e, s, ee, se, es  |
