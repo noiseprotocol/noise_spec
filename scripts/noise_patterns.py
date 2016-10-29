@@ -119,7 +119,7 @@ class Pattern:
             s += "\n   ..."
         for marker, tokens in self.messages:
             s += "\n   " + marker + " " + ", ".join(tokens)
-        return s
+        return s + "\n"
 
     def error(self, message):
         """
