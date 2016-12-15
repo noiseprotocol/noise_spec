@@ -676,6 +676,8 @@ status of the sender's static key:
  * **`K`** = Static key for sender **`K`**nown to recipient
  * **`X`** = Static key for sender **`X`**mitted ("transmitted") to recipient
 
+\pagebreak
+
 +-------------------------+
 |     Noise_N(rs):        |
 |       <- s              |
@@ -720,6 +722,8 @@ The second character refers to the responder's static key:
  * **`K`** = Static key for responder **`K`**nown to responder
  * **`X`** = Static key for responder **`X`**mitted ("transmitted") to initiator
 
+\pagebreak
+
 +---------------------------+--------------------------------+
 |     Noise_NN():           |        Noise_KN(s):            |
 |       -> e                |          -> s                  |
@@ -757,6 +761,8 @@ The second character refers to the responder's static key:
 |        <- e, ee, s, es    |           <- e, ee, se, s, es  |
 |        -> s, se           |                                |
 +---------------------------+--------------------------------+
+
+\pagebreak
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
@@ -1062,6 +1068,8 @@ The patterns in the previous sections are the best option for most scenarios.
 However, to construct new patterns we can apply some **transformation** to an existing pattern, and name the resulting pattern by appending the transformation name to the existing pattern's name.
 
 For example, if you don't care about identity hiding, you could apply a "noidh" transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible.  This transforms the patterns from the left column to the right column:
+
+\pagebreak
 
 +-------------------------------+-----------------------------+
 |     Noise_X(s, rs):           |      Noise_Xnoidh(s, rs):   |
@@ -1386,6 +1394,8 @@ An application built on Noise must consider several issues:
    change (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
 
+\pagebreak
+
 13. Security considerations
 ===========================
 
@@ -1573,6 +1583,8 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
+
+\pagebreak
 
 16. Acknowledgements
 =====================
