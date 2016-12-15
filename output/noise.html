@@ -191,7 +191,7 @@
 <li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which may be <code>empty</code>). <code>Empty</code> is a special value which indicates <code>k</code> has not yet been initialized.</p></li>
 <li><p><strong><code>n</code></strong>: An 8-byte (64-bit) unsigned integer nonce.</p></li>
 </ul>
-<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2^64-1) is reserved for future use and must not be used. If incrementing <code>n</code> results in 2^64-1 (the maximum value), then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
+<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2<sup>64</sup>-1) is reserved for future use and must not be used. If incrementing <code>n</code> results in 2<sup>64</sup>-1 (the maximum value), then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
@@ -334,6 +334,7 @@
 <li><strong><code>K</code></strong> = Static key for sender <strong><code>K</code></strong>nown to recipient</li>
 <li><strong><code>X</code></strong> = Static key for sender <strong><code>X</code></strong>mitted (&quot;transmitted&quot;) to recipient</li>
 </ul>
+<p></p>
 <table style="width:36%;">
 <colgroup>
 <col width="36%" />
@@ -377,6 +378,7 @@
 <li><strong><code>K</code></strong> = Static key for responder <strong><code>K</code></strong>nown to responder</li>
 <li><strong><code>X</code></strong> = Static key for responder <strong><code>X</code></strong>mitted (&quot;transmitted&quot;) to initiator</li>
 </ul>
+<p></p>
 <table style="width:85%;">
 <colgroup>
 <col width="38%" />
@@ -449,6 +451,7 @@
 </tr>
 </tbody>
 </table>
+<p></p>
 <p>The <code>Noise_XX</code> pattern is the most generically useful, since it is efficient and supports mutual authentication and transmission of static public keys.</p>
 <p>All interactive patterns allow some encryption of handshake payloads:</p>
 <ul>
@@ -665,6 +668,7 @@
 <p>The patterns in the previous sections are the best option for most scenarios.</p>
 <p>However, to construct new patterns we can apply some <strong>transformation</strong> to an existing pattern, and name the resulting pattern by appending the transformation name to the existing pattern's name.</p>
 <p>For example, if you don't care about identity hiding, you could apply a &quot;noidh&quot; transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible. This transforms the patterns from the left column to the right column:</p>
+<p></p>
 <table style="width:89%;">
 <colgroup>
 <col width="44%" />
@@ -860,6 +864,7 @@ Noise_XXfallback(s, rs, re):
 <li><p><strong>Length fields</strong>: Applications must handle any framing or additional length fields for Noise messages, considering that a Noise message may be up to 65535 bytes in length. If an explicit length field is needed, applications are recommended to add a 16-bit big-endian length field prior to each message.</p></li>
 <li><p><strong>Type fields</strong>: Applications are recommended to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for the value zero to indicate no change from the current Noise protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify handshake re-initialization or any other compatibility-breaking change (protocol extensions that don't break compatibility can be handled within Noise payloads).</p></li>
 </ul>
+<p></p>
 <h1 id="security-considerations">13. Security considerations</h1>
 <p>This section collects various security considerations:</p>
 <ul>
@@ -867,7 +872,7 @@ Noise_XXfallback(s, rs, re):
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with handshake re-initialization, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
 <li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it must be passed in as a PSK.</p></li>
 <li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in previous bullet). This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 9.4</a>.</p></li>
-<li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved for future use. This means parties are not allowed to send more than 2^64-1 transport messages.</p></li>
+<li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved for future use. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
 <li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol should send a new ephemeral public key and perform a DH with it prior to sending any encrypted data. Otherwise replay of a handshake message could trigger catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 8</a>, and the validity rules in <a href="#pattern-validity">Section 8.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair, static key pair, or PSK). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
 <li><p><strong>Pre-shared symmetric keys</strong>: Pre-shared symmetric keys must be secret values with 256 bits of entropy.</p></li>
@@ -954,6 +959,7 @@ Noise_XXfallback(s, rs, re):
 </ul>
 <h1 id="ipr">15. IPR</h1>
 <p>The Noise specification (this document) is hereby placed in the public domain.</p>
+<p></p>
 <h1 id="acknowledgements">16. Acknowledgements</h1>
 <p>Noise is inspired by:</p>
 <ul>

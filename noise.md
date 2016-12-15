@@ -348,8 +348,8 @@ variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-The maximum `n` value (2^64-1) is reserved for future use and must not be used.
-If incrementing `n` results in 2^64-1 (the maximum value), then any further
+The maximum `n` value (2^64^-1) is reserved for future use and must not be used.
+If incrementing `n` results in 2^64^-1 (the maximum value), then any further
 `EncryptWithAd()` or `DecryptWithAd()` calls will signal an error to the
 caller.
 
@@ -1431,7 +1431,7 @@ This section collects various security considerations:
    `k` for encryption would be catastrophic.  Implementations must carefully
    follow the rules for nonces.  Nonces are not allowed to wrap back to zero
    due to integer overflow, and the maximum nonce value is reserved for future
-   use.  This means parties are not allowed to send more than 2^64-1 transport
+   use.  This means parties are not allowed to send more than 2^64^-1 transport
    messages.
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
