@@ -1444,7 +1444,7 @@ This section collects various security considerations:
 
  * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
    in security as the volume of data encrypted under a single key increases.
-   Due to this, parties should not send more than 2^56 bytes (roughly 72
+   Due to this, parties should not send more than 2^56^ bytes (roughly 72
    petabytes) encrypted by a single key.  If sending such large volumes of data
    is a possibility, different cipher functions should be chosen.
 
@@ -1507,12 +1507,12 @@ The authentication data in a ciphertext is 128 bits because:
     can receive rapid feedback on whether MAC guesses are correct.
   * A single fixed length is simpler than supporting variable-length tags.
 
-The GCM security limit is 2^56 bytes because:
+The GCM security limit is 2^56^ bytes because:
 
-  * This is 2^52 AES blocks (each block is 16 bytes).  The limit is based on
+  * This is 2^52^ AES blocks (each block is 16 bytes).  The limit is based on
    the risk of birthday collisions being used to rule out plaintext guesses.
-   The probability an attacker could rule out a random guess on a 2^56 byte
-   plaintext is less than 1 in 1 million (roughly (2^52 * 2^52) / 2^128).
+   The probability an attacker could rule out a random guess on a 2^56^ byte
+   plaintext is less than 1 in 1 million (roughly (2^52^ * 2^52^) / 2^128^).
 
 Big-endian length fields are recommended because:
 

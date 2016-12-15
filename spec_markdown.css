@@ -8,7 +8,7 @@ line-height:1.5em;
 padding:1em;
 margin:auto;
 max-width:42em;
-background:#fefefe;
+background:#ffffff;
 }
 
 a{ color: #0645ad; text-decoration:none;}
@@ -73,7 +73,7 @@ dd { margin: 0 0 0 2em; }
 img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; }
 
 table { border-collapse: collapse; border-spacing: 0; }
-td { vertical-align: top; padding: 6px; }
+td { vertical-align: top; padding: 12px; }
 
 @media only screen and (min-width: 480px) {
 body{font-size:14px;}

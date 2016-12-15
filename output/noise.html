@@ -871,7 +871,7 @@ Noise_XXfallback(s, rs, re):
 <li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol should send a new ephemeral public key and perform a DH with it prior to sending any encrypted data. Otherwise replay of a handshake message could trigger catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 8</a>, and the validity rules in <a href="#pattern-validity">Section 8.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair, static key pair, or PSK). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
 <li><p><strong>Pre-shared symmetric keys</strong>: Pre-shared symmetric keys must be secret values with 256 bits of entropy.</p></li>
-<li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2^56 bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility, different cipher functions should be chosen.</p></li>
+<li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility, different cipher functions should be chosen.</p></li>
 <li><p><strong>Hash collisions</strong>: If an attacker can find hash collisions on prologue data or the handshake hash, they may be able to perform &quot;transcript collision&quot; attacks that trick the parties into having different views of handshake data. It is important to use Noise with collision-resistant hash functions, and replace the hash function at any sign of weakness.</p></li>
 <li><p><strong>Implementation fingerprinting</strong>: If this protocol is used in settings with anonymous parties, care should be taken that implementations behave identically in all cases. This may require mandating exact behavior for handling of invalid DH public keys.</p></li>
 </ul>
@@ -907,9 +907,9 @@ Noise_XXfallback(s, rs, re):
 <li>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.</li>
 <li>A single fixed length is simpler than supporting variable-length tags.</li>
 </ul>
-<p>The GCM security limit is 2^56 bytes because:</p>
+<p>The GCM security limit is 2<sup>56</sup> bytes because:</p>
 <ul>
-<li>This is 2^52 AES blocks (each block is 16 bytes). The limit is based on the risk of birthday collisions being used to rule out plaintext guesses. The probability an attacker could rule out a random guess on a 2^56 byte plaintext is less than 1 in 1 million (roughly (2^52 * 2^52) / 2^128).</li>
+<li>This is 2<sup>52</sup> AES blocks (each block is 16 bytes). The limit is based on the risk of birthday collisions being used to rule out plaintext guesses. The probability an attacker could rule out a random guess on a 2<sup>56</sup> byte plaintext is less than 1 in 1 million (roughly (2<sup>52</sup> * 2<sup>52</sup>) / 2<sup>128</sup>).</li>
 </ul>
 <p>Big-endian length fields are recommended because:</p>
 <ul>
