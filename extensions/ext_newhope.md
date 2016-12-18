@@ -1,8 +1,8 @@
 ---
 title:      'Noise Extension: New Hope'
 author:     'Rhys Weatherley (rhys.weatherley@gmail.com)'
-revision:   '1draft-3'
-date:       '2016-10-08'
+revision:   '1draft-4'
+date:       '2016-12-19'
 ---
 
 1. Introduction
@@ -11,8 +11,8 @@ date:       '2016-10-08'
 This document describes the post-quantum key exchange algorithm New Hope
 and provides information for using it with the Noise protocol.
 
-New Hope [1] is a Diffie-Hellman like key exchange mechanism based on the
-Ring Learning with Errors (Ring-LWE) problem.  It is believed to be
+New Hope [1,2] is a Diffie-Hellman like key exchange mechanism based on
+the Ring Learning with Errors (Ring-LWE) problem.  It is believed to be
 secure against an adversary with a quantum computer.  It provides the
 equivalent of 128 bits of security.
 
@@ -21,9 +21,9 @@ the party:
 
  * Alice generates a 1824-byte public key and a 2048-byte private key.
    Her 1824-byte public key is sent to Bob.
- * Bob uses Alice's public key to generate his own 2048-byte public key
-   and a 32-byte shared secret.  His 2048-byte public key is sent to Alice.
- * Alice uses her 2048-byte private key and Bob's 2048-byte public key
+ * Bob uses Alice's public key to generate his own 2176-byte public key
+   and a 32-byte shared secret.  His 2176-byte public key is sent to Alice.
+ * Alice uses her 2048-byte private key and Bob's 2176-byte public key
    to generate her copy of the 32-byte shared secret.
 
 New Hope supports ephemeral key exchange only, which makes it suitable
@@ -34,14 +34,13 @@ pattern, we do not define that here.
 2. Definition of `NewHope` for use in Noise
 ===========================================
 
-The reference implementation of New Hope [2] has two variants, which it
-refers to as "ref" and "torref".  They differ in the generation of
-the public "a" value of the algorithm.  The "torref" variant uses a
-constant-time algorithm to generate "a".
+The authors of New Hope have refined the algorithm from the original
+paper [1] to produce a simpler version without reconciliation [2].
+It is this "NewHope-Simple" version that we standardize for use in
+Noise under the function name `NewHope`.  The previous "ref" and
+"torref" variants are not used.
 
-This document standardizes the "torref" variant under the Noise
-function name `NewHope`.  The "ref" variant is not used.  The
-function and constant definitions for hybrid forward secrecy are
+The function and constant definitions for hybrid forward secrecy are
 as follows:
 
  * **`GENERATE_KEYPAIR_F(rf)`**:
@@ -57,7 +56,7 @@ as follows:
 
  * **`FLEN1`** = 1824
 
- * **`FLEN2`** = 2048
+ * **`FLEN2`** = 2176
 
  * **`FFLEN`** = 32
 
@@ -92,4 +91,7 @@ The following are examples of protocol names involving New Hope:
 [Post-quantum key exchange – a new hope](https://cryptojedi.org/papers/#newhope).
 Proceedings of the 25th USENIX Security Symposium.
 
-[2] [Reference implementation of New Hope](https://cryptojedi.org/crypto/#newhope).
+[2] Erdem Alkim, Léo Ducas, Thomas Pöppelmann, and Peter Schwabe:
+[NewHope without reconciliation](https://cryptojedi.org/papers/#newhopesimple).
+
+[3] [Reference implementation of New Hope](https://cryptojedi.org/crypto/#newhope).
