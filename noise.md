@@ -479,8 +479,15 @@ A `HandshakeState` responds to the following methods:
 
           * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
-            `MixKey(DH(y, rx))`.
+          * For `"ee"`:  Calls `MixKey(DH(e, re))`.
+
+          * For `"es"`:  If `initiator`, calls `MixKey(DH(e, rs))`, otherwise
+            `MixKey(DH(s, re))`.
+
+          * For `"se"`:  If `initiator`, calls `MixKey(DH(s, re))`, otherwise
+            `MixKey(DH(e, rs))`.
+
+          * For `"ss"`:  Calls `MixKey(DH(s, rs))`.
 
       * Appends `EncryptAndHash(payload)` to the buffer.  
 
@@ -501,8 +508,15 @@ A `HandshakeState` responds to the following methods:
             `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
             to `DecryptAndHash(temp)`.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
-            `MixKey(DH(y, rx))`.
+          * For `"ee"`:  Calls `MixKey(DH(e, re))`.
+
+          * For `"es"`:  If `initiator`, calls `MixKey(DH(e, rs))`, otherwise
+            `MixKey(DH(s, re))`.
+
+          * For `"se"`:  If `initiator`, calls `MixKey(DH(s, re))`, otherwise
+            `MixKey(DH(e, rs))`.
+
+          * For `"ss"`:  Calls `MixKey(DH(s, rs))`.
 
       * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
         the output into `payload_buffer`.
