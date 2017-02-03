@@ -1219,6 +1219,9 @@ Note that the `type` byte doesn't need to be explicitly authenticated (as
 prologue, or additional AEAD data), since it's implicitly authenticated if the
 message is processed succesfully.
 
+See [Section 7](#pre-shared-symmetric-keys) for additional initialization steps
+when using PSK with dependent patterns.
+
 9.3. Protocol indistinguishability
 -----------------------------------
 Parties may wish to hide what protocol they are executing from an eavesdropper.
