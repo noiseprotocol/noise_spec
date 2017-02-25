@@ -1,8 +1,8 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '31'
-date:       '2016-10-07'
+revision:   '32draft'
+date:       '2017-02-25'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -1005,9 +1005,9 @@ The properties for the relevant public key are:
      If an attacker learns the responder's private key they can decrypt the
      initiator's public key. 
 
-  5. Not transmitted, but a passive attacker can check candidates for
-     the responder's private key and initiator's public key and determine if
-     both candidates are correct.
+  5. Not transmitted, but a passive attacker can check candidates for the pair
+     of (responder's private key, initiator's public key) and learn whether the
+     candidate pair is correct.
 
   6. Encrypted but with weak forward secrecy.  An active attacker who
      pretends to be the initiator without the initiator's static private key,
