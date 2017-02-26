@@ -1,0 +1,125 @@
+// Noise Protocol Framework, Revision 31
+
+// Section 8.2. One-way patterns
+
+Noise_N(rs):
+   <- s
+   ...
+   -> e, es
+
+Noise_K(s, rs):
+   -> s
+   <- s
+   ...
+   -> e, es, ss
+
+Noise_X(s, rs):
+   <- s
+   ...
+   -> e, es, s, ss
+
+// Section 8.3. Interactive patterns
+
+Noise_NN():
+   -> e
+   <- e, ee
+
+Noise_NK(rs):
+   <- s
+   ...
+   -> e, es
+   <- e, ee
+
+Noise_NX(rs):
+   -> e
+   <- e, ee, s, es
+
+Noise_KN(s):
+   -> s
+   ...
+   -> e
+   <- e, ee, se
+
+Noise_KK(s, rs):
+   -> s
+   <- s
+   ...
+   -> e, es, ss
+   <- e, ee, se
+
+Noise_KX(s, rs):
+   -> s
+   ...
+   -> e
+   <- e, ee, se, s, es
+
+Noise_XN(s):
+   -> e
+   <- e, ee
+   -> s, se
+
+Noise_XK(s, rs):
+   <- s
+   ...
+   -> e, es
+   <- e, ee
+   -> s, se
+
+Noise_XX(s, rs):
+   -> e
+   <- e, ee, s, es
+   -> s, se
+
+Noise_IN(s):
+   -> e, s
+   <- e, ee, se
+
+Noise_IK(s, rs):
+   <- s
+   ...
+   -> e, es, s, ss
+   <- e, ee, se
+
+Noise_IX(s, rs):
+   -> e, s
+   <- e, ee, se, s, es
+
+// Section 8.6. More patterns
+
+Noise_Xnoidh(s, rs):
+   <- s
+   ...
+   -> e, s, es, ss
+
+Noise_NXnoidh(rs):
+   -> e
+   <- e, s, ee, es
+
+Noise_XXnoidh(s, rs):
+   -> e
+   <- e, s, ee, es
+   -> s, se
+
+Noise_KXnoidh(s, rs):
+   -> s
+   ...
+   -> e
+   <- e, s, ee, se, es
+
+Noise_IKnoidh(s, rs):
+   <- s
+   ...
+   -> e, s, es, ss
+   <- e, ee, se
+
+Noise_IXnoidh(s, rs):
+   -> e, s
+   <- e, s, ee, se, es
+
+// Section 9.2. Compound protocols and "Noise Pipes"
+
+Noise_XXfallback(s, rs, re):
+   <- e
+   ...
+   -> e, ee, s, se
+   <- s, es

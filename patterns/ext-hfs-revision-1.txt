@@ -1,0 +1,100 @@
+// Noise Extension: Hybrid Forward Secrecy, Revision 1
+
+// Fully hybrid patterns.
+
+Noise_NNhfs():
+   -> e, f
+   <- e, f, ee, ff
+
+Noise_NXhfs(rs):
+   -> e, f
+   <- e, f, ee, ff, s, es
+
+Noise_XNhfs(s):
+   -> e, f
+   <- e, f, ee, ff
+   -> s, se
+
+Noise_XXhfs(s, rs):
+   -> e, f
+   <- e, f, ee, ff, s, es
+   -> s, se
+
+Noise_KNhfs(s):
+   -> s
+   ...
+   -> e, f
+   <- e, f, ee, ff, se
+
+Noise_KXhfs(s, rs):
+   -> s
+   ...
+   -> e, f
+   <- e, f, ee, ff, se, s, es
+
+Noise_INhfs(s):
+   -> e, f, s
+   <- e, f, ee, ff, se
+
+Noise_IXhfs(s, rs):
+   -> e, f, s
+   <- e, f, ee, ff, se, s, es
+
+Noise_XXfallback+hfs(s, rs, re):
+   <- e, f
+   ...
+   -> e, f, ee, ff, s, se
+   <- s, es
+
+Noise_NXnoidh+hfs(rs):
+   -> e, f
+   <- e, f, s, ee, ff, es
+
+Noise_XXnoidh+hfs(s, rs):
+   -> e, f
+   <- e, f, s, ee, ff, es
+   -> s, se
+
+Noise_KXnoidh+hfs(s, rs):
+   -> s
+   ...
+   -> e, f
+   <- e, f, s, ee, ff, se, es
+
+Noise_IXnoidh+hfs(s, rs):
+   -> e, f, s
+   <- e, f, s, ee, ff, se, es
+
+// Partially hybrid patterns.
+
+Noise_NKhfs(rs):
+   <- s
+   ...
+   -> e, f, es
+   <- e, f, ee, ff
+
+Noise_XKhfs(s, rs):
+   <- s
+   ...
+   -> e, f, es
+   <- e, f, ee, ff
+   -> s, se
+
+Noise_KKhfs(s, rs):
+   -> s
+   <- s
+   ...
+   -> e, f, es, ss
+   <- e, f, ee, ff, se
+
+Noise_IKhfs(s, rs):
+   <- s
+   ...
+   -> e, f, es, s, ss
+   <- e, f, ee, ff, se
+
+Noise_IKnoidh+hfs(s, rs):
+   <- s
+   ...
+   -> e, f, s, es, ss
+   <- e, f, ee, ff, se
