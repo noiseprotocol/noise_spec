@@ -551,11 +551,11 @@ using pre-shared symmetric keys, the following changes are made:
    ephemeral public key's value as a random nonce to prevent re-using the same
    `k` and `n` for different messages.
 
- * `Initialize()` is modified when processing an `"e"` pre-message token in a "dependent"
-   handshake pattern (see [Section 8.1](#pattern-validity)) to call `MixKey()` on the
-   ephemeral public key immediately after calling `MixHash()` on it.  This
-   accomplishes the same randomization as the previous bullet, but needs to be
-   applied to pre-messages for dependent patterns.
+ * `Initialize()` is modified when processing an `"e"` token in the initiator's
+   pre-message.  A handshake pattern with such a pre-message is a **fallback
+   pattern** (see [Section 8.1](#pattern-validity)).  In this case, `MixKey()`
+   is called on the ephemeral public key immediately after calling `MixHash()`
+   on it.  This accomplishes the same randomization as the previous bullet.
 
 8. Handshake patterns 
 ======================
@@ -579,9 +579,16 @@ The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
 `Initialize()` for the "recipient" of the pre-message.  
 
-The first actual handshake message is sent from the initiator to the responder,
-the next is sent by the responder, the next from the initiator, and so on in
-alternating fashion. 
+The first actual handshake message is sent from the initiator to the responder
+(with one exception - see next paragraph).  The next message is sent by the
+responder, the next from the initiator, and so on in alternating fashion.
+
+As will be described later, Noise allows **compound protocols** where the responder
+switches to a different "fallback" pattern than the initiator started with.  If
+the initiator's pre-message contains an `"e"` token, then this handshake
+pattern is a fallback pattern (see [Section 9.2](#compound-protocols-and-noise-pipes)).  In the case of a fallback pattern,
+the first actual handshake message is sent by the responder, the next from the
+initiator, and so on.
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
@@ -590,11 +597,14 @@ The following handshake pattern describes an unauthenticated DH handshake:
       <- e, ee
 
 The handshake pattern name is `Noise_NN`.  This naming convention will be
-explained in [Section 8.3](#interactive-patterns).  The empty parentheses indicate that
-neither party is initialized with any key pairs.  The tokens `"s"` and/or `"e"`
-inside the parentheses would indicate that the initiator is initialized with
-static and/or ephemeral key pairs.  The tokens `"rs"` and/or `"re"` would
-indicate the same thing for the responder.
+explained in [Section 8.3](#interactive-patterns).  The empty parentheses
+indicate that neither party is initialized with any key pairs.  The tokens
+`"s"`, `"e"`, or `"e, s"` inside the parentheses would indicate that the
+initiator is initialized with static and/or ephemeral key pairs.  The tokens
+`"rs"`, `"re"`, or `"re, rs"` would indicate the same thing for the responder.
+
+Right-pointing arrows show messages sent by the initiator.  Left-pointing
+arrows show messages sent by the responder.
 
 Pre-messages are shown as patterns prior to the delimiter "...", with a
 right-pointing arrow for the initiator's pre-message, and a left-pointing arrow
@@ -630,13 +640,13 @@ Handshake patterns must be **valid** in the following senses:
     no more than one occurrence of "e", and one occurrence of "s", in the
     messages sent by any party).
 
- 3. Parties must send an ephemeral public key at the start of the first
-   message they send (i.e. the first token of the first message pattern in each
-   direction must be `"e"`).  To support "compound protocols" 
-   (see [Section 9.2](#compound-protocols-and-noise-pipes)) an exception is 
-   allowed if the party's ephemeral public key was used as a "pre-message".  A 
-   handshake pattern that relies on this exception is a **dependent pattern**, and can only be used
-   according to the rules in [Section 9.2](#compound-protocols-and-noise-pipes).
+ 3. Parties must send an ephemeral public key at the start of the first message
+    they send (i.e. the first token of the first message pattern in each
+    direction must be `"e"`).  An exception is allowed for the initiator if the
+    initiator's ephemeral public key is used as a "pre-message", i.e. if the
+    handshake is using a "fallback pattern".  Such a pattern can only be used
+    according to the rules in [Section
+    9.2](#compound-protocols-and-noise-pipes).
 
  4. After performing a DH between a remote public key and any local private key
     that is not an ephemeral private key, the local party must not send any
@@ -1135,21 +1145,22 @@ authentications (initiator only, responder only, both, or none).
 
 Consider a protocol where the initiator can attempt zero-RTT encryption based
 on the responder's static public key.  If the responder has changed his static
-public key, the parties will need to switch to a "fallback" handshake where the
+public key, the parties will need to switch to a **fallback handshake** where the
 responder transmits the new static public key and the initiator resends the
 zero-RTT data.
 
 This can be handled by both parties re-initializing their `HandshakeState` and
-executing a different handshake.  Using handshake re-initialization to
+executing a **fallback handshake pattern**.  Using handshake re-initialization to
 switch from one "simple" Noise protocol to another results in a **compound
 protocol**.
 
-Public keys that were exchanged in the first handshake can be represented as
-pre-messages in the second handshake.  If an ephemeral public key was sent in the 
-first handshake and used as a pre-message in the second handshake, that party can avoid
-sending a new ephemeral by using a "dependent" pattern (see [Section 8.1](pattern-validity)).
+Public keys that were sent in the initial message should be represented as
+pre-messages in the second handshake.  Because an ephemeral public key was sent in
+the initiator's first message and used as a pre-message in the second handshake, the
+second's handshake pattern is a "fallback pattern", and the initiator does not need to
+send a new ephemeral (see [Section 8.1](pattern-validity)).
 
-Re-initializing with a dependent pattern is only allowed if the new handshake and
+Re-initializing with a fallback pattern is only allowed if the new handshake and
 old handshake have different protocol names (see [Section 11](#protocol-names)) 
 and the rules for handling PSKs are followed (see [Section 7](#pre-shared-symmetric-keys)).
 
@@ -1169,7 +1180,7 @@ which the initiator can cache the responder's static public key.
    to changing his static key), the responder will initiate a new **fallback
    handshake** using the `Noise_XXfallback` pattern which is identical to
    `Noise_XX` except re-using the ephemeral public key from the first
-   `Noise_IK` message as a pre-message public key (thus is a "dependent" pattern).
+   `Noise_IK` message as a pre-message public key (thus is a **fallback pattern**).
 
 Below are the three patterns used for Noise Pipes:
 
@@ -1184,15 +1195,11 @@ Below are the three patterns used for Noise Pipes:
       -> e, es, s, ss          
       <- e, ee, se
                                         
-    Noise_XXfallback(s, rs, re):                   
-      <- e
+    Noise_XXfallback(e, s, rs):                   
+      -> e
       ...
-      -> e, ee, s, se
-      <- s, es
-
-Note that in the fallback case, the initiator and responder roles are switched:
-If Alice initiates a `Noise_IK` handshake with Bob, Bob might initiate a
-`Noise_XXfallback` handshake.
+      <- e, ee, s, es
+      -> s, se
 
 There needs to be some way for the recipient of a message to distinguish
 whether it's the next message in the current handshake pattern, or requires
