@@ -729,7 +729,7 @@ The first character refers to the initiator's static key:
 The second character refers to the responder's static key:
 
  * **`N`** = **`N`**o static key for responder
- * **`K`** = Static key for responder **`K`**nown to responder
+ * **`K`** = Static key for responder **`K`**nown to initiator
  * **`X`** = Static key for responder **`X`**mitted ("transmitted") to initiator
 
 \pagebreak
