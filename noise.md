@@ -406,9 +406,9 @@ A `SymmetricState` responds to the following methods:
     byte sequence:
       * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)`.
       * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes.
-      * Creates two new `CipherState` objects `c1` and `c2`.
-      * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.
-      * Returns the pair `(c1, c2)`.  
+      * Creates two new `CipherState` objects `sender` and `receiver`.
+      * Calls `sender.InitializeKey(temp_k1)` and `receiver.InitializeKey(temp_k2)`.
+      * Returns the pair `(sender, receiver)`.  
 
 
 5.3. The `HandshakeState` object
