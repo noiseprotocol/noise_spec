@@ -1274,7 +1274,15 @@ To support this, Noise libraries should expose the final value of `h` to the
 application as a **handshake hash** which uniquely identifies the Noise
 session.
 
-Parties can then sign the handshake hash, or hash it along with their password,
+Applications should not use the handshake hash directly.  Instead, applications
+requiring channel binding should use the handshake hash to calculate an application-specific
+**channel-binding value**.
+
+To get a channel-binding value `cbv` from the handshake hash, the application
+chooses some ASCII **channel-binding label** which identifies the context this value
+will be used within, and calculates `cbv = HASH(h || label)`.
+
+Parties can then sign the channel binding value, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
 
@@ -1287,12 +1295,14 @@ future Noise protocols.  These keys should be **channel-bound keys** to ensure
 the sending party isn't relaying keys from a different session.
 
 To exchange a channel-bound key one party should send the other a preliminary
-32-byte secret key `pk` inside of a Noise transport message (the details of how this value is encoded and sent in a message are left to the application).
+32-byte secret key `pk` inside of a Noise transport message (the details of how
+this value is encoded and sent in a message are left to the application).
 
-Both parties will then calculate the channel-bound
-key as the first 32 bytes of `HMAC-HASH(pk, h)`.  HMAC ensures that the channel-bound
-key is a collision-resistant function of `h`, and also preserves the secrecy of the
-keys.
+Both parties will agree on a channel-binding label which they use to derive a
+channel-binding value `cbv`.  Both parties then calculate the channel-bound key
+as the first 32 bytes of `HMAC-HASH(pk, cbv)`.  HMAC ensures that the
+channel-bound key is a collision-resistant function of `cbv`, and also
+preserves the secrecy of the keys.
 
 
 10. DH functions, cipher functions, and hash functions
