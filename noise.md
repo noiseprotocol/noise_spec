@@ -1117,59 +1117,44 @@ For example, if you don't care about identity hiding, you could apply a "noidh" 
 Other tranformations might add or remove `"ss"` operations, or defer DH operations
 until later.
 
-9. Advanced uses
-=================
+8. Compound protocols
+=======================
 
-9.1. Dummy static public keys
-------------------------------
+So far we've discussed **simple Noise protocols** which execute a single handshake pattern.
 
-Consider a protocol where an initiator will authenticate herself if the responder
-requests it.  This could be viewed as the initiator choosing between patterns
-like `Noise_NX` and `Noise_XX` based on some value inside the responder's first
-handshake payload.  
+Noise also supports **compound Noise protocols**.  In a compound protocol the
+initiator begins executing a simple Noise protocol to send the first message,
+but the responder might choose to "fall back" to a different simple Noise protocol.
 
-Noise doesn't directly support this.  Instead, this could be simulated by
-always executing `Noise_XX`.  The initiator can simulate the `Noise_NX` case by
-sending a **dummy static public key** if authentication is not requested.  The
-value of the dummy public key doesn't matter.  For efficiency, the initiator
-can send a null public key value per [Section 4](#crypto-functions) (e.g.  an all-zeros
-`25519` value that is guaranteed to produce an all-zeros output).
+Compound protocols allow **zero-round trip (or "zero-RTT") encryption**, where
+the initiator encrypts the first message based on some stored information about
+the responder.  If the initiator's information is out of date, the responder
+won't be able to decrypt the initial message, and will have to switch to a
+fallback protocol.
 
-This technique is simple, since it allows use of a single handshake pattern.
-It also doesn't reveal which option was chosen from message sizes.  It could be
-extended to allow a `Noise_XX` pattern to support any permutation of
-authentications (initiator only, responder only, both, or none).
+8.1. Mechanics
+---
 
-9.2. Compound protocols and "Noise Pipes"
-------------------------------------------
-
-Consider a protocol where the initiator can attempt zero-RTT encryption based
-on the responder's static public key.  If the responder has changed his static
-public key, the parties will need to switch to a **fallback handshake** where the
-responder transmits the new static public key and the initiator resends the
-zero-RTT data.
-
-This can be handled by both parties re-initializing their `HandshakeState` and
-executing a **fallback handshake pattern**.  Using handshake re-initialization to
-switch from one "simple" Noise protocol to another results in a **compound
-protocol**.
+If the responder accepts the initial Noise message, the protocol proceeds
+normally.  If the responder can't decrypt the initial message, then a fallback
+is triggered.  In the fallback case the responder somehow signals the fallback
+to the initiator, and both parties re-initialize their `HandshakeState` and
+execute a **fallback handshake pattern**.
 
 Public keys that were sent in the initial message should be represented as
-pre-messages in the second handshake.  Because an ephemeral public key was sent in
+pre-messages in the fallback handshake.  Because an ephemeral public key is sent in
 the initiator's first message and used as a pre-message in the second handshake, the
 second's handshake pattern is a "fallback pattern", and the initiator does not need to
-send a new ephemeral (see [Section 8.1](pattern-validity)).
-
-Re-initializing with a fallback pattern is only allowed if the new handshake and
-old handshake have different protocol names (see [Section 11](#protocol-names)) 
-and the rules for handling PSKs are followed (see [Section 7](#pre-shared-symmetric-keys)).
+send a new ephemeral in their first message of the fallback pattern (see [Section 8.1](pattern-validity)).
 
 If any negotiation occurred in the first handshake, the first handshake's `h`
 variable should be provided as prologue to the second handshake.
 
-By way of example, this section defines the **Noise Pipe** compound protocol.
-This protocol uses three handshake patterns - two defined in the previous
-section, and a new one:
+8.2. Noise Pipes
+---
+
+This section defines the **Noise Pipe** compound protocol.  This protocol uses
+three handshake patterns - two defined previously, and a new one:
 
  * `Noise_XX` is used for an initial **full handshake** if the parties haven't communicated before, after
 which the initiator can cache the responder's static public key.  
@@ -1226,11 +1211,38 @@ Note that the `type` byte doesn't need to be explicitly authenticated (as
 prologue, or additional AEAD data), since it's implicitly authenticated if the
 message is processed succesfully.
 
-9.3. Protocol indistinguishability
+8.3. Other compound protocols
+---
+
+
+9. Advanced features
+=====================
+
+9.1. Dummy static public keys
+------------------------------
+
+Consider a protocol where an initiator will authenticate herself if the responder
+requests it.  This could be viewed as the initiator choosing between patterns
+like `Noise_NX` and `Noise_XX` based on some value inside the responder's first
+handshake payload.  
+
+Noise doesn't directly support this.  Instead, this could be simulated by
+always executing `Noise_XX`.  The initiator can simulate the `Noise_NX` case by
+sending a **dummy static public key** if authentication is not requested.  The
+value of the dummy public key doesn't matter.  For efficiency, the initiator
+can send a null public key value per [Section 4](#crypto-functions) (e.g.  an all-zeros
+`25519` value that is guaranteed to produce an all-zeros output).
+
+This technique is simple, since it allows use of a single handshake pattern.
+It also doesn't reveal which option was chosen from message sizes.  It could be
+extended to allow a `Noise_XX` pattern to support any permutation of
+authentications (initiator only, responder only, both, or none).
+
+9.2. Protocol indistinguishability
 -----------------------------------
 Parties may wish to hide what protocol they are executing from an eavesdropper.
 For example, suppose parties are using Noise Pipes, and want to hide whether
-they are performing a full handshake, abbreviated handshake, or fallback
+they are performing a full handshake, zero-RTT handshake, or fallback
 handshake.  
 
 This is fairly easy:
@@ -1238,19 +1250,22 @@ This is fairly easy:
  * The first three messages can have their payloads padded with random bytes to
    a constant size, regardless of which handshake is executed.
 
- * Instead of a `type` byte, the responder can use trial decryption to
-   differentiate between an initial message using `Noise_XX` or `Noise_IK`.
+ * The responder will attempt to decrypt the first message as a `NoiseIK` message,
+   and will fallback to `Noise_XXfallback` if decryption fails.
 
- * Instead of a `type` byte, an initiator who sent a `Noise_IK` initial
-   message can use trial decryption to differentiate between a response using
-   `Noise_IK` or `Noise_XXfallback`. 
+ * An initiator who sent a `Noise_IK` initial message can use trial decryption
+   to differentiate between a response using `Noise_IK` or `Noise_XXfallback`. 
+
+Note that the `Noise_XX` pattern isn't used:  Because the server can't
+distinguish a `Noise_XX` message from `Noise_XXfallback` with trial decryption,
+the full handshake must be done with `Noise_XXfallback`.
 
 This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect
 the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
 Elligator [@elligator] could be used.
 
-9.4. Channel binding
+9.3. Channel binding
 ---------------------
 Parties may wish to execute a Noise protocol, then perform authentication at the 
 application layer using signatures, passwords, or something else.
@@ -1262,6 +1277,26 @@ session.
 Parties can then sign the handshake hash, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
+
+9.4. Channel-bound keys
+------------------------
+
+Two parties with an active Noise session might wish to exchange symmetric
+key(s) for use in other protocols, or for use as preshared symmetric keys in
+future Noise protocols.  These keys should be **channel-bound keys** to ensure
+the sending party isn't relaying keys from a different session.
+
+To exchange a channel-bound key one party should send the other a preliminary
+32-byte secret key `pk`.  Both parties will then calculate the channel-bound
+key as the first 32 bytes of `HMAC-HASH(pk, h)`.  HMAC ensures that the channel-bound
+key is a collision-resistant function of `h`, and also preserves the secrecy of the
+keys.
+
+9.5. Rekey
+-----------
+
+An application may specify 
+
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
