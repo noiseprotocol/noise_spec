@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2016-10-07" />
+  <meta name="date" content="2017-02-25" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -14,8 +14,8 @@
 <div id="header">
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
-<b>Revision:</b> 31<br/>
-<b>Date:</b> 2016-10-07<br/>
+<b>Revision:</b> 32draft<br/>
+<b>Date:</b> 2017-02-25<br/>
 </div>
 <div id="TOC">
 <h2 class="toc">Table of Contents</h2>
@@ -46,11 +46,16 @@
 <li><a href="#identity-hiding">8.5. Identity hiding</a></li>
 <li><a href="#more-patterns">8.6. More patterns</a></li>
 </ul></li>
-<li><a href="#advanced-uses">9. Advanced uses</a><ul>
+<li><a href="#compound-protocols">8. Compound protocols</a><ul>
+<li><a href="#mechanics">8.1. Mechanics</a></li>
+<li><a href="#noise-pipes">8.2. Noise Pipes</a></li>
+<li><a href="#other-compound-protocols">8.3. Other compound protocols</a></li>
+</ul></li>
+<li><a href="#advanced-features">9. Advanced features</a><ul>
 <li><a href="#dummy-static-public-keys">9.1. Dummy static public keys</a></li>
-<li><a href="#compound-protocols-and-noise-pipes">9.2. Compound protocols and &quot;Noise Pipes&quot;</a></li>
-<li><a href="#protocol-indistinguishability">9.3. Protocol indistinguishability</a></li>
-<li><a href="#channel-binding">9.4. Channel binding</a></li>
+<li><a href="#protocol-indistinguishability">9.2. Protocol indistinguishability</a></li>
+<li><a href="#channel-binding">9.3. Channel binding</a></li>
+<li><a href="#channel-bound-keys">9.4. Channel-bound keys</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</a><ul>
 <li><a href="#the-25519-dh-functions">10.1. The <code>25519</code> DH functions</a></li>
@@ -283,7 +288,7 @@
 <li><p>Protocol names (<a href="#protocol-names">Section 11</a>) use the prefix <code>&quot;NoisePSK_&quot;</code> instead of <code>&quot;Noise_&quot;</code>.</p></li>
 <li><p><code>Initialize()</code> takes an additional <code>psk</code> argument, which is a sequence of 32 bytes. Immediately after <code>MixHash(prologue)</code> it sets <code>ck, temp = HKDF(ck, psk)</code>, then calls <code>MixHash(temp)</code>. This mixes the pre-shared key into the chaining key, and also mixes a one-way function of the pre-shared key into the <code>h</code> value to ensure that <code>h</code> is a function of all handshake inputs.</p></li>
 <li><p><code>WriteMessage()</code> and <code>ReadMessage()</code> are modified when processing the <code>&quot;e&quot;</code> token to call <code>MixKey(e.public_key)</code> as the final step. Because the initial messages in a handshake pattern are required to start with <code>&quot;e&quot;</code> (<a href="#pattern-validity">Section 8.1</a>), this ensures <code>k</code> is initialized from the pre-shared key. This also uses the ephemeral public key's value as a random nonce to prevent re-using the same <code>k</code> and <code>n</code> for different messages.</p></li>
-<li><p><code>Initialize()</code> is modified when processing an <code>&quot;e&quot;</code> pre-message token in a &quot;dependent&quot; handshake pattern (see <a href="#pattern-validity">Section 8.1</a>) to call <code>MixKey()</code> on the ephemeral public key immediately after calling <code>MixHash()</code> on it. This accomplishes the same randomization as the previous bullet, but needs to be applied to pre-messages for dependent patterns.</p></li>
+<li><p><code>Initialize()</code> is modified when processing an <code>&quot;e&quot;</code> token in the initiator's pre-message. A handshake pattern with such a pre-message is a <strong>fallback pattern</strong> (see <a href="#pattern-validity">Section 8.1</a>). In this case, <code>MixKey()</code> is called on the ephemeral public key immediately after calling <code>MixHash()</code> on it. This accomplishes the same randomization as the previous bullet.</p></li>
 </ul>
 <h1 id="handshake-patterns">8. Handshake patterns</h1>
 <p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;)</code>.</p>
@@ -300,12 +305,14 @@
 <li><p>A sequence of message patterns for the actual handshake messages</p></li>
 </ul>
 <p>The pre-messages represent an exchange of public keys that was somehow performed prior to the handshake, so these public keys must be inputs to <code>Initialize()</code> for the &quot;recipient&quot; of the pre-message.</p>
-<p>The first actual handshake message is sent from the initiator to the responder, the next is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
+<p>The first actual handshake message is sent from the initiator to the responder (with one exception - see next paragraph). The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
+<p>As will be described later, Noise allows <strong>compound protocols</strong> where the responder switches to a different &quot;fallback&quot; pattern than the initiator started with. If the initiator's pre-message contains an <code>&quot;e&quot;</code> token, then this handshake pattern is a fallback pattern (see <a href="#compound-protocols-and-noise-pipes">Section 9.2</a>). In the case of a fallback pattern, the first actual handshake message is sent by the responder, the next from the initiator, and so on.</p>
 <p>The following handshake pattern describes an unauthenticated DH handshake:</p>
 <pre><code>Noise_NN():
   -&gt; e
   &lt;- e, ee</code></pre>
-<p>The handshake pattern name is <code>Noise_NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 8.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code> and/or <code>&quot;e&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code> and/or <code>&quot;re&quot;</code> would indicate the same thing for the responder.</p>
+<p>The handshake pattern name is <code>Noise_NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 8.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code>, <code>&quot;e&quot;</code>, or <code>&quot;e, s&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code>, <code>&quot;re&quot;</code>, or <code>&quot;re, rs&quot;</code> would indicate the same thing for the responder.</p>
+<p>Right-pointing arrows show messages sent by the initiator. Left-pointing arrows show messages sent by the responder.</p>
 <p>Pre-messages are shown as patterns prior to the delimiter &quot;...&quot;, with a right-pointing arrow for the initiator's pre-message, and a left-pointing arrow for the responder's pre-message. If both parties have a pre-message, the initiator's is listed first (and hashed first). During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
 <p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key, and performs a DH with the responder's static public key as well as the responder's ephemeral public key. This pre-knowledge allows an encrypted payload to be sent in the first message, although full forward secrecy and replay protection is only achieved with the second message.</p>
 <pre><code>Noise_NK(rs):
@@ -318,7 +325,7 @@
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. ignoring the pre-messages, there must be no more than one occurrence of &quot;e&quot;, and one occurrence of &quot;s&quot;, in the messages sent by any party).</p></li>
-<li><p>Parties must send an ephemeral public key at the start of the first message they send (i.e. the first token of the first message pattern in each direction must be <code>&quot;e&quot;</code>). To support &quot;compound protocols&quot; (see <a href="#compound-protocols-and-noise-pipes">Section 9.2</a>) an exception is allowed if the party's ephemeral public key was used as a &quot;pre-message&quot;. A handshake pattern that relies on this exception is a <strong>dependent pattern</strong>, and can only be used according to the rules in <a href="#compound-protocols-and-noise-pipes">Section 9.2</a>.</p></li>
+<li><p>Parties must send an ephemeral public key at the start of the first message they send (i.e. the first token of the first message pattern in each direction must be <code>&quot;e&quot;</code>). An exception is allowed for the initiator if the initiator's ephemeral public key is used as a &quot;pre-message&quot;, i.e. if the handshake is using a &quot;fallback pattern&quot;. Such a pattern can only be used according to the rules in <a href="#compound-protocols-and-noise-pipes">Section 9.2</a>.</p></li>
 <li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data unless they have also performed a DH between an ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
@@ -603,7 +610,7 @@
 <li><p>Encrypted with forward secrecy, but sent to an anonymous responder.</p></li>
 <li><p>Not transmitted, but a passive attacker can check candidates for the responder's private key and determine whether the candidate is correct.</p></li>
 <li><p>Encrypted to responder's static public key, without forward secrecy. If an attacker learns the responder's private key they can decrypt the initiator's public key.</p></li>
-<li><p>Not transmitted, but a passive attacker can check candidates for the responder's private key and initiator's public key and determine if both candidates are correct.</p></li>
+<li><p>Not transmitted, but a passive attacker can check candidates for the pair of (responder's private key, initiator's public key) and learn whether the candidate pair is correct.</p></li>
 <li><p>Encrypted but with weak forward secrecy. An active attacker who pretends to be the initiator without the initiator's static private key, then later learns the initiator private key, can then decrypt the responder's public key.</p></li>
 <li><p>Not transmitted, but an active attacker who pretends to be the initator without the initiator's static private key, then later learns a candidate for the initiator private key, can then check whether the candidate is correct.</p></li>
 <li><p>Encrypted with forward secrecy to an authenticated party.</p></li>
@@ -738,22 +745,20 @@
 </tbody>
 </table>
 <p>Other tranformations might add or remove <code>&quot;ss&quot;</code> operations, or defer DH operations until later.</p>
-<h1 id="advanced-uses">9. Advanced uses</h1>
-<h2 id="dummy-static-public-keys">9.1. Dummy static public keys</h2>
-<p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
-<p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>Noise_XX</code>. The initiator can simulate the <code>Noise_NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter. For efficiency, the initiator can send a null public key value per <a href="#crypto-functions">Section 4</a> (e.g. an all-zeros <code>25519</code> value that is guaranteed to produce an all-zeros output).</p>
-<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes. It could be extended to allow a <code>Noise_XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
-<h2 id="compound-protocols-and-noise-pipes">9.2. Compound protocols and &quot;Noise Pipes&quot;</h2>
-<p>Consider a protocol where the initiator can attempt zero-RTT encryption based on the responder's static public key. If the responder has changed his static public key, the parties will need to switch to a &quot;fallback&quot; handshake where the responder transmits the new static public key and the initiator resends the zero-RTT data.</p>
-<p>This can be handled by both parties re-initializing their <code>HandshakeState</code> and executing a different handshake. Using handshake re-initialization to switch from one &quot;simple&quot; Noise protocol to another results in a <strong>compound protocol</strong>.</p>
-<p>Public keys that were exchanged in the first handshake can be represented as pre-messages in the second handshake. If an ephemeral public key was sent in the first handshake and used as a pre-message in the second handshake, that party can avoid sending a new ephemeral by using a &quot;dependent&quot; pattern (see <a href="pattern-validity">Section 8.1</a>).</p>
-<p>Re-initializing with a dependent pattern is only allowed if the new handshake and old handshake have different protocol names (see <a href="#protocol-names">Section 11</a>) and the rules for handling PSKs are followed (see <a href="#pre-shared-symmetric-keys">Section 7</a>).</p>
+<h1 id="compound-protocols">8. Compound protocols</h1>
+<p>So far we've discussed <strong>simple Noise protocols</strong> which execute a single handshake pattern.</p>
+<p>Noise also supports <strong>compound Noise protocols</strong>. In a compound protocol the initiator begins executing a simple Noise protocol to send the first message, but the responder might choose to &quot;fall back&quot; to a different simple Noise protocol.</p>
+<p>Compound protocols allow <strong>zero-round trip (or &quot;zero-RTT&quot;) encryption</strong>, where the initiator encrypts the first message based on some stored information about the responder. If the initiator's information is out of date, the responder won't be able to decrypt the initial message, and will have to switch to a fallback protocol.</p>
+<h2 id="mechanics">8.1. Mechanics</h2>
+<p>If the responder accepts the initial Noise message, the protocol proceeds normally. If the responder can't decrypt the initial message, then a fallback is triggered. In the fallback case the responder somehow signals the fallback to the initiator, and both parties re-initialize their <code>HandshakeState</code> and execute a <strong>fallback handshake pattern</strong>.</p>
+<p>Public keys that were sent in the initial message should be represented as pre-messages in the fallback handshake. Because an ephemeral public key is sent in the initiator's first message and used as a pre-message in the second handshake, the second's handshake pattern is a &quot;fallback pattern&quot;, and the initiator does not need to send a new ephemeral in their first message of the fallback pattern (see <a href="pattern-validity">Section 8.1</a>).</p>
 <p>If any negotiation occurred in the first handshake, the first handshake's <code>h</code> variable should be provided as prologue to the second handshake.</p>
-<p>By way of example, this section defines the <strong>Noise Pipe</strong> compound protocol. This protocol uses three handshake patterns - two defined in the previous section, and a new one:</p>
+<h2 id="noise-pipes">8.2. Noise Pipes</h2>
+<p>This section defines the <strong>Noise Pipe</strong> compound protocol. This protocol uses three handshake patterns - two defined previously, and a new one:</p>
 <ul>
 <li><p><code>Noise_XX</code> is used for an initial <strong>full handshake</strong> if the parties haven't communicated before, after which the initiator can cache the responder's static public key.</p></li>
 <li><p><code>Noise_IK</code> is used for a zero-RTT <strong>abbreviated handshake</strong>.</p></li>
-<li><p>If the responder fails to decrypt the first <code>Noise_IK</code> message (perhaps due to changing his static key), the responder will initiate a new <strong>fallback handshake</strong> using the <code>Noise_XXfallback</code> pattern which is identical to <code>Noise_XX</code> except re-using the ephemeral public key from the first <code>Noise_IK</code> message as a pre-message public key (thus is a &quot;dependent&quot; pattern).</p></li>
+<li><p>If the responder fails to decrypt the first <code>Noise_IK</code> message (perhaps due to changing his static key), the responder will initiate a new <strong>fallback handshake</strong> using the <code>Noise_XXfallback</code> pattern which is identical to <code>Noise_XX</code> except re-using the ephemeral public key from the first <code>Noise_IK</code> message as a pre-message public key (thus is a <strong>fallback pattern</strong>).</p></li>
 </ul>
 <p>Below are the three patterns used for Noise Pipes:</p>
 <pre><code>Noise_XX(s, rs):  
@@ -767,12 +772,11 @@ Noise_IK(s, rs):
   -&gt; e, es, s, ss          
   &lt;- e, ee, se
                                     
-Noise_XXfallback(s, rs, re):                   
-  &lt;- e
+Noise_XXfallback(e, s, rs):                   
+  -&gt; e
   ...
-  -&gt; e, ee, s, se
-  &lt;- s, es</code></pre>
-<p>Note that in the fallback case, the initiator and responder roles are switched: If Alice initiates a <code>Noise_IK</code> handshake with Bob, Bob might initiate a <code>Noise_XXfallback</code> handshake.</p>
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre>
 <p>There needs to be some way for the recipient of a message to distinguish whether it's the next message in the current handshake pattern, or requires re-initialization for a new pattern. For example, each handshake message could be preceded by a <code>type</code> byte (see <a href="#application-responsibilities">Section 12</a>). This byte is not part of the Noise message proper, but simply signals when re-initialization is needed. It could have the following meanings:</p>
 <ul>
 <li><p>If <code>type == 0</code> in the initiator's first message then the initiator is performing a <code>Noise_XX</code> handshake <em>(full handshake)</em>.</p></li>
@@ -781,19 +785,32 @@ Noise_XXfallback(s, rs, re):
 <li><p>If <code>type == 1</code> in the responder's first <code>Noise_IK</code> response then the responder failed to authenticate the initiator's <code>Noise_IK</code> message and is performing a <code>Noise_XXfallback</code> handshake, using the initiator's ephemeral public key as a pre-message <em>(fallback handshake)</em>.</p></li>
 </ul>
 <p>Note that the <code>type</code> byte doesn't need to be explicitly authenticated (as prologue, or additional AEAD data), since it's implicitly authenticated if the message is processed succesfully.</p>
-<h2 id="protocol-indistinguishability">9.3. Protocol indistinguishability</h2>
-<p>Parties may wish to hide what protocol they are executing from an eavesdropper. For example, suppose parties are using Noise Pipes, and want to hide whether they are performing a full handshake, abbreviated handshake, or fallback handshake.</p>
+<h2 id="other-compound-protocols">8.3. Other compound protocols</h2>
+<h1 id="advanced-features">9. Advanced features</h1>
+<h2 id="dummy-static-public-keys">9.1. Dummy static public keys</h2>
+<p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
+<p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>Noise_XX</code>. The initiator can simulate the <code>Noise_NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter. For efficiency, the initiator can send a null public key value per <a href="#crypto-functions">Section 4</a> (e.g. an all-zeros <code>25519</code> value that is guaranteed to produce an all-zeros output).</p>
+<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes. It could be extended to allow a <code>Noise_XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
+<h2 id="protocol-indistinguishability">9.2. Protocol indistinguishability</h2>
+<p>Parties may wish to hide what protocol they are executing from an eavesdropper. For example, suppose parties are using Noise Pipes, and want to hide whether they are performing a full handshake, zero-RTT handshake, or fallback handshake.</p>
 <p>This is fairly easy:</p>
 <ul>
 <li><p>The first three messages can have their payloads padded with random bytes to a constant size, regardless of which handshake is executed.</p></li>
-<li><p>Instead of a <code>type</code> byte, the responder can use trial decryption to differentiate between an initial message using <code>Noise_XX</code> or <code>Noise_IK</code>.</p></li>
-<li><p>Instead of a <code>type</code> byte, an initiator who sent a <code>Noise_IK</code> initial message can use trial decryption to differentiate between a response using <code>Noise_IK</code> or <code>Noise_XXfallback</code>.</p></li>
+<li><p>The responder will attempt to decrypt the first message as a <code>NoiseIK</code> message, and will fallback to <code>Noise_XXfallback</code> if decryption fails.</p></li>
+<li><p>An initiator who sent a <code>Noise_IK</code> initial message can use trial decryption to differentiate between a response using <code>Noise_IK</code> or <code>Noise_XXfallback</code>.</p></li>
 </ul>
+<p>Note that the <code>Noise_XX</code> pattern isn't used: Because the server can't distinguish a <code>Noise_XX</code> message from <code>Noise_XXfallback</code> with trial decryption, the full handshake must be done with <code>Noise_XXfallback</code>.</p>
 <p>This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect the parties are using Noise, even if it can't distinguish the handshakes. To make the ephemerals indistinguishable from random, techniques like Elligator <span class="citation">[<a href="#ref-elligator">4</a>]</span> could be used.</p>
-<h2 id="channel-binding">9.4. Channel binding</h2>
+<h2 id="channel-binding">9.3. Channel binding</h2>
 <p>Parties may wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
 <p>To support this, Noise libraries should expose the final value of <code>h</code> to the application as a <strong>handshake hash</strong> which uniquely identifies the Noise session.</p>
-<p>Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
+<p>Applications should not use the handshake hash directly. Instead, applications requiring channel binding should use the handshake hash to calculate an application-specific <strong>channel-binding value</strong>.</p>
+<p>To get a channel-binding value <code>cbv</code> from the handshake hash, the application chooses some ASCII <strong>channel-binding label</strong> which identifies the context this value will be used within, and calculates <code>cbv = HASH(h || label)</code>.</p>
+<p>Parties can then sign the channel binding value, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
+<h2 id="channel-bound-keys">9.4. Channel-bound keys</h2>
+<p>Two parties with an active Noise session might wish to exchange symmetric key(s) for use in other protocols, or for use as preshared symmetric keys in future Noise protocols. These keys should be <strong>channel-bound keys</strong> to ensure the sending party isn't relaying keys from a different session.</p>
+<p>To exchange a channel-bound key one party should send the other a preliminary 32-byte secret key <code>pk</code> inside of a Noise transport message (the details of how this value is encoded and sent in a message are left to the application).</p>
+<p>Both parties will agree on a channel-binding label which they use to derive a channel-binding value <code>cbv</code>. Both parties then calculate the channel-bound key as the first 32 bytes of <code>HMAC-HASH(pk, cbv)</code>. HMAC ensures that the channel-bound key is a collision-resistant function of <code>cbv</code>, and also preserves the secrecy of the keys.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</h1>
 <h2 id="the-25519-dh-functions">10.1. The <code>25519</code> DH functions</h2>
 <ul>
