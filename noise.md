@@ -1287,15 +1287,12 @@ future Noise protocols.  These keys should be **channel-bound keys** to ensure
 the sending party isn't relaying keys from a different session.
 
 To exchange a channel-bound key one party should send the other a preliminary
-32-byte secret key `pk`.  Both parties will then calculate the channel-bound
+32-byte secret key `pk` inside of a Noise transport message (the details of how this value is encoded and sent in a message are left to the application).
+
+Both parties will then calculate the channel-bound
 key as the first 32 bytes of `HMAC-HASH(pk, h)`.  HMAC ensures that the channel-bound
 key is a collision-resistant function of `h`, and also preserves the secrecy of the
 keys.
-
-9.5. Rekey
------------
-
-An application may specify 
 
 
 10. DH functions, cipher functions, and hash functions
