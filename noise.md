@@ -1270,17 +1270,14 @@ Elligator [@elligator] could be used.
 Parties may wish to execute a Noise protocol, then perform authentication at the 
 application layer using signatures, passwords, or something else.
 
-To support this, Noise libraries should expose the final value of `h` to the
-application as a **handshake hash** which uniquely identifies the Noise
-session.
+To support this, Noise libraries should allow export of **channel-binding values** derived
+from the handshake hash.
 
-Applications should not use the handshake hash directly.  Instead, applications
-requiring channel binding should use the handshake hash to calculate an application-specific
-**channel-binding value**.
-
-To get a channel-binding value `cbv` from the handshake hash, the application
-chooses some ASCII **channel-binding label** which identifies the context this value
-will be used within, and calculates `cbv = HASH(h || label)`.
+To get a channel-binding value **`cbv`** from the handshake hash, the
+application chooses some ASCII **channel-binding label** which identifies the
+context this value will be used within, and requests a `cbv` for this label
+which is calculated as `cbv = HMAC-HASH(h, label)`.  The `h` value used is the
+final value after performing the handshake.
 
 Parties can then sign the channel binding value, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
@@ -1473,7 +1470,7 @@ This section collects various security considerations:
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key by setting public keys to invalid values that cause
    predictable DH output (as in previous bullet).  This is why a higher-level
-   protocol should use the handshake hash (`h`) for a unique channel binding,
+   protocol should use channel-binding values for unique channel binding,
    instead of `ck`, as explained in [Section 9.4](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
