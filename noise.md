@@ -1290,7 +1290,7 @@ can't be used by the receiving party with a different sesssion.
 Applications needing channel-binding or session identifier values should always
 use some channel-binding value with a label unique to that purpose.
 Applications should never use the handshake hash `h` directly, to avoid confusion
-and cross-protocol attacks if this value were to be used in different contexts.
+and cross-protocol attacks if `h` were to be used in different contexts.
 
 
 10. DH functions, cipher functions, and hash functions
