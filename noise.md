@@ -564,16 +564,19 @@ using pre-shared symmetric keys, the following changes are made:
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee", "es", "se", "ss")`.  
 
+A **pre-message pattern** is one of the following sequences of tokens:
+
+  * `"e"`
+  * `"s"`
+  * `"e, s"`
+  * empty
+
+
 A **handshake pattern** consists of:
 
-  * A pattern for the initiator's **pre-message** that is either:
-      * `"e"`
-      * `"s"`
-      * `"e, s"`
-      * empty
+  * A pre-message pattern for the initiator.
 
-  * A pattern for the responder's pre-message that takes the same
-   range of values as the initiator's pre-message.
+  * A pre-message pattern for the responder.
 
   * A sequence of message patterns for the actual handshake messages
 
