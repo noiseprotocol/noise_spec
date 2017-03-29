@@ -183,8 +183,6 @@ will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport
 ciphertexts will expand each encrypted field (whether static public key or
 payload) by 16 bytes.
 
-\pagebreak
-
 For an example, consider the handshake pattern:
 
       -> e
@@ -271,8 +269,8 @@ Noise depends on the following **hash function** (and associated constants):
    `HASHLEN` bytes.  Due to channel-binding values ([Section
    9.3](#channel-binding)) this function must either be resistant to
    length-extension attacks, or must only allow length-extension if the
-   extended data contains non-ASCII characters (this requirement is met by
-   standard hash functions such as SHA-2, SHA-3, and BLAKE2).
+   extended data contains non-ASCII characters (these requirements are met by
+   standard hash functions such as SHA2, SHA3, and BLAKE2).
 
  * **`HASHLEN`** = A constant specifying the size in bytes of the hash output.
    Must be 32 or 64.
