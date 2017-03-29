@@ -1,5 +1,5 @@
 
-default: noise.html noise.pdf
+default: noise.pdf
 
 # Pandoc 1.17.2, Pandoc-citeproc  
 

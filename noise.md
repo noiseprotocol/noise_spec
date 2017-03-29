@@ -1269,23 +1269,28 @@ the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
 Elligator [@elligator] could be used.
 
-9.3. Channel binding
----------------------
+9.3. Channel binding values
+-----------------------------
 Parties may wish to execute a Noise protocol, then perform authentication at the 
 application layer using signatures, passwords, or something else.
 
 To support this, Noise libraries should allow export of **channel-binding values** derived
-from the handshake hash.
+from the final `h` value (the **handshake hash**).
 
 To get a channel-binding value **`cbv`** from the handshake hash, the
 application chooses some ASCII **channel-binding label** which identifies the
-context this value will be used within, and requests a `cbv` for this label
-which is calculated as `cbv = HASH(h || label)`.  The `h` value used is the
-final value after completing the handshake.
+context this value will be used within.  The application requests a
+channel-binding value for this label which is calculated as `cbv = HASH(h ||
+label)`.  The `h` value used is the final value after completing the handshake.
 
 Parties can then sign the channel binding value, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
+
+Applications needing channel-binding or session identifier values should always
+use some channel-binding value with a label unique to that purpose.
+Applications should never use the handshake hash `h` directly, to avoid confusion
+and cross-protocol attacks if this value were to be used in different contexts.
 
 
 10. DH functions, cipher functions, and hash functions
