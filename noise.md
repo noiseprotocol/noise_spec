@@ -1287,24 +1287,6 @@ Parties can then sign the channel binding value, or hash it along with their pas
 to get an authentication token which has a "channel binding" property: the token
 can't be used by the receiving party with a different sesssion.
 
-9.4. Channel-bound keys
-------------------------
-
-Two parties with an active Noise session might wish to exchange symmetric
-key(s) for use in other protocols, or for use as preshared symmetric keys in
-future Noise protocols.  These keys should be **channel-bound keys** to ensure
-the sending party isn't relaying keys from a different session.
-
-To exchange a channel-bound key one party should send the other a preliminary
-32-byte secret key `pk` inside of a Noise transport message (the details of how
-this value is encoded and sent in a message are left to the application).
-
-Both parties will agree on a channel-binding label which they use to derive a
-channel-binding value `cbv`.  Both parties then calculate the channel-bound key
-as the first 32 bytes of `HMAC-HASH(pk, cbv)`.  HMAC ensures that the
-channel-bound key is a collision-resistant function of `cbv`, and also
-preserves the secrecy of the keys.
-
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
