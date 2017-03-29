@@ -1371,7 +1371,8 @@ and cross-protocol attacks if `h` were to be used in different contexts.
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
 ASCII names for the handshake pattern, the DH functions, the cipher functions,
-and the hash function, with underscore separators.  For example: 
+and the hash function, with underscore separators.  The resulting name must be 255
+bytes or less.  Examples: 
 
  * `Noise_XX_25519_AESGCM_SHA256`
  * `Noise_N_25519_ChaChaPoly_BLAKE2s`
