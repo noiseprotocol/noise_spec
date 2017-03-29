@@ -1275,7 +1275,7 @@ Parties may wish to execute a Noise protocol, then perform authentication at the
 application layer using signatures, passwords, or something else.
 
 To support this, Noise libraries should allow export of **channel-binding values** derived
-from the final `h` value (the **handshake hash**).
+from the final `h` value.
 
 To get a channel-binding value **`cbv`** from the handshake hash, the
 application chooses some ASCII **channel-binding label** which identifies the
