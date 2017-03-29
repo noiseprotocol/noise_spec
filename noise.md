@@ -268,7 +268,11 @@ Noise depends on the following **hash function** (and associated constants):
 
  * **`HASH(data)`**: Hashes some arbitrary-length data with a
    collision-resistant cryptographic hash function and returns an output of
-   `HASHLEN` bytes.
+   `HASHLEN` bytes.  Due to channel-binding values ([Section
+   9.3](#channel-binding)) this function must either be resistant to
+   length-extension attacks, or must only allow length-extension if the
+   extended data contains non-ASCII characters (this requirement is met by
+   standard hash functions such as SHA-2, SHA-3, and BLAKE2).
 
  * **`HASHLEN`** = A constant specifying the size in bytes of the hash output.
    Must be 32 or 64.
@@ -1276,8 +1280,8 @@ from the handshake hash.
 To get a channel-binding value **`cbv`** from the handshake hash, the
 application chooses some ASCII **channel-binding label** which identifies the
 context this value will be used within, and requests a `cbv` for this label
-which is calculated as `cbv = HMAC-HASH(h, label)`.  The `h` value used is the
-final value after performing the handshake.
+which is calculated as `cbv = HASH(h || label)`.  The `h` value used is the
+final value after completing the handshake.
 
 Parties can then sign the channel binding value, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the token
