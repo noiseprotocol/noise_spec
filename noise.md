@@ -570,9 +570,11 @@ A **pre-message pattern** is one of the following sequences of tokens:
 
 A **handshake pattern** consists of:
 
-  * A pre-message pattern for the initiator.
+  * A pre-message pattern from the initiator, representing information about
+  the initiator's public keys that is known to the responder.
 
-  * A pre-message pattern for the responder.
+  * A pre-message pattern from the responder, representing information about the
+  responder's public keys that is known to the initiator.
 
   * A sequence of message patterns for the actual handshake messages
 
@@ -584,13 +586,13 @@ The first actual handshake message is sent from the initiator to the responder
 (with one exception - see next paragraph).  The next message is sent by the
 responder, the next from the initiator, and so on in alternating fashion.
 
-Noise allows special **fallback patterns** where the responder switches to a
+(Exceptional case: Noise allows special **fallback patterns** where the responder switches to a
 different pattern than the initator started with (see [Section
 9.2](#compound-protocols-and-noise-pipes)).  If the initiator's pre-message
 contains an `"e"` token, then this handshake pattern is a fallback pattern.  In
 the case of a fallback pattern the party's roles are preserved, so the first
 handshake message is sent by the responder, the next from the initiator, and so
-on.
+on.)
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
