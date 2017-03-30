@@ -1285,34 +1285,13 @@ the parties are using Noise, even if it can't distinguish the handshakes.  To
 make the ephemerals indistinguishable from random, techniques like
 Elligator [@elligator] could be used.
 
-9.3. Channel binding values
------------------------------
-Parties may wish to execute a Noise protocol, then perform authentication at the 
-application layer using signatures, passwords, or something else.
+9.3. Channel binding
+---------------------
+Parties may wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
 
-To support this, Noise libraries should allow export of **channel-binding values** derived
-from the handshake hash.
+To support this, Noise libraries should expose the final value of h to the application as a **handshake hash** which uniquely identifies the Noise session.
 
-To get a channel-binding value from the handshake hash `h`, the
-application chooses some **channel-binding label** which identifies the
-context this value will be used within.  The application requests a
-channel-binding value for this label which is calculated as `HMAC-HASH(h, label)`.
-
-Parties can then sign the channel binding value, or hash it along with their password,
-to get an authentication token which is bound to the current Noise session (thus can't be replayed over any other session).
-
-Channel-binding values can be derived for any handshake payload, based on the
-current `h` value before processing that payload.  However, a channel-binding
-value derived before the handshake is completed will not bind the entire
-handshake, so should be used with caution.  If channel-binding values are
-derived after the handshake, the calculation uses the final `h` value after the
-handshake is completed.
-
-Applications needing channel-binding or session identifier values should always
-use some channel-binding value with a label unique to that purpose.
-Applications should never use the handshake hash `h` directly, to avoid confusion
-and cross-protocol attacks if `h` were to be used in different contexts.
-
+Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
