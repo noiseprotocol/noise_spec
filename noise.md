@@ -68,7 +68,7 @@ Each party maintains the following variables:
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
    **AEAD** cipher mode (in the sense of Rogaway [@Rogaway:2002]) 
-   and includes the current `h` value as "associated data"
+   and includes the current `h` value as **associated data**
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
    the handshake phase.
@@ -575,10 +575,10 @@ A **pre-message pattern** is one of the following sequences of tokens:
 
 A **handshake pattern** consists of:
 
-  * A pre-message pattern from the initiator, representing information about
+  * A pre-message pattern for the initiator, representing information about
   the initiator's public keys that is known to the responder.
 
-  * A pre-message pattern from the responder, representing information about the
+  * A pre-message pattern for the responder, representing information about the
   responder's public keys that is known to the initiator.
 
   * A sequence of message patterns for the actual handshake messages
@@ -1087,11 +1087,13 @@ If the initiator's information is out-of-date the responder won't be able to dec
 
 To support this case Noise allows **fallback patterns**.  Fallback patterns differ from other handshake patterns in three ways:
 
- * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing one (from the initiator).
+ * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
 
  * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never included in the initiator's pre-message otherwise (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  The presence of an ephemeral public key in the initiator's pre-message thus indicates a fallback pattern.
 
- * Because an ephemeral public key is sent in the initiator's first message, and used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
+ * Because an ephemeral public key is sent in the initiator's first message, and is used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
+
+If the initial handshake message contained a prologue or payload that the responder paid attention to, then the `h` value after processing the initial handshake message should be included into the prologue for the fallback handshake.
 
 
 8.2. Indicating fallback
@@ -1219,7 +1221,7 @@ authentications (initiator only, responder only, both, or none).
 
 9.2. Channel binding
 ---------------------
-Parties may wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
+Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
 
 To support this, Noise libraries should expose the final value of h to the application as a **handshake hash** which uniquely identifies the Noise session.
 
@@ -1235,7 +1237,7 @@ It is up to to the application if and when to perform rekey.  For example:
 
  * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
 
- * Applications might choose to trigger rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
+ * Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
 
 Note that rekey doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
