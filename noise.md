@@ -1249,7 +1249,7 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
+ * **`DH(keypair, public_key)`**: Executes the nonstrict Curve25519 DH function (aka
    "X25519" in [@rfc7748].  The null public key value is all zeros, which will
    always produce an output of all zeros.  Other invalid public key values will
    also produce an output of all zeros.
@@ -1261,7 +1261,7 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448"
+ * **`DH(keypair, public_key)`**: Executes the nonstrict Curve448 DH function (aka "X448"
    in [@rfc7748].  The null public key value is all zeros, which will always
    produce an output of all zeros.  Other invalid public key values will also
    produce an output of all zeros.
