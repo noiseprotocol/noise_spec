@@ -55,7 +55,6 @@
 <li><a href="#dummy-static-public-keys">9.1. Dummy static public keys</a></li>
 <li><a href="#protocol-indistinguishability">9.2. Protocol indistinguishability</a></li>
 <li><a href="#channel-binding">9.3. Channel binding</a></li>
-<li><a href="#channel-bound-keys">9.4. Channel-bound keys</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</a><ul>
 <li><a href="#the-25519-dh-functions">10.1. The <code>25519</code> DH functions</a></li>
@@ -164,7 +163,7 @@
 <h2 id="hash-functions">4.3. Hash functions</h2>
 <p>Noise depends on the following <strong>hash function</strong> (and associated constants):</p>
 <ul>
-<li><p><strong><code>HASH(data)</code></strong>: Hashes some arbitrary-length data with a collision-resistant cryptographic hash function and returns an output of <code>HASHLEN</code> bytes.</p></li>
+<li><p><strong><code>HASH(data)</code></strong>: Hashes some arbitrary-length data with a collision-resistant cryptographic hash function and returns an output of <code>HASHLEN</code> bytes. Due to channel-binding values (<a href="#channel-binding">Section 9.3</a>) this function must either be resistant to length-extension attacks, or must only allow length-extension if the extended data contains non-ASCII characters (this requirement is met by standard hash functions such as SHA-2, SHA-3, and BLAKE2).</p></li>
 <li><p><strong><code>HASHLEN</code></strong> = A constant specifying the size in bytes of the hash output. Must be 32 or 64.</p></li>
 <li><p><strong><code>BLOCKLEN</code></strong> = A constant specifying the size in bytes that the hash function uses internally to divide its input for iterative processing. This is needed to use the hash function with HMAC (<code>BLOCKLEN</code> is <code>B</code> in <span class="citation">[<a href="#ref-rfc2104">2</a>]</span>).</p></li>
 </ul>
@@ -804,12 +803,9 @@ Noise_XXfallback(e, s, rs):
 <h2 id="channel-binding">9.3. Channel binding</h2>
 <p>Parties may wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
 <p>To support this, Noise libraries should allow export of <strong>channel-binding values</strong> derived from the handshake hash.</p>
-<p>To get a channel-binding value <strong><code>cbv</code></strong> from the handshake hash, the application chooses some ASCII <strong>channel-binding label</strong> which identifies the context this value will be used within, and requests a <code>cbv</code> for this label which is calculated as <code>cbv = HMAC-HASH(h, label)</code>. The <code>h</code> value used is the final value after performing the handshake.</p>
+<p>To get a channel-binding value <strong><code>cbv</code></strong> from the handshake hash, the application chooses some ASCII <strong>channel-binding label</strong> which identifies the context this value will be used within. The application requests a <code>cbv</code> for this label which is calculated as <code>cbv = HASH(h || label)</code>. The <code>h</code> value used is the final value after completing the handshake.</p>
 <p>Parties can then sign the channel binding value, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
-<h2 id="channel-bound-keys">9.4. Channel-bound keys</h2>
-<p>Two parties with an active Noise session might wish to exchange symmetric key(s) for use in other protocols, or for use as preshared symmetric keys in future Noise protocols. These keys should be <strong>channel-bound keys</strong> to ensure the sending party isn't relaying keys from a different session.</p>
-<p>To exchange a channel-bound key one party should send the other a preliminary 32-byte secret key <code>pk</code> inside of a Noise transport message (the details of how this value is encoded and sent in a message are left to the application).</p>
-<p>Both parties will agree on a channel-binding label which they use to derive a channel-binding value <code>cbv</code>. Both parties then calculate the channel-bound key as the first 32 bytes of <code>HMAC-HASH(pk, cbv)</code>. HMAC ensures that the channel-bound key is a collision-resistant function of <code>cbv</code>, and also preserves the secrecy of the keys.</p>
+<p>Applications needing channel-binding or session identifier values should always use some channel-binding value with a label unique to some purpose. Application should never use the handshake hash directly, to avoid confusion and cross-protocol attacks if this value were to be used in different contexts.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</h1>
 <h2 id="the-25519-dh-functions">10.1. The <code>25519</code> DH functions</h2>
 <ul>
