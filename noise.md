@@ -232,9 +232,8 @@ Noise depends on the following **DH functions** (and an associated constant):
 
  * **`DH(key_pair, public_key)`**: Performs a DH calculation between the
    private key in `key_pair` and `public_key` and returns an output sequence of
-   bytes of length `DHLEN`.  If the function detects an invalid `public_key`,
-   the output may be all zeros or any other value that doesn't leak information
-   about the private key.  For reasons discussed in [Section 9.1](#dummy-static-public-keys) it is recommended for the function to have a
+   bytes of length `DHLEN`.  This function is defined as either nonstrict or strict.  If a
+   nonstrict function detects an invalid `public_key` then the output may be all zeros or any other value that doesn't leak information about the private key.  A strict function will signal an error to the caller for certain classes of invalid inputs. For reasons discussed in [Section 9.1](#dummy-static-public-keys) it is recommended for the function to have a
    **null public key value** that always yields the same output, regardless of
    private key.  For example, the DH functions in [Section 10](#dh-functions-cipher-functions-and-hash-functions) always map a DH public key of all zeros to an output of all zeros.
 
