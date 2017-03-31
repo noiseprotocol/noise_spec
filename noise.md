@@ -1177,14 +1177,17 @@ This is fairly easy:
  * An initiator who sends a `Noise_IK` initial message can use trial decryption
    to differentiate between a response using `Noise_IK` or `Noise_XXfallback`. 
 
- * An initiator attempting a full handshake will send a raw public key, then
+ * An initiator attempting a full handshake will send an ephemeral public key, then
  random padding, and will use `Noise_XXfallback` to handle the response.
  Note that `Noise_XX` isn't used, because the server can't
  distinguish a `Noise_XX` message from `Noise_XXfallback` with trial decryption.
 
-This leaves the Noise ephemeral public keys in the clear.  Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if it can't distinguish the different
-handshakes.  To make the ephemerals indistinguishable from random, techniques
-like Elligator [@elligator] could be used.
+This leaves the Noise ephemeral public keys in the clear.  Ephemeral public keys
+are randomly chosen DH public values, but they will typically have enough
+structure that an eavesdropper might suspect the parties are using Noise, even
+if the eavesdropper can't distinguish the different handshakes.  To make the
+ephemerals indistinguishable from random, techniques like Elligator [@elligator]
+could be used.
 
 9. Advanced features
 =====================
