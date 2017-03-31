@@ -446,7 +446,7 @@ A `HandshakeState` responds to the following methods:
     Public keys are only passed in if the `handshake_pattern` uses pre-messages 
     (see [Section 8](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
     left empty, since they are created and exchanged during the handshake; but there are
-    exceptions (see [Section 9.2](compound-protocols-and-noise-pipes)).
+    exceptions (see [Section 8.1](fallback-patterns)).
 
       * Derives a `protocol_name` byte sequence by combining the names for the
         handshake pattern and crypto functions, as specified in [Section
@@ -588,7 +588,7 @@ responder, the next from the initiator, and so on in alternating fashion.
 
 (Exceptional case: Noise allows special **fallback patterns** where the responder switches to a
 different pattern than the initator started with (see [Section
-9.2](#compound-protocols-and-noise-pipes)).  If the initiator's pre-message
+8.1](#fallback-patterns)).  If the initiator's pre-message
 contains an `"e"` token, then this handshake pattern is a fallback pattern.  In
 the case of a fallback pattern the party's roles are preserved, so the first
 handshake message is sent by the responder, the next from the initiator, and so
@@ -646,8 +646,8 @@ Handshake patterns must be **valid** in the following senses:
 
  3. Parties must send an ephemeral public key at the start of the first message
     they send (i.e. the first token of the first message pattern in each
-    direction must be `"e"`).  An exception is allowed for patterns where the
-    initiator's ephemeral public key is used as a pre-message (fallback
+    direction must be `"e"`).  An exception is allowed for the initiator in 
+    patterns where the initiator's ephemeral public key is used as a pre-message (fallback
     patterns).  Fallback patterns can only be used according to the rules in
     [Section 9.2](#compound-protocols-and-noise-pipes).
 
@@ -1066,124 +1066,45 @@ The properties for the relevant public key are:
 +------------------------------------------+
      
 
-
-8.6. More patterns 
---------------------
-
-The patterns in the previous sections are the best option for most scenarios.
-
-However, to construct new patterns we can apply some **transformation** to an existing pattern, and name the resulting pattern by appending the transformation name to the existing pattern's name.
-
-For example, if you don't care about identity hiding, you could apply a "noidh" transformation which moves static public keys earlier in messages, so they are sent in cleartext where possible.  This transforms the patterns from the left column to the right column:
-
-\pagebreak
-
-+-------------------------------+-----------------------------+
-|     Noise_X(s, rs):           |      Noise_Xnoidh(s, rs):   |
-|       <- s                    |        <- s                 |
-|       ...                     |        ...                  |
-|       -> e, es, s, ss         |        -> e, s, es, ss      |
-+-------------------------------+-----------------------------+
-|     Noise_NX(rs):             |      Noise_NXnoidh(rs):     |           
-|       -> e                    |        -> e                 |
-|       <- e, ee, s, es         |        <- e, s, ee, es      |          
-+-------------------------------+-----------------------------+
-|     Noise_XX(s, rs):          |      Noise_XXnoidh(s, rs):  |              
-|       -> e                    |        -> e                 |
-|       <- e, ee, s, es         |        <- e, s, ee, es      |          
-|       -> s, se                |        -> s, se             |   
-+-------------------------------+-----------------------------+
-|     Noise_KX(s, rs):          |      Noise_KXnoidh(s, rs):  |                                  
-|       -> s                    |        -> s                 |
-|       ...                     |        ...                  |
-|       -> e                    |        -> e                 |
-|       <- e, ee, se, s, es     |        <- e, s, ee, se, es  |              
-+-------------------------------+-----------------------------+
-|     Noise_IK(s, rs):          |      Noise_IKnoidh(s, rs):  |
-|       <- s                    |        <- s                 |
-|       ...                     |        ...                  |
-|       -> e, es, s, ss         |        -> e, s, es, ss      |          
-|       <- e, ee, se            |        <- e, ee, se         |       
-+-------------------------------+-----------------------------+
-|     Noise_IX(s, rs):          |      Noise_IXnoidh(s, rs):  |
-|       -> e, s                 |        -> e, s              |
-|       <- e, ee, se, s, es     |        <- e, s, ee, se, es  |
-+-------------------------------+-----------------------------+
-
-
-Other tranformations might add or remove `"ss"` operations, or defer DH operations
-until later.
-
 8. Fallback protocols
 =======================
 
-So far we've discussed protocols which execute a single Noise handshake.
+8.1. Fallback patterns
+------------------------
+So far we've discussed Noise protocols which execute a single handshake
+chosen by the initiator.
 
-Noise also allows **fallback handshakes**.  In a fallback handshake the
-responder tells the initiator to switch to a different Noise algorithm after
-receiving the initiator's first message.
+These include zero-RTT protocols where the initiator encrypts the initial
+message based on some stored information about the responder (such as a
+pre-shared symmetric key, or the responder's static public key).
 
-Public keys that were sent in the clear in the initial message should be
-represented as pre-messages in the fallback handshake.  Fallback patterns
-differ from other handshake patterns in two ways:
+If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this case, the responder might choose to execute a different Noise handshake (a **fallback handshake**).
 
- * To keep the notation simpler the fallback pattern is from the "responder" in the
- first handshake pattern.  To avoid confusion the roles are not re-assigned.  I.e., 
- the "responder" in the first handshake keeps that same role 
- the
+To support this case Noise allows **fallback patterns**.  Fallback patterns differ from other handshake patterns in three ways:
 
- * Because an ephemeral public key is sent in the initiator's first message and
-   used as a pre-message in the fallback handshake, the initiator does not need
-   to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
+ * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing one (from the initiator).
 
-If any negotiation occurred in the first handshake, the first handshake's `h`
-variable should be provided as prologue to the second handshake.
+ * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never included in the initiator's pre-message otherwise (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  The presence of an ephemeral public key in the initiator's pre-message thus indicates a fallback pattern.
 
-8.2. Zero-RTT encryption with fallback
-----------------------------------------
+ * Because an ephemeral public key is sent in the initiator's first message, and used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
 
-Fallback makes it easier to support **zero-round trip (or "zero-RTT")
-encryption**, where the initiator encrypts the first message based on some
-stored information about the responder (such as a pre-shared symmetric key, or
-the responder's static public key).  If the initiator's information is out of
-date, the responder won't be able to decrypt the initial message, and will
-switch to a fallback handshake.
 
-8.1. Mechanics
----
-
-If the responder accepts the initial Noise message, the protocol proceeds
-normally.  If the responder can't decrypt the initial message, then a fallback
-is triggered.  In the fallback case the responder somehow signals the fallback
-to the initiator, and both parties re-initialize their `HandshakeState` and
-execute a **fallback pattern**.
-
-Public keys that were sent in the clear in the initial message should be
-represented as pre-messages in the fallback handshake.  Because an ephemeral
-public key is sent in the initiator's first message and used as a pre-message
-in the fallback handshake, the initiator does not need to send another
-ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
-
-If any negotiation occurred in the first handshake, the first handshake's `h`
-variable should be provided as prologue to the second handshake.
-
-8.2. Zero-RTT protocols
+8.2. Indicating fallback
 ------------------------
 
-A typical fallback protocol that supports zero-RTT encryption will use three handshakes:
+A typical fallback scenario for zero-RTT encryption will involve three different Noise handshakes:
 
- * A **full handshake** is used if the initiator doesn't posses stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
+ * A **full handshake** is used if the initiator doesn't possess stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
 
- * A **zero-RTT handshake**.
+ * A **zero-RTT handshake** allows early encryption of data in the first round-trip.
 
- * A **fallback handshake** triggered by the responder if it can't decrypted the zero-RTT handshake message.
+ * A **fallback handshake** is triggered by the responder if it can't decrypt the initiator's first zero-RTT handshake message.
 
-There needs to be some way for the recipient of a message to distinguish
-whether it's the next message in the current handshake pattern, or requires
-re-initialization for a new pattern.  For example, each handshake message could
-be preceded by a `type` byte (see [Section 12](#application-responsibilities)).  This byte is not
-part of the Noise message proper, but simply signals when re-initialization is
-needed.  It could have the following meanings:
+There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message.  If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the second message.
+
+For example, each handshake message could be preceded by a `type` byte (see
+[Section 12](#application-responsibilities)).  This byte is not part of the
+Noise message proper, but simply signals which handshake is being used:
 
  * If `type == 0` in the initiator's first message then the initiator is
    performing a full handshake.
@@ -1198,27 +1119,15 @@ needed.  It could have the following meanings:
    responder failed to authenticate the initiator's zero-RTT message and is
    performing a fallback handshake.
 
-Note that the `type` byte doesn't need to be explicitly authenticated (as
-prologue, or additional AEAD data), since it's implicitly authenticated if the
+Note that the `type` byte doesn't need to be explicitly authenticated (either as
+prologue, or as additional AEAD data), since it's implicitly authenticated if the
 message is processed succesfully.
 
 8.2. Noise Pipes
 ---
 
 This section defines the **Noise Pipe** protocol.  This protocol uses
-three handshake patterns - two defined previously, and a new one:
-
- * `Noise_XX` is used for an initial **full handshake** if the parties haven't communicated before, after which the initiator can cache the responder's static public key.  
-
- * `Noise_IK` is used for a *zero-RTT handshake**.  
-
- * If the responder fails to decrypt the first `Noise_IK` message (perhaps due
-   to changing his static key), the responder will initiate a new **fallback
-   handshake** using the `Noise_XXfallback` pattern which is identical to
-   `Noise_XX` except re-using the ephemeral public key from the first
-   `Noise_IK` message as a pre-message public key (thus is a **fallback pattern**).
-
-Below are the three patterns used for Noise Pipes:
+three handshake patterns - two defined previously, and a new one.  These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:
 
     Noise_XX(s, rs):  
       -> e
@@ -1236,6 +1145,46 @@ Below are the three patterns used for Noise Pipes:
       ...
       <- e, ee, s, es
       -> s, se
+
+The `Noise_XX` pattern is used for an initial **full handshake** if the parties haven't communicated before, after which the initiator can cache the responder's static public key.  
+
+The `Noise_IK` pattern is used for a **zero-RTT handshake**.  
+
+The `Noise_XXfallback` is used if the responder fails to decrypt the first
+ `Noise_IK` message (perhaps due to changing a static key).  In this case the
+ responder will initiate a new **fallback handshake** using the
+ `Noise_XXfallback` pattern, which is identical to `Noise_XX` except the
+ ephemeral public key from the first `Noise_IK` message is used as a pre-message public
+ key.
+
+
+9.2. Handshake indistinguishability
+-----------------------------------
+
+Parties might wish to hide from an eavesdropper which type of handshake they are
+performing.  For example, suppose parties are using Noise Pipes, and want to
+hide whether they are performing a full handshake, zero-RTT handshake, or
+fallback handshake.  
+
+This is fairly easy:
+
+ * The first three messages can have their payloads padded with random bytes to
+   a constant size, regardless of which handshake is executed.
+
+ * The responder will attempt to decrypt the first message as a `NoiseIK` message,
+   and will fallback to `Noise_XXfallback` if decryption fails.
+
+ * An initiator who sends a `Noise_IK` initial message can use trial decryption
+   to differentiate between a response using `Noise_IK` or `Noise_XXfallback`. 
+
+ * An initiator attempting a full handshake will send a raw public key, then
+ random padding, and will use `Noise_XXfallback` to handle the response.
+ Note that `Noise_XX` isn't used, because the server can't
+ distinguish a `Noise_XX` message from `Noise_XXfallback` with trial decryption.
+
+This leaves the Noise ephemeral public keys in the clear.  Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if it can't distinguish the different
+handshakes.  To make the ephemerals indistinguishable from random, techniques
+like Elligator [@elligator] could be used.
 
 9. Advanced features
 =====================
@@ -1260,40 +1209,14 @@ It also doesn't reveal which option was chosen from message sizes.  It could be
 extended to allow a `Noise_XX` pattern to support any permutation of
 authentications (initiator only, responder only, both, or none).
 
-9.2. Protocol indistinguishability
------------------------------------
-Parties may wish to hide what protocol they are executing from an eavesdropper.
-For example, suppose parties are using Noise Pipes, and want to hide whether
-they are performing a full handshake, zero-RTT handshake, or fallback
-handshake.  
-
-This is fairly easy:
-
- * The first three messages can have their payloads padded with random bytes to
-   a constant size, regardless of which handshake is executed.
-
- * The responder will attempt to decrypt the first message as a `NoiseIK` message,
-   and will fallback to `Noise_XXfallback` if decryption fails.
-
- * An initiator who sent a `Noise_IK` initial message can use trial decryption
-   to differentiate between a response using `Noise_IK` or `Noise_XXfallback`. 
-
-Note that the `Noise_XX` pattern isn't used:  Because the server can't
-distinguish a `Noise_XX` message from `Noise_XXfallback` with trial decryption,
-the full handshake must be done with `Noise_XXfallback`.
-
-This leaves the Noise ephemerals in the clear, so an eavesdropper might suspect
-the parties are using Noise, even if it can't distinguish the handshakes.  To
-make the ephemerals indistinguishable from random, techniques like
-Elligator [@elligator] could be used.
-
-9.3. Channel binding
+9.2. Channel binding
 ---------------------
 Parties may wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
 
 To support this, Noise libraries should expose the final value of h to the application as a **handshake hash** which uniquely identifies the Noise session.
 
 Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
+
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
