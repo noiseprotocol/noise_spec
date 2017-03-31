@@ -673,6 +673,8 @@ these checks could result in subtle but catastrophic security flaws.
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
 
+\newpage
+
 8.2. One-way patterns 
 ----------------------
 
@@ -737,6 +739,8 @@ The second character refers to the responder's static key:
  * **`K`** = Static key for responder **`K`**nown to responder
  * **`X`** = Static key for responder **`X`**mitted ("transmitted") to initiator
 
+\newpage
+
 +---------------------------+--------------------------------+
 |     Noise_NN():           |        Noise_KN(s):            |
 |       -> e                |          -> s                  |
@@ -774,6 +778,8 @@ The second character refers to the responder's static key:
 |        <- e, ee, s, es    |           <- e, ee, se, s, es  |
 |        -> s, se           |                                |
 +---------------------------+--------------------------------+
+
+\newpage
 
 The `Noise_XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
@@ -1033,7 +1039,6 @@ The properties for the relevant public key are:
   8. Encrypted with forward secrecy to an authenticated party.
 
 <!-- end of list - necesary to trick Markdown into seeing the following -->
-
 
 +------------------------------------------+
 |                Initiator      Responder  |           
