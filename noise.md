@@ -259,6 +259,9 @@ Noise depends on the following **cipher functions**:
    data `ad`.  Returns the plaintext, unless authentication fails, in which
    case an error is signaled to the caller.
 
+ * **`REKEY(k)`**:  Returns a new 32-byte cipher key as a pseudorandom function
+   of `k`.  If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k, MAXNONCE, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with zeros.
+
 4.3. Hash functions
 --------------------
 
@@ -346,14 +349,16 @@ variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-The maximum `n` value (2^64^-1) is reserved for future use and must not be used.
-If incrementing `n` results in 2^64^-1 (the maximum value), then any further
-`EncryptWithAd()` or `DecryptWithAd()` calls will signal an error to the
-caller.
+The maximum `n` value (2^64^-1) is reserved for rekey (see [Section
+9.3](#rekey)) and must not be used.  If incrementing `n` results in 2^64^-1 (the
+maximum value), then any further `EncryptWithAd()` or `DecryptWithAd()` calls
+will signal an error to the caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
+
+  * **`Rekey()`**: Sets `k = REKEY(k)`.
 
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
     `ENCRYPT(k, n++, ad, plaintext)`.  Otherwise returns `plaintext`.
@@ -1219,6 +1224,20 @@ Parties may wish to execute a Noise protocol, then perform authentication at the
 To support this, Noise libraries should expose the final value of h to the application as a **handshake hash** which uniquely identifies the Noise session.
 
 Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
+
+9.3. Rekey
+-----------
+Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.
+
+It is up to to the application if and when to perform rekey.  For example: 
+
+ * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.
+
+ * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
+
+ * Applications might choose to trigger rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
+
+Note that rekey doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
 
 10. DH functions, cipher functions, and hash functions
