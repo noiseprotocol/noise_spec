@@ -1244,7 +1244,7 @@ Parties can then sign the handshake hash, or hash it along with their password, 
 
 10.3. Rekey
 -----------
-Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.
+Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (though this is usually not important with good ciphers; see the discussion on `AESGCM` data volumes in [Section 14](#security-considerations) for more discussion).
 
 It is up to to the application if and when to perform rekey.  For example: 
 
@@ -1458,7 +1458,8 @@ This section collects various security considerations:
    in security as the volume of data encrypted under a single key increases.
    Due to this, parties should not send more than 2^56^ bytes (roughly 72
    petabytes) encrypted by a single key.  If sending such large volumes of data
-   is a possibility, different cipher functions should be chosen.
+   is a possibility then different cipher functions should be chosen, or the
+   cipherstate should be rekeyed ([Section 10.3](#rekey)) before this limit is reached.
 
  * **Hash collisions**:  If an attacker can find hash collisions on prologue
    data or the handshake hash, they may be able to perform "transcript
