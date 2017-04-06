@@ -234,17 +234,20 @@ Noise depends on the following **DH functions** (and an associated constant):
    between the private key in `key_pair` and `public_key` and returns an output
    sequence of bytes of length `DHLEN`.  For security, the Gap-DH problem based
    on this function must be unsolvable by any practical cryptanalytic adversary
-   [@gapdh].  This function is defined as either nonstrict or strict.  If a
-   nonstrict function is passed an invalid `public_key` then the output may be
-   all zeros or any other value that doesn't leak information about the private
-   key.  A strict function may behave as a nonstrict function for certain
-   classes of invalid inputs, but will signal an error to the caller for
-   other classes of invalid inputs. For reasons discussed in [Section
-   10.1](#dummy-static-public-keys) it is recommended for the function to have
-   a **null public key value** that always yields the same output, regardless
-   of private key.  For example, the DH functions in [Section
-   11](#dh-functions-cipher-functions-and-hash-functions) always map a DH
-   public key of all zeros to an output of all zeros.
+   [@gapdh].  
+   
+     This function is defined as either **nonstrict** or **strict**.  A
+     nonstrict function never returns errors.  If a nonstrict function is
+     passed an invalid     `public_key` then the output may be all zeros or any
+     other value that doesn't leak information about the private key.  A strict
+     function may behave as a nonstrict function for certain invalid inputs,
+     but will signal an error to the caller for other invalid inputs. 
+   
+     Whether strict or nonstrict, for reasons discussed in [Section 10.1](#dummy-static-public-keys) it is
+     recommended for the function to have a **null public key value** that always
+     yields the same output, regardless of private key.  For example, the DH
+     functions in [Section 11](#dh-functions-cipher-functions-and-hash-functions)
+     always map a DH public key of all zeros to an output of all zeros.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
    outputs.  For security reasons, `DHLEN` must be 32 or greater.
@@ -1423,7 +1426,7 @@ This section collects various security considerations:
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key by setting public keys to invalid values that cause
    predictable DH output (as in previous bullet).  This is why a higher-level
-   protocol should use channel-binding values for unique channel binding,
+   protocol should use the handshake hash (`h`) for a unique channel binding,
    instead of `ck`, as explained in [Section 10.2](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
@@ -1575,13 +1578,6 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
   * Explicit nonces allow reuse of ephemeral public keys.  However reusing ephemerals (with periodic replacement) is more complicated, requires a secure time source, is less secure in case of ephemeral compromise, and only provides a small optimization, since key generation can be done for a fraction of the cost of a DH operation.
   * Explicit nonces increase message size.
   * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
-
-Channel-binding values use HMAC because:
-
- * HMAC prevents length-extension attacks on the underlying hash which could produce related outputs for related labels.
- * HMAC applies an XOR to the `h` value before using it, so the same `h` value can be used with HMAC and MixHash without fear of colliding outputs.
- 
-
 
 16. IPR
 ========
