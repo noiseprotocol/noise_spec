@@ -235,19 +235,12 @@ Noise depends on the following **DH functions** (and an associated constant):
    sequence of bytes of length `DHLEN`.  For security, the Gap-DH problem based
    on this function must be unsolvable by any practical cryptanalytic adversary
    [@gapdh].  
-   
-     This function is defined as either **nonstrict** or **strict**.  A
-     nonstrict function never returns errors.  If a nonstrict function is
-     passed an invalid     `public_key` then the output may be all zeros or any
-     other value that doesn't leak information about the private key.  A strict
-     function may behave as a nonstrict function for certain invalid inputs,
-     but will signal an error to the caller for other invalid inputs. 
-   
-     Whether strict or nonstrict, for reasons discussed in [Section 10.1](#dummy-static-public-keys) it is
-     recommended for the function to have a **null public key value** that always
-     yields the same output, regardless of private key.  For example, the DH
-     functions in [Section 11](#dh-functions-cipher-functions-and-hash-functions)
-     always map a DH public key of all zeros to an output of all zeros.
+
+     The `public_key` either encodes some value in a large prime-order
+     group (which may have multiple equivalent encodings), or is an invalid value.  Invalid
+     public keys must be handled either by returning some constant output, or
+     by signalling an error to the caller.  The DH function may define more specific 
+     rules for handling invalid values.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
    outputs.  For security reasons, `DHLEN` must be 32 or greater.
@@ -1235,14 +1228,13 @@ handshake payload.
 Noise doesn't directly support this.  Instead, this could be simulated by
 always executing `Noise_XX`.  The initiator can simulate the `Noise_NX` case by
 sending a **dummy static public key** if authentication is not requested.  The
-value of the dummy public key doesn't matter.  For efficiency, the initiator
-can send a null public key value per [Section 4](#crypto-functions) (e.g.  an all-zeros
-`25519` value that is guaranteed to produce an all-zeros output).
+value of the dummy public key doesn't matter.
 
 This technique is simple, since it allows use of a single handshake pattern.
-It also doesn't reveal which option was chosen from message sizes.  It could be
-extended to allow a `Noise_XX` pattern to support any permutation of
-authentications (initiator only, responder only, both, or none).
+It also doesn't reveal which option was chosen from message sizes or
+computation time.  It could be extended to allow a `Noise_XX` pattern to
+support any permutation of authentications (initiator only, responder only,
+both, or none).
 
 10.2. Channel binding
 ---------------------
@@ -1275,10 +1267,9 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the nonstrict Curve25519 DH function (aka
-   "X25519" in [@rfc7748].  The null public key value is all zeros, which will
-   always produce an output of all zeros.  Other invalid public key values will
-   also produce an output of all zeros.
+ * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
+   "X25519" in [@rfc7748]).  Invalid public key values will produce an output of
+   all zeros.
 
  * **`DHLEN`** = 32
 
@@ -1287,10 +1278,9 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the nonstrict Curve448 DH function (aka "X448"
-   in [@rfc7748].  The null public key value is all zeros, which will always
-   produce an output of all zeros.  Other invalid public key values will also
-   produce an output of all zeros.
+ * **`DH(keypair, public_key)`**: Executes the nonstrict Curve448 DH function
+   (aka "X448" in [@rfc7748]).  Invalid public key values will produce an output
+   of all zeros.
 
  * **`DHLEN`** = 56
 
