@@ -747,7 +747,7 @@ The first character refers to the initiator's static key:
 The second character refers to the responder's static key:
 
  * **`N`** = **`N`**o static key for responder
- * **`K`** = Static key for responder **`K`**nown to responder
+ * **`K`** = Static key for responder **`K`**nown to initiator
  * **`X`** = Static key for responder **`X`**mitted ("transmitted") to initiator
 
 \newpage
@@ -1602,8 +1602,7 @@ General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
 Touset, Tony Arcieri, and Alex Wied.
 
-Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, and Klaus Hartke for
-editorial feedback.
+Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, and Dan Burkert for editorial feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
