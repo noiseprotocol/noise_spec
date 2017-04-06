@@ -328,8 +328,9 @@ To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
 initialization you specify the handshake pattern, any local key pairs, and any
 public keys for the remote party you have knowledge of.  After `Initialize()`
 you call `WriteMessage()` and `ReadMessage()` on the `HandshakeState` to
-process each handshake message.  If a decryption error occurs the handshake has
-failed and the `HandshakeState` is deleted without sending further messages.
+process each handshake message.  If any error is signalled by the `DECRYPT()` or
+`DH()` functions then the handshake has failed and the `HandshakeState` is
+deleted without sending further messages.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
