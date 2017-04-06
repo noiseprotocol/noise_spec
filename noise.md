@@ -231,7 +231,7 @@ Noise depends on the following **DH functions** (and an associated constant):
    of DH functions.
 
  * **`DH(key_pair, public_key)`**: Performs a Diffie-Hellman calculation
-   between the private key in `key_pair` and `public_key` and returns an output
+   between the private key in `key_pair` and the `public_key` and returns an output
    sequence of bytes of length `DHLEN`.  For security, the Gap-DH problem based
    on this function must be unsolvable by any practical cryptanalytic adversary
    [@gapdh].  
@@ -663,7 +663,7 @@ Handshake patterns must be **valid** in the following senses:
  3. Parties must send an ephemeral public key at the start of the first message
     they send (i.e. the first token of the first message pattern in each
     direction must be `"e"`).  An exception is allowed for the initiator in 
-    patterns where the initiator's ephemeral public key is used as a pre-message (fallback
+    patterns where the initiator's ephemeral public key is used as a pre-message (i.e. fallback
     patterns; see [Section 9.1](#fallback-patterns)).
 
  4. After performing a DH between a remote public key and any local private key
@@ -1114,7 +1114,7 @@ If the initial handshake message contained a prologue or payload that the respon
 9.2. Indicating fallback
 ------------------------
 
-A typical fallback scenario for zero-RTT encryption will involve three different Noise handshakes:
+A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:
 
  * A **full handshake** is used if the initiator doesn't possess stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
 
@@ -1202,7 +1202,7 @@ This is fairly easy:
  * An initiator attempting a full handshake will send an ephemeral public key, then
  random padding, and will use `Noise_XXfallback` to handle the response.
  Note that `Noise_XX` isn't used, because the server can't
- distinguish a `Noise_XX` message from `Noise_XXfallback` with trial decryption.
+ distinguish a `Noise_XX` message from `Noise_XXfallback` by using trial decryption.
 
 This leaves the Noise ephemeral public keys in the clear.  Ephemeral public keys
 are randomly chosen DH public values, but they will typically have enough
