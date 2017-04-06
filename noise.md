@@ -1244,11 +1244,11 @@ Parties can then sign the handshake hash, or hash it along with their password, 
 
 10.3. Rekey
 -----------
-Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (though this is usually not important with good ciphers; see the discussion on `AESGCM` data volumes in [Section 14](#security-considerations) for more discussion).
+Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on `AESGCM` data volumes in [Section 14](#security-considerations) ).
 
 It is up to to the application if and when to perform rekey.  For example: 
 
- * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.
+ * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.  This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.
 
  * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
 
