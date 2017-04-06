@@ -355,9 +355,9 @@ variables:
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
 The maximum `n` value (2^64^-1) is reserved for rekey (see [Section
-10.3](#rekey)) and must not be used.  If incrementing `n` results in 2^64^-1 (the
-maximum value), then any further `EncryptWithAd()` or `DecryptWithAd()` calls
-will signal an error to the caller.
+10.3](#rekey)) and must not be used.  If incrementing `n` results in 2^64^-1,
+then any further `EncryptWithAd()` or `DecryptWithAd()` calls will signal an
+error to the caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
