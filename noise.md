@@ -493,8 +493,13 @@ A `HandshakeState` responds to the following methods:
 
           * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
-            `MixKey(DH(y, rx))`.
+          * For `"ee"`: Calls `MixKey(DH(e, re))`.
+
+          * For `"es"`: Calls `MixKey(DH(e, rs))` if initiator, `MixKey(DH(s, re))` if responder.
+
+          * For `"se"`: Calls `MixKey(DH(s, re))` if initiator, `MixKey(DH(e, rs))` if responder.
+
+          * For `"ss"`: Calls `MixKey(DH(s, rs))`.
 
       * Appends `EncryptAndHash(payload)` to the buffer.  
 
@@ -515,8 +520,13 @@ A `HandshakeState` responds to the following methods:
             `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
             to `DecryptAndHash(temp)`.  
 
-          * For `"xy"`:  Calls `MixKey(DH(x, ry))` if `initiator`, otherwise
-            `MixKey(DH(y, rx))`.
+          * For `"ee"`: Calls `MixKey(DH(e, re))`.
+
+          * For `"es"`: Calls `MixKey(DH(e, rs))` if initiator, `MixKey(DH(s, re))` if responder.
+
+          * For `"se"`: Calls `MixKey(DH(s, re))` if initiator, `MixKey(DH(e, rs))` if responder.
+
+          * For `"ss"`: Calls `MixKey(DH(s, rs))`.
 
       * Calls `DecryptAndHash()` on the remaining bytes of the message and stores
         the output into `payload_buffer`.
@@ -1602,7 +1612,7 @@ General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
 Touset, Tony Arcieri, and Alex Wied.
 
-Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, and Dan Burkert for editorial feedback.
+Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, and Jake McGinty for editorial feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
