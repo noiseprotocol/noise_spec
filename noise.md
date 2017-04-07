@@ -1477,7 +1477,10 @@ This section collects various security considerations:
 15. Rationale
 =============
 
-This section collects various design rationale:
+This section collects various design rationale.
+
+15.1. Ciphers and encryption
+--------------
 
 Nonces are 64 bits in length because:
 
@@ -1488,6 +1491,39 @@ Nonces are 64 bits in length because:
     and incremented.
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
+
+Cipher keys and pre-shared symmetric keys are 256 bits because:
+
+  * 256 bits is a conservative length for cipher keys when considering 
+    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
+    quantum attacks.
+  * Pre-shared key length is fixed to simplify testing and implementation, and
+    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
+  
+The authentication data in a ciphertext is 128 bits because:
+
+  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
+    truncated.
+  * Noise may be used in a wide variety of contexts, including where attackers
+    can receive rapid feedback on whether MAC guesses are correct.
+  * A single fixed length is simpler than supporting variable-length tags.
+
+The GCM security limit is 2^56^ bytes because:
+
+  * This is 2^52^ AES blocks (each block is 16 bytes).  The limit is based on
+   the risk of birthday collisions being used to rule out plaintext guesses.
+   The probability an attacker could rule out a random guess on a 2^56^ byte
+   plaintext is less than 1 in 1 million (roughly (2^52^ * 2^52^) / 2^128^).
+
+Cipher nonces are big-endian for AES-GCM, and little-endian for ChaCha20, because:
+
+  * ChaCha20 uses a little-endian block counter internally.
+  * AES-GCM uses a big-endian block counter internally.
+  * It makes sense to use consistent endianness in the cipher code.
+
+
+15.2. Hash functions and hashing
+--------------
 
 The recommended hash function families are SHA2 and BLAKE2 because:
 
@@ -1504,44 +1540,6 @@ Hash output lengths of both 256 bits and 512 bits are supported because:
     (SHA-512 and BLAKE2b).
   * SHA-256 and BLAKE2s are faster on 32-bit processors than their larger 
     brethren.
-
-Cipher keys and pre-shared symmetric keys are 256 bits because:
-
-  * 256 bits is a conservative length for cipher keys when considering 
-    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
-    quantum attacks.
-  * Pre-shared key length is fixed to simplify testing and implementation, and
-    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
-
-The authentication data in a ciphertext is 128 bits because:
-
-  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
-    truncated.
-  * Noise may be used in a wide variety of contexts, including where attackers
-    can receive rapid feedback on whether MAC guesses are correct.
-  * A single fixed length is simpler than supporting variable-length tags.
-
-The GCM security limit is 2^56^ bytes because:
-
-  * This is 2^52^ AES blocks (each block is 16 bytes).  The limit is based on
-   the risk of birthday collisions being used to rule out plaintext guesses.
-   The probability an attacker could rule out a random guess on a 2^56^ byte
-   plaintext is less than 1 in 1 million (roughly (2^52^ * 2^52^) / 2^128^).
-
-Big-endian length fields are recommended because:
-
-  * Length fields are likely to be handled by parsing code where 
-    big-endian "network byte order" is traditional.
-  * Some ciphers use big-endian internally (e.g. GCM, SHA2).
-  * While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use 
-    little-endian, these will likely be handled by specialized libraries, so 
-    there's not a strong argument for aligning with them.
-
-Cipher nonces are big-endian for AES-GCM, and little-endian for ChaCha20, because:
-
-  * ChaCha20 uses a little-endian block counter internally.
-  * AES-GCM uses a big-endian block counter internally.
-  * It makes sense to use consistent endianness in the cipher code.
 
 The `MixKey()` design uses `HKDF` because:
 
@@ -1567,6 +1565,18 @@ The `h` value hashes handshake ciphertext instead of plaintext because:
     other purposes without leaking secret information.
   * This provides stronger guarantees against ciphertext malleability. 
 
+15.3. Other
+------------
+
+Big-endian length fields are recommended because:
+
+  * Length fields are likely to be handled by parsing code where 
+    big-endian "network byte order" is traditional.
+  * Some ciphers use big-endian internally (e.g. GCM, SHA2).
+  * While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use 
+    little-endian, these will likely be handled by specialized libraries, so 
+    there's not a strong argument for aligning with them.
+
 Session termination is left to the application because:
 
   * Providing a termination signal in Noise doesn't help the application much, 
@@ -1581,12 +1591,11 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
   * Explicit nonces increase message size.
   * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
 
+
 16. IPR
 ========
 
 The Noise specification (this document) is hereby placed in the public domain.
-
-\pagebreak
 
 17. Acknowledgements
 =====================
