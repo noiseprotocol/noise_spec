@@ -236,11 +236,12 @@ Noise depends on the following **DH functions** (and an associated constant):
    on this function must be unsolvable by any practical cryptanalytic adversary
    [@gapdh].  
 
-     The `public_key` either encodes some value in a large prime-order
-     group (which may have multiple equivalent encodings), or is an invalid value.  Invalid
-     public keys must be handled either by returning some constant output, or
-     by signaling an error to the caller.  The DH function may define more specific 
-     rules for handling invalid values.
+     The `public_key` either encodes some value in a large prime-order group
+     (which may have multiple equivalent encodings), or is an invalid value.
+     Implementations must handle invalid public keys either by returning some
+     output which does not depend on the private key, or by signaling an error
+     to the caller.  The DH function may define more specific rules for
+     handling invalid values.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
    outputs.  For security reasons, `DHLEN` must be 32 or greater.
@@ -264,7 +265,7 @@ Noise depends on the following **cipher functions**:
    case an error is signaled to the caller.
 
  * **`REKEY(k)`**:  Returns a new 32-byte cipher key as a pseudorandom function
-   of `k`.  If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k, MAXNONCE, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with zeros.
+   of `k`.  If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k, maxnonce, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with zeros.
 
 4.3. Hash functions
 --------------------
@@ -334,7 +335,7 @@ process each handshake message.  If any error is signaled by the `DECRYPT()` or
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
-may be deleted.  
+should be deleted except for the hash value `h`, which may be used for post-handshake channel binding (see [Section 10.2](#channel-binding)).
 
 Transport messages are then encrypted and decrypted by calling
 `EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
