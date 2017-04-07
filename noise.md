@@ -1274,8 +1274,10 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
  
  * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
-   "X25519" in [@rfc7748]).  Invalid public key values will produce an output of
-   all zeros.
+   "X25519" in [@rfc7748]).  Invalid public key values will produce an output
+   of all zeros.  Alternatively, implementations are allowed (but not required)
+   to detect such cases and signal an error.  Signaling errors does not improve
+   security, but might match the behavior of some software.
 
  * **`DHLEN`** = 32
 
@@ -1284,9 +1286,11 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
  
- * **`DH(keypair, public_key)`**: Executes the Curve448 DH function
-   (aka "X448" in [@rfc7748]).  Invalid public key values will produce an output
-   of all zeros.
+ * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448"
+   in [@rfc7748]).  Invalid public key values will produce an output of all
+   zeros.  Alternatively, implementations are allowed (but not required) to
+   detect such cases and signal an error.  Signaling errors does not improve
+   security, but might match the behavior of some software.
 
  * **`DHLEN`** = 56
 
