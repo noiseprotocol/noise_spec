@@ -1113,7 +1113,7 @@ To support this case Noise allows **fallback patterns**.  Fallback patterns diff
 
  * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
 
- * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never included in the initiator's pre-message otherwise (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  The presence of an ephemeral public key in the initiator's pre-message thus indicates a fallback pattern.
+ * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never otherwise included in the initiator's pre-message (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  The presence of an ephemeral public key in the initiator's pre-message thus indicates a fallback pattern.
 
  * Because an ephemeral public key is sent in the initiator's first message, and is used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
 
@@ -1275,9 +1275,13 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
  
  * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
    "X25519" in [@rfc7748]).  Invalid public key values will produce an output
-   of all zeros.  Alternatively, implementations are allowed (but not required)
-   to detect such cases and signal an error.  Signaling errors here does not improve
-   security, but might match the behavior of some software.
+   of all zeros.  
+   
+     Alternatively, implementations are allowed to detect inputs that would
+     produce an all-zeros output and signal an error instead.  This behavior is
+     discouraged because it adds complexity and implementation variance, and
+     does not improve security.  This behavior is allowed because it might
+     match the behavior of some software.
 
  * **`DHLEN`** = 32
 
@@ -1288,9 +1292,13 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
  
  * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448"
    in [@rfc7748]).  Invalid public key values will produce an output of all
-   zeros.  Alternatively, implementations are allowed (but not required) to
-   detect such cases and signal an error.  Signaling errors here does not improve
-   security, but might match the behavior of some software.
+   zeros.  
+
+     Alternatively, implementations are allowed to detect inputs that would
+     produce an all-zeros output and signal an error instead.  This behavior is
+     discouraged because it adds complexity and implementation variance, and
+     does not improve security.  This behavior is allowed because it might
+     match the behavior of some software.
 
  * **`DHLEN`** = 56
 
