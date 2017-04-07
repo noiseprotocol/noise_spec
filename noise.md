@@ -1482,7 +1482,15 @@ This section collects various design rationale.
 15.1. Ciphers and encryption
 --------------
 
-Nonces are 64 bits in length because:
+Cipher keys and pre-shared symmetric keys are 256 bits because:
+
+  * 256 bits is a conservative length for cipher keys when considering 
+    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
+    quantum attacks.
+  * Pre-shared key length is fixed to simplify testing and implementation, and
+    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
+
+Nonces are 64 bits because:
 
   * Some ciphers only have 64 bit nonces (e.g. Salsa20).
   * 64 bit nonces were used in the initial specification and implementations 
@@ -1491,14 +1499,6 @@ Nonces are 64 bits in length because:
     and incremented.
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
-
-Cipher keys and pre-shared symmetric keys are 256 bits because:
-
-  * 256 bits is a conservative length for cipher keys when considering 
-    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
-    quantum attacks.
-  * Pre-shared key length is fixed to simplify testing and implementation, and
-    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
   
 The authentication data in a ciphertext is 128 bits because:
 
@@ -1508,19 +1508,22 @@ The authentication data in a ciphertext is 128 bits because:
     can receive rapid feedback on whether MAC guesses are correct.
   * A single fixed length is simpler than supporting variable-length tags.
 
-The GCM security limit is 2^56^ bytes because:
+The `AESGCM` data volume limit is 2^56^ bytes because:
 
   * This is 2^52^ AES blocks (each block is 16 bytes).  The limit is based on
    the risk of birthday collisions being used to rule out plaintext guesses.
    The probability an attacker could rule out a random guess on a 2^56^ byte
    plaintext is less than 1 in 1 million (roughly (2^52^ * 2^52^) / 2^128^).
 
-Cipher nonces are big-endian for AES-GCM, and little-endian for ChaCha20, because:
+Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, because:
 
   * ChaCha20 uses a little-endian block counter internally.
   * AES-GCM uses a big-endian block counter internally.
   * It makes sense to use consistent endianness in the cipher code.
 
+Rekey defaults to using encryption with the nonce 2^64^-1 because:
+
+  * With `AESGCM` and `ChaChaPoly` the rekey operation can be computed efficiently without needing to calculate an authentication tag.
 
 15.2. Hash functions and hashing
 --------------
