@@ -1,5 +1,5 @@
 ---
-title:      'The Noise Protocol Framework'
+title:      'Noise Protocol Framework: Core Specification'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
 date:       '2017-03-30'
@@ -1413,8 +1413,6 @@ An application built on Noise must consider several issues:
    specify handshake re-initialization or any other compatibility-breaking
    change (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
-
-\pagebreak
 
 14. Security considerations
 ===========================
