@@ -329,15 +329,17 @@ initialization you specify the handshake pattern, any local key pairs, and any
 public keys for the remote party you have knowledge of.  After `Initialize()`
 you call `WriteMessage()` and `ReadMessage()` on the `HandshakeState` to
 process each handshake message.  If any error is signalled by the `DECRYPT()` or
-`DH()` functions then the handshake has failed and the `HandshakeState` is
-deleted without sending further messages.
+`DH()` functions then the handshake has failed and the `HandshakeState` is deleted.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
 may be deleted.  Transport messages are then encrypted and decrypted by calling
 `EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
-zero-length associated data.
+zero-length associated data.  If `DecryptWithAd()` signals an error, then the
+message is discarded.  The application may choose to delete the `CipherState`
+and terminate the session on such an error, or may continue to attempt
+communications.
 
 The below sections describe these objects in detail.
 
