@@ -239,9 +239,9 @@ Noise depends on the following **DH functions** (and an associated constant):
      The `public_key` either encodes some value in a large prime-order group
      (which may have multiple equivalent encodings), or is an invalid value.
      Implementations must handle invalid public keys either by returning some
-     output which does not depend on the private key, or by signaling an error
-     to the caller.  The DH function may define more specific rules for
-     handling invalid values.
+     output which is purely a function of the public key and does not depend on
+     the private key, or by signaling an error to the caller.  The DH function
+     may define more specific rules for handling invalid values.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
    outputs.  For security reasons, `DHLEN` must be 32 or greater.
@@ -1410,7 +1410,7 @@ An application built on Noise must consider several issues:
    if one is included).  A recommended idiom is for the value zero to indicate
    no change from the current Noise protocol, and for applications to reject
    messages with an unknown value.  This allows future protocol versions to 
-   specify handshake re-initialization or any other compatibility-breaking
+   specify fallback handshakes or any other compatibility-breaking
    change (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
 
@@ -1424,7 +1424,7 @@ This section collects various security considerations:
 
  * **Rollback**:  If parties decide on a Noise protocol based on some previous
    negotiation that is not included as prologue, then a rollback attack might
-   be possible.  This is a particular risk with handshake re-initialization,
+   be possible.  This is a particular risk with fallback handshakes,
    and requires careful attention if a Noise handshake is preceded by
    communication between the parties.
 
@@ -1441,16 +1441,16 @@ This section collects various security considerations:
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key by setting public keys to invalid values that cause
-   predictable DH output (as in previous bullet).  This is why a higher-level
+   predictable DH output (as in the previous bullet).  This is why a higher-level
    protocol should use the handshake hash (`h`) for a unique channel binding,
    instead of `ck`, as explained in [Section 10.2](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
    follow the rules for nonces.  Nonces are not allowed to wrap back to zero
-   due to integer overflow, and the maximum nonce value is reserved for future
-   use.  This means parties are not allowed to send more than 2^64^-1 transport
-   messages.
+   due to integer overflow, and the maximum nonce value is reserved for
+   rekeying.  This means parties are not allowed to send more than 2^64^-1
+   transport messages.
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
    ephemeral public key and perform a DH with it prior to sending any encrypted
@@ -1639,7 +1639,7 @@ derivation design.
 The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided
 helpful discussion on using BLAKE2 with Noise.
 
-Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on much earlier
+Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
 
 
