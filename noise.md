@@ -224,7 +224,7 @@ The following notation will be used in algorithm pseudocode:
 
 Noise depends on the following **DH functions** (and an associated constant):
 
- * **`GENERATE_KEYPAIR()`**: Generates a new DH key pair.  A DH key pair
+ * **`GENERATE_KEYPAIR()`**: Generates a new Diffie-Hellman key pair.  A DH key pair
    consists of `public_key` and `private_key` elements.  A `public_key`
    represents an encoding of a DH public key into a byte sequence of
    length `DHLEN`.  The `public_key` encoding details are specific to each set
@@ -239,7 +239,7 @@ Noise depends on the following **DH functions** (and an associated constant):
      The `public_key` either encodes some value in a large prime-order
      group (which may have multiple equivalent encodings), or is an invalid value.  Invalid
      public keys must be handled either by returning some constant output, or
-     by signalling an error to the caller.  The DH function may define more specific 
+     by signaling an error to the caller.  The DH function may define more specific 
      rules for handling invalid values.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
@@ -328,13 +328,15 @@ To execute a Noise protocol you `Initialize()` a `HandshakeState`.  During
 initialization you specify the handshake pattern, any local key pairs, and any
 public keys for the remote party you have knowledge of.  After `Initialize()`
 you call `WriteMessage()` and `ReadMessage()` on the `HandshakeState` to
-process each handshake message.  If any error is signalled by the `DECRYPT()` or
+process each handshake message.  If any error is signaled by the `DECRYPT()` or
 `DH()` functions then the handshake has failed and the `HandshakeState` is deleted.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
-may be deleted.  Transport messages are then encrypted and decrypted by calling
+may be deleted.  
+
+Transport messages are then encrypted and decrypted by calling
 `EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
 zero-length associated data.  If `DecryptWithAd()` signals an error, then the
 message is discarded.  The application may choose to delete the `CipherState`
@@ -372,8 +374,8 @@ error to the caller.
 
   * **`DecryptWithAd(ad, ciphertext)`**:  If `k` is non-empty returns
     `DECRYPT(k, n++, ad, ciphertext)`.  Otherwise returns `ciphertext`.  If an
-    authentication failure occurs in `DECRYPT()` the error is signaled to the
-    caller.
+    authentication failure occurs in `DECRYPT()` then `n` is not incremented
+    and an error is signaled to the caller.
 
 5.2. The `SymmetricState` object
 -----------------------------------------
