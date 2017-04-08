@@ -1413,8 +1413,8 @@ An application built on Noise must consider several issues:
    if one is included).  A recommended idiom is for the value zero to indicate
    no change from the current Noise protocol, and for applications to reject
    messages with an unknown value.  This allows future protocol versions to 
-   specify fallback handshakes or any other compatibility-breaking
-   change (protocol extensions that don't break compatibility can be handled
+   specify fallback handshakes or other compatibility-breaking
+   changes (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
 
 14. Security considerations
@@ -1444,9 +1444,11 @@ This section collects various security considerations:
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key by setting public keys to invalid values that cause
-   predictable DH output (as in the previous bullet).  This is why a higher-level
-   protocol should use the handshake hash (`h`) for a unique channel binding,
-   instead of `ck`, as explained in [Section 10.2](#channel-binding).
+   predictable DH output (as in the previous bullet).  It might also be
+   possible to set public keys to equivalent values that cause the same DH
+   output for different inputs.  This is why a higher-level protocol should use
+   the handshake hash (`h`) for a unique channel binding, instead of `ck`, as
+   explained in [Section 10.2](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
