@@ -212,7 +212,7 @@ bytes, since the first payload becomes encrypted.
 A Noise protocol is instantiated with a concrete set of **DH functions**,
 **cipher functions**, and a **hash function**.  The signature for these
 functions is defined below.  Some concrete functions are defined in [Section
-12](#dh-functions-cipher-functions-and-hash-functions).
+11](#dh-functions-cipher-functions-and-hash-functions).
 
 The following notation will be used in algorithm pseudocode:
 
@@ -339,10 +339,12 @@ should be deleted except for the hash value `h`, which may be used for post-hand
 
 Transport messages are then encrypted and decrypted by calling
 `EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
-zero-length associated data.  If `DecryptWithAd()` signals an error, then the
-message is discarded.  The application may choose to delete the `CipherState`
-and terminate the session on such an error, or may continue to attempt
-communications.
+zero-length associated data.  If `DecryptWithAd()` signals an error due to
+`DECRYPT()` failure, then the input message is discarded.  The application may
+choose to delete the `CipherState` and terminate the session on such an error,
+or may continue to attempt communications.  If `EncryptWithAd()` or
+`DecryptWithAd()` signal an error due to nonce exhaustion, then the
+application must delete the `CipherState` and terminate the session.
 
 The below sections describe these objects in detail.
 
@@ -360,9 +362,9 @@ variables:
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
 The maximum `n` value (2^64^-1) is reserved for rekey (see [Section
-10.3](#rekey)) and must not be used.  If incrementing `n` results in 2^64^-1,
-then any further `EncryptWithAd()` or `DecryptWithAd()` calls will signal an
-error to the caller.
+4.2](#cipher-functions) and [Section 10.3](#rekey)) and must not be used.  If
+incrementing `n` results in 2^64^-1, then any further `EncryptWithAd()` or
+`DecryptWithAd()` calls will signal an error to the caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
@@ -442,7 +444,7 @@ portion of the handshake pattern:
   * **`initiator`**: A boolean indicating the initiator or responder role.
 
   * **`message_patterns`**: A sequence of message patterns.  Each message
-    pattern is a sequence of tokens from the set `("s", "e", "ee", "es",
+    pattern is a sequence of tokens from the set `("e", "s", "ee", "es",
     "se", "ss")`.
 
 A `HandshakeState` responds to the following methods:
@@ -807,10 +809,10 @@ and supports mutual authentication and transmission of static public keys.
 All interactive patterns allow some encryption of handshake payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
-   public key (i.e. patterns ending in `"K"`) allow "zero-RTT" encryption,
+   public key (i.e. patterns ending in `"K"`) allow **zero-RTT** encryption,
    meaning the initiator can encrypt the first handshake payload.  
 
- * All interactive patterns allow "half-RTT" encryption of the first response
+ * All interactive patterns allow **half-RTT** encryption of the first response
    payload, but the encryption only targets an initiator static public key in
    patterns starting with "K" or "I".
 
@@ -1113,11 +1115,11 @@ To support this case Noise allows **fallback patterns**.  Fallback patterns diff
 
  * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
 
- * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never otherwise included in the initiator's pre-message (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  The presence of an ephemeral public key in the initiator's pre-message thus indicates a fallback pattern.
+ * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  Thus, the initiator's pre-message will always include an ephemeral public key.  An ephemeral public key is never otherwise included in the initiator's pre-message (it would be redundant, since initiators are required to transmit an ephemeral public key in their first message).  Thus, the presence of an ephemeral public key in the initiator's pre-message indicates a fallback pattern.
 
- * Because an ephemeral public key is sent in the initiator's first message, and is used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
+ * Because an ephemeral public key is sent in the initiator's first message, and the ephemeral is used as a pre-message in the fallback handshake, the initiator does not need to send another ephemeral in the fallback handshake (see [Section 8.1](pattern-validity)).
 
-If the initial handshake message contained a prologue or payload that the responder paid attention to, then the `h` value after processing the initial handshake message should be included into the prologue for the fallback handshake.
+Another caveat for fallback handshakes:  If the initial handshake message has a prologue or payload that the responder makes any decisions based on, then the `h` value after processing that handshake message should be included in the prologue for the fallback handshake.
 
 
 9.2. Indicating fallback
@@ -1127,7 +1129,7 @@ A typical fallback scenario for zero-RTT encryption involves three different Noi
 
  * A **full handshake** is used if the initiator doesn't possess stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
 
- * A **zero-RTT handshake** allows early encryption of data in the first round-trip.
+ * A **zero-RTT handshake** allows encryption of data in the initial message.
 
  * A **fallback handshake** is triggered by the responder if it can't decrypt the initiator's first zero-RTT handshake message.
 
@@ -1147,7 +1149,7 @@ Noise message proper, but simply signals which handshake is being used:
    responder accepted the zero-RTT message.
 
  * If `type == 1` in the responder's first response then the
-   responder failed to authenticate the initiator's zero-RTT message and is
+   responder failed to decrypt the initiator's zero-RTT message and is
    performing a fallback handshake.
 
 Note that the `type` byte doesn't need to be explicitly authenticated (either as
@@ -1177,16 +1179,17 @@ three handshake patterns - two defined previously, and a new one.  These handsha
       <- e, ee, s, es
       -> s, se
 
-The `Noise_XX` pattern is used for an initial **full handshake** if the parties haven't communicated before, after which the initiator can cache the responder's static public key.  
+The `Noise_XX` pattern is used for a **full handshake** if the parties haven't
+communicated before, after which the initiator can cache the responder's static
+public key.  
 
 The `Noise_IK` pattern is used for a **zero-RTT handshake**.  
 
-The `Noise_XXfallback` is used if the responder fails to decrypt the first
- `Noise_IK` message (perhaps due to changing a static key).  In this case the
- responder will initiate a new **fallback handshake** using the
- `Noise_XXfallback` pattern, which is identical to `Noise_XX` except the
- ephemeral public key from the first `Noise_IK` message is used as a pre-message public
- key.
+The `Noise_XXfallback` pattern is used if the responder fails to decrypt the
+first `Noise_IK` message (perhaps due to changing a static key).  In this case
+the responder will switch to a **fallback handshake** using `Noise_XXfallback`,
+which is identical to `Noise_XX` except the ephemeral public key from the first
+`Noise_IK` message is used as the initiator's pre-message.
 
 
 9.4. Handshake indistinguishability
@@ -1492,7 +1495,7 @@ This section collects various security considerations:
 15. Rationale
 =============
 
-This section collects various design rationale.
+This section collects various design rationales.
 
 15.1. Ciphers and encryption
 --------------
