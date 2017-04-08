@@ -2,7 +2,7 @@
 title:      'Noise Protocol Framework: Core Specification'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-03-30'
+date:       '2017-04-07'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -465,6 +465,8 @@ A `HandshakeState` responds to the following methods:
     left empty, since they are created and exchanged during the handshake; but there are
     exceptions (see [Section 8.1](fallback-patterns)).
 
+    Performs the following steps:
+
       * Derives a `protocol_name` byte sequence by combining the names for the
         handshake pattern and crypto functions, as specified in [Section
         12](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
@@ -483,7 +485,7 @@ A `HandshakeState` responds to the following methods:
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
-   which may be zero-length, and a `message_buffer` to write the output into.
+   which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps:
   
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
@@ -506,10 +508,11 @@ A `HandshakeState` responds to the following methods:
 
       * If there are no more message patterns returns two new `CipherState`
         objects by calling `Split()`.
+\newpage
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
-    message's plaintext payload into.
+    message's plaintext payload into.  Performs the following steps:
 
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
@@ -1351,6 +1354,8 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
+\newpage
+
 12. Protocol names 
 ===================
 
@@ -1493,6 +1498,8 @@ This section collects various security considerations:
    with anonymous parties, care should be taken that implementations behave
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
+
+\newpage
 
 15. Rationales
 =============
