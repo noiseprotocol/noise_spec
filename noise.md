@@ -773,8 +773,8 @@ The second character refers to the responder's static key:
 |     Noise_NK(rs):         |        Noise_KK(s, rs):        |
 |       <- s                |          -> s                  |
 |       ...                 |          <- s                  |
-|        -> e, es           |          ...                   |
-|        <- e, ee           |          -> e, es, ss          |
+|       -> e, es            |          ...                   |
+|       <- e, ee            |          -> e, es, ss          |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
 |      Noise_NX(rs):        |         Noise_KX(s, rs):       |
@@ -1494,7 +1494,7 @@ This section collects various security considerations:
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
 
-15. Rationale
+15. Rationales
 =============
 
 This section collects various design rationales.
@@ -1507,25 +1507,32 @@ Cipher keys and pre-shared symmetric keys are 256 bits because:
   * 256 bits is a conservative length for cipher keys when considering 
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
+
   * Pre-shared key length is fixed to simplify testing and implementation, and
     to deter users from mistakenly using low-entropy passwords as pre-shared keys.
 
 Nonces are 64 bits because:
 
   * Some ciphers only have 64 bit nonces (e.g. Salsa20).
+
   * 64 bit nonces were used in the initial specification and implementations 
     of ChaCha20, so Noise nonces can be used with these implementations.
+
   * 64 bits makes it easy for the entire nonce to be treated as an integer 
     and incremented.
+
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
+
   
 The authentication data in a ciphertext is 128 bits because:
 
   * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
     truncated.
+
   * Noise may be used in a wide variety of contexts, including where attackers
     can receive rapid feedback on whether MAC guesses are correct.
+
   * A single fixed length is simpler than supporting variable-length tags.
 
 The `AESGCM` data volume limit is 2^56^ bytes because:
@@ -1538,17 +1545,21 @@ The `AESGCM` data volume limit is 2^56^ bytes because:
 Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, because:
 
   * ChaCha20 uses a little-endian block counter internally.
+
   * AES-GCM uses a big-endian block counter internally.
+
   * It makes sense to use consistent endianness in the cipher code.
 
 Rekey defaults to using encryption with the nonce 2^64^-1 because:
 
-  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently without needing to calculate an authentication tag.
+  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently (the "encryption" just needs to apply the cipher, and can skip calculation of the authentication tag).
 
 Rekey doesn't reset the nonce `n` to zero because:
 
   * Leaving `n` unchanged is simple.
-  * If the cipher has a weakness such that repeatedly rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
+
+  * If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
+
   * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
 
 15.2. Hash functions and hashing
@@ -1556,33 +1567,56 @@ Rekey doesn't reset the nonce `n` to zero because:
 
 The recommended hash function families are SHA2 and BLAKE2 because:
 
-  * SHA2 is widely available.
-  * SHA2 is often used alongside AES.
+  * SHA2 is widely available and is often used alongside AES.
+
   * BLAKE2 is fast and similar to ChaCha20.
 
 Hash output lengths of both 256 bits and 512 bits are supported because:
 
-  * 256-bit hashes provide sufficient collision-resistance at the 128-bit
+  * 256-bit hashes provide sufficient collision resistance at the 128-bit
     security level.
-  * The 256-bit hashes (SHA-256 and BLAKE2s) require less RAM, and less calculation when processing 
+
+  * The 256-bit hashes (SHA-256 and BLAKE2s) require less RAM, and less computation when processing 
     smaller inputs (due to smaller block size), than SHA-512 and BLAKE2b.
+
   * SHA-256 and BLAKE2s are faster on 32-bit processors than the larger hashes, which use 64-bit operations internally.
 
-The `MixKey()` design uses `HKDF` because:
+The `MixKey()` design uses HKDF because:
+
+  * HKDF is well-known and HKDF "chains" are used in similar ways in other protocols (e.g.
+    Signal, IPsec, TLS 1.3).
+
+  * HKDF has a published analysis [@hkdfpaper].
 
   * HKDF applies multiple layers of hashing between each `MixKey()` input.  This
     "extra" hashing might mitigate the impact of hash function weakness.
-  * HKDF is well-known and is used in similar ways in other protocols (e.g.
-    Signal, IPsec).
-  * HKDF and HMAC are widely-used constructions.  If some weakness is found in a
-    hash function, cryptanalysts will likely analyze that weakness in the
-    context of HKDF and HMAC.
 
-`MixHash()` is used instead of sending all inputs through `MixKey()` because:
+HMAC is used with all hash functions instead of allowing hashes to use a more
+specialized function (e.g. keyed BLAKE2), because:
+
+  * Some of the analysis of HKDF in [@hkdfpaper] depends on the nested structure of HMAC.
+
+  * HMAC is widely used with Merkle-Damgard hashes such as SHA2, and SHA3
+    candidates such as Keccak and BLAKE were required to be suitable with HMAC,
+    so HMAC should be applicable to all widely-used hash functions. 
+
+  * HMAC applies nested hashing to process each input.  This
+    "extra" hashing might mitigate the impact of hash function weakness.
+
+  * HMAC (and HKDF) are widely-used constructions.  If some weakness is found in a
+    hash function, cryptanalysts will likely analyze that weakness in the
+    context of HMAC and HKDF.
+
+  * Applying HMAC consistently is simple, and avoids having custom designs with different
+    cryptanalytic properties when using different hash functions.
+
+`MixHash()` is used instead of sending all inputs directly through `MixKey()` because:
 
   * `MixHash()` is more efficient than `MixKey()`.
+
   * `MixHash()` avoids any IPR concerns regarding mixing identity data into
      session keys (see KEA+).
+
   * `MixHash()` produces a non-secret `h` value that might be useful to
      higher-level protocols, e.g. for channel-binding.
 
@@ -1590,7 +1624,9 @@ The `h` value hashes handshake ciphertext instead of plaintext because:
 
   * This ensures `h` is a non-secret value that can be used for channel-binding or
     other purposes without leaking secret information.
+
   * This provides stronger guarantees against ciphertext malleability. 
+
 
 15.3. Other
 ------------
@@ -1599,7 +1635,9 @@ Big-endian length fields are recommended because:
 
   * Length fields are likely to be handled by parsing code where 
     big-endian "network byte order" is traditional.
+
   * Some ciphers use big-endian internally (e.g. GCM, SHA2).
+
   * While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use 
     little-endian, these will likely be handled by specialized libraries, so 
     there's not a strong argument for aligning with them.
@@ -1608,14 +1646,18 @@ Session termination is left to the application because:
 
   * Providing a termination signal in Noise doesn't help the application much, 
     since the application still has to use the signal correctly.
+
   * For an application with its own termination signal, having a 
     second termination signal in Noise is likely to be confusing rather than helpful.
 
 Explicit random nonces (like TLS "Random" fields) are not used because:
 
   * One-time ephemeral public keys make explicit nonces unnecessary.
+
   * Explicit nonces allow reuse of ephemeral public keys.  However reusing ephemerals (with periodic replacement) is more complicated, requires a secure time source, is less secure in case of ephemeral compromise, and only provides a small optimization, since key generation can be done for a fraction of the cost of a DH operation.
+
   * Explicit nonces increase message size.
+
   * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
 
 
@@ -1634,6 +1676,8 @@ Noise is inspired by:
   * The Ntor protocol from Ian Goldberg et al [@ntor].
   * The analysis of OTR by Mario Di Raimondo et al [@otr].
   * The analysis by Caroline Kudla and Kenny Paterson of "Protocol 4" by Simon Blake-Wilson et al [@kudla2005; @blakewilson1997].
+  * Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE [@moderncryptostrobe; @strobe].
+  * The KDF chains used in the Double Ratchet Algorithm [@doubleratchet].
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
