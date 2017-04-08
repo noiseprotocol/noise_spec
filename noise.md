@@ -1543,7 +1543,13 @@ Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, bec
 
 Rekey defaults to using encryption with the nonce 2^64^-1 because:
 
-  * With `AESGCM` and `ChaChaPoly` the rekey operation can be computed efficiently without needing to calculate an authentication tag.
+  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently without needing to calculate an authentication tag.
+
+Rekey doesn't reset the nonce `n` to zero because:
+
+  * Leaving `n` unchanged is simple.
+  * If the cipher has a weakness such that repeatedly rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
+  * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
 
 15.2. Hash functions and hashing
 --------------
@@ -1556,13 +1562,11 @@ The recommended hash function families are SHA2 and BLAKE2 because:
 
 Hash output lengths of both 256 bits and 512 bits are supported because:
 
-  * SHA-256 and BLAKE2s have sufficient collision-resistance at the 128-bit
+  * 256-bit hashes provide sufficient collision-resistance at the 128-bit
     security level.
-  * SHA-256 and BLAKE2s require less RAM, and less calculation when processing 
-    smaller inputs (due to smaller block size), than their larger brethren
-    (SHA-512 and BLAKE2b).
-  * SHA-256 and BLAKE2s are faster on 32-bit processors than their larger 
-    brethren.
+  * The 256-bit hashes (SHA-256 and BLAKE2s) require less RAM, and less calculation when processing 
+    smaller inputs (due to smaller block size), than SHA-512 and BLAKE2b.
+  * SHA-256 and BLAKE2s are faster on 32-bit processors than the larger hashes, which use 64-bit operations internally.
 
 The `MixKey()` design uses `HKDF` because:
 
