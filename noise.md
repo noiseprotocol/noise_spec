@@ -1601,11 +1601,12 @@ The `MixKey()` design uses HKDF because:
 HMAC is used with all hash functions instead of allowing hashes to use a more
 specialized function (e.g. keyed BLAKE2), because:
 
-  * Some of the analysis of HKDF in [@hkdfpaper] depends on the nested structure of HMAC.
+  * HKDF requires the use of HMAC, and some of the HKDF analysis in
+    [@hkdfpaper] depends on the nested structure of HMAC.
 
-  * HMAC is widely used with Merkle-Damgard hashes such as SHA2, and SHA3
-    candidates such as Keccak and BLAKE were required to be suitable with HMAC,
-    so HMAC should be applicable to all widely-used hash functions. 
+  * HMAC is widely used with Merkle-Damgard hashes such as SHA2.  SHA3
+    candidates such as Keccak and BLAKE were required to be suitable with HMAC.
+    Thus, HMAC should be applicable to all widely-used hash functions. 
 
   * HMAC applies nested hashing to process each input.  This
     "extra" hashing might mitigate the impact of hash function weakness.
@@ -1616,6 +1617,11 @@ specialized function (e.g. keyed BLAKE2), because:
 
   * Applying HMAC consistently is simple, and avoids having custom designs with different
     cryptanalytic properties when using different hash functions.
+
+  * HMAC is easy to build on top of a hash function interface.  If a more
+    specialized function (e.g. keyed BLAKE2) can't be implemented using only
+    the underlying hash, then it is not guaranteed to be available everywhere
+    the hash function is available. 
 
 `MixHash()` is used instead of sending all inputs directly through `MixKey()` because:
 

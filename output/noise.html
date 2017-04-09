@@ -912,11 +912,12 @@ Noise_XXfallback(e, s, rs):
 </ul>
 <p>HMAC is used with all hash functions instead of allowing hashes to use a more specialized function (e.g. keyed BLAKE2), because:</p>
 <ul>
-<li><p>Some of the analysis of HKDF in <span class="citation">[<a href="#ref-hkdfpaper">11</a>]</span> depends on the nested structure of HMAC.</p></li>
-<li><p>HMAC is widely used with Merkle-Damgard hashes such as SHA2, and SHA3 candidates such as Keccak and BLAKE were required to be suitable with HMAC, so HMAC should be applicable to all widely-used hash functions.</p></li>
+<li><p>HKDF requires the use of HMAC, and some of the HKDF analysis in <span class="citation">[<a href="#ref-hkdfpaper">11</a>]</span> depends on the nested structure of HMAC.</p></li>
+<li><p>HMAC is widely used with Merkle-Damgard hashes such as SHA2. SHA3 candidates such as Keccak and BLAKE were required to be suitable with HMAC. Thus, HMAC should be applicable to all widely-used hash functions.</p></li>
 <li><p>HMAC applies nested hashing to process each input. This &quot;extra&quot; hashing might mitigate the impact of hash function weakness.</p></li>
 <li><p>HMAC (and HKDF) are widely-used constructions. If some weakness is found in a hash function, cryptanalysts will likely analyze that weakness in the context of HMAC and HKDF.</p></li>
 <li><p>Applying HMAC consistently is simple, and avoids having custom designs with different cryptanalytic properties when using different hash functions.</p></li>
+<li><p>HMAC is easy to build on top of a hash function interface. If a more specialized function (e.g. keyed BLAKE2) can't be implemented using only the underlying hash, then it is not guaranteed to be available everywhere the hash function is available.</p></li>
 </ul>
 <p><code>MixHash()</code> is used instead of sending all inputs directly through <code>MixKey()</code> because:</p>
 <ul>
