@@ -2,7 +2,7 @@
 title:      'Noise Protocol Framework: Core Specification'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-04-07'
+date:       '2017-05-02'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -178,8 +178,9 @@ zero-length plaintext.
 Static public keys and payloads will be in cleartext if they are sent in a
 handshake prior to a DH operation, and will be AEAD ciphertexts if
 they occur after a DH operation.  (If Noise is being used with pre-shared
-symmetric keys, this rule is different: *all* static public keys and payloads
-will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
+symmetric keys, this rule may be different:  static public keys and payloads
+will be encrypted if they are after a `"psk"` token; see
+[Section 7](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
 ciphertexts will expand each encrypted field (whether static public key or
 payload) by 16 bytes.
 
@@ -203,8 +204,9 @@ Assuming each payload contains a zero-length plaintext, and DH public keys are
  2. 144 bytes (two public keys, the second encrypted, and encrypted payload)
  3. 88 bytes (one encrypted public key and encrypted payload)
 
-If pre-shared symmetric keys are used, the first message grows in size to 72
-bytes, since the first payload becomes encrypted.
+(If pre-shared symmetric keys are used, and a `"psk"` token is part of the first
+message, then the first message grows in size to 72 bytes, since the first
+payload becomes encrypted.)
 
 4. Crypto functions
 =====================
@@ -290,14 +292,17 @@ Noise defines additional functions based on the above `HASH()` function:
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
-   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns either two or three
+   byte sequences of length `HASHLEN`, as
    follows:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
-     * Returns the pair `(output1, output2)`.
+     * Sets `output3 = HMAC-HASH(temp_key, output2 || byte(0x03))`.
+     * Returns either the pair `(output1, output2)` or the triple
+       `(output1, output2, output3)`, depending on the context.
 
-   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
+   Note that `temp_key`, `output1`, `output2`, and `output3` are all `HASHLEN` bytes in
    length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
@@ -564,20 +569,22 @@ Noise provides an optional **pre-shared symmetric key** or **PSK** mode to
 support protocols where both parties already have a shared secret key.  When
 using pre-shared symmetric keys, the following changes are made:
 
- * Protocol names ([Section 12](#protocol-names)) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
+ * Protocol names ([Section 12](#protocol-names)) receive the specifier `"pskN"`
+   after the pattern specifier, where `"N"` specifies the placement of a `"psk"`
+   token. For example, `"Noise_IK"` might become `"Noise_IKpsk2"`.
 
- * `Initialize()` takes an additional `psk` argument, which is a sequence of
-   32 bytes.  Immediately after `MixHash(prologue)` it sets `ck, temp = HKDF(ck, psk)`, 
-   then calls `MixHash(temp)`.  This mixes the pre-shared key into the
-   chaining key, and also mixes a one-way function of the pre-shared key into
-   the `h` value to ensure that `h` is a function of all handshake inputs.
+ * An additional token, `"psk"` is added to the specification, and is defined
+   as meaning: set `ck, temp, k = HKDF(ck, psk)` and then call `MixHash(temp)`.
+
+ * If the `"N"` value in the protocol name is 0, `"psk"` is prepended as the first
+   token after `"e"` of the first message. Otherwise, `"psk"` is appended as the
+   last token of the N-th message.
 
  * `WriteMessage()` and `ReadMessage()` are modified when processing the `"e"`
    token to call `MixKey(e.public_key)` as the final step.  Because the initial
    messages in a handshake pattern are required to start with `"e"` ([Section 8.1](#pattern-validity)), 
-   this ensures `k` is initialized from the pre-shared key.  This also uses the
-   ephemeral public key's value as a random nonce to prevent re-using the same
-   `k` and `n` for different messages.
+   this uses ephemeral public key's value as a random nonce to prevent re-using
+   the same `k` and `n` for different messages.
 
  * `Initialize()` is modified when processing an `"e"` token in the initiator's
    pre-message.  A handshake pattern with such a pre-message is a **fallback
@@ -1369,13 +1376,14 @@ bytes or less.  Examples:
  * `Noise_XXfallback_448_AESGCM_SHA512`
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-If a pre-shared symmetric key is in use, then the prefix `"NoisePSK_"` is used
-instead of `"Noise_"`:
+If a pre-shared symmetric key is in use, then the the handshake pattern receives a
+suffix of `"pskN"`, where `"N"` specifies the placement of the `"psk"` token. For
+example:
 
- * `NoisePSK_XX_25519_AESGCM_SHA256`
- * `NoisePSK_N_25519_ChaChaPoly_BLAKE2s` 
- * `NoisePSK_XXfallback_448_AESGCM_SHA512`
- * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
+ * `Noise_XXpsk0_25519_AESGCM_SHA256`
+ * `Noise_Npsk1_25519_ChaChaPoly_BLAKE2s`
+ * `Noise_XXfallback+psk1_448_AESGCM_SHA512`
+ * `Noise_IKpsk2_448_ChaChaPoly_BLAKE2b`
 
 13. Application responsibilities
 ================================
