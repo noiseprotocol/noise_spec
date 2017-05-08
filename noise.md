@@ -176,12 +176,9 @@ be used to convey certificates or other handshake data, but can also contain a
 zero-length plaintext.
 
 Static public keys and payloads will be in cleartext if they are sent in a
-handshake prior to a DH operation, and will be AEAD ciphertexts if
-they occur after a DH operation.  (If Noise is being used with pre-shared
-symmetric keys, this rule is different: *all* static public keys and payloads
-will be encrypted; see [Section 7](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
-ciphertexts will expand each encrypted field (whether static public key or
-payload) by 16 bytes.
+handshake prior to a DH operation, and will be AEAD ciphertexts if they occur
+after a DH operation.  Like transport messages, AEAD ciphertexts will expand
+each encrypted field (whether static public key or payload) by 16 bytes.
 
 For an example, consider the handshake pattern:
 
@@ -199,12 +196,11 @@ followed by an encrypted payload.
 Assuming each payload contains a zero-length plaintext, and DH public keys are
 56 bytes, the message sizes will be:
 
- 1. 56 bytes (one cleartext public key and a cleartext payload)
- 2. 144 bytes (two public keys, the second encrypted, and encrypted payload)
- 3. 88 bytes (one encrypted public key and encrypted payload)
+  1. 56 bytes (one cleartext public key and a cleartext payload)
+  2. 144 bytes (two public keys, the second encrypted, and encrypted payload)
+  3. 88 bytes (one encrypted public key and encrypted payload)
 
-If pre-shared symmetric keys are used, the first message grows in size to 72
-bytes, since the first payload becomes encrypted.
+&nbsp;
 
 4. Crypto functions
 =====================
@@ -288,17 +284,15 @@ Noise defines additional functions based on the above `HASH()` function:
  * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [@rfc2104] 
    using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
 
- * **`HKDF(chaining_key, input_key_material, num_outputs)`**:  Takes a `chaining_key` byte
+ * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
-   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns either a pair or triple of byte sequences each of length `HASHLEN`, depending on whether `num_outputs` is 2 or 3:
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair or byte sequences each of length `HASHLEN`, as follows:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
-     * If `num_outputs == 2` returns `(output1, output2)`.
-     * Sets `output3 = HMAC-HASH(temp_key, output2 || byte(0x03))`.
-     * If `num_outputs == 3` returns `(output1, output2, output3)`.
+     * Returns (output1, output2).
 
-   Note that `temp_key`, `output1`, `output2`, and `output3` are all `HASHLEN` bytes in
+   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
    length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
@@ -405,14 +399,7 @@ A `SymmetricState` responds to the following methods:
 
   * **`MixKey(input_key_material)`**:  Executes the following steps:
   
-      * Sets `ck, temp_k = HKDF(ck,input_key_material, 2)`.
-      * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
-      * Calls `InitializeKey(temp_k)`.
-
-  * **`MixKeyAndHash(input_key_material)`**:  Executes the following steps:
-  
-      * Sets `ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)`.
-      * Calls `MixHash(temp_h)`.
+      * Sets `ck, temp_k = HKDF(ck,input_key_material)`.
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
 
@@ -494,6 +481,8 @@ A `HandshakeState` responds to the following methods:
 
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
+\newpage
+
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps:
   
@@ -518,6 +507,7 @@ A `HandshakeState` responds to the following methods:
 
       * If there are no more message patterns returns two new `CipherState`
         objects by calling `Split()`.
+
 \newpage
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
@@ -563,39 +553,10 @@ protocol.  To ensure that a "man-in-the-middle" did not edit Bob's list to
 remove options, Alice and Bob could include the list as prologue data.
 
 Note that while the parties confirm their prologues are identical, they don't
-mix prologue data into encryption keys.  If an input contains secret data
-that's intended to strengthen the encryption, a "PSK" handshake should be used
-instead (see next section). 
+mix prologue data into encryption keys.  
 
-7. Pre-shared symmetric keys
-=============================
 
-Noise provides an optional **pre-shared symmetric key** or **PSK** mode to
-support protocols where both parties already have a shared secret key.  When
-using pre-shared symmetric keys, the following changes are made:
-
- * Protocol names ([Section 12](#protocol-names)) use the prefix `"NoisePSK_"` instead of `"Noise_"`.
-
- * `Initialize()` takes an additional `psk` argument, which is a sequence of
-   32 bytes.  Immediately after `MixHash(prologue)` it sets `ck, temp = HKDF(ck, psk)`, 
-   then calls `MixHash(temp)`.  This mixes the pre-shared key into the
-   chaining key, and also mixes a one-way function of the pre-shared key into
-   the `h` value to ensure that `h` is a function of all handshake inputs.
-
- * `WriteMessage()` and `ReadMessage()` are modified when processing the `"e"`
-   token to call `MixKey(e.public_key)` as the final step.  Because the initial
-   messages in a handshake pattern are required to start with `"e"` ([Section 8.1](#pattern-validity)), 
-   this ensures `k` is initialized from the pre-shared key.  This also uses the
-   ephemeral public key's value as a random nonce to prevent re-using the same
-   `k` and `n` for different messages.
-
- * `Initialize()` is modified when processing an `"e"` token in the initiator's
-   pre-message.  A handshake pattern with such a pre-message is a **fallback
-   pattern** (see [Section 9.1](#fallback-patterns)).  In this case, `MixKey()`
-   is called on the ephemeral public key immediately after calling `MixHash()`
-   on it.  This accomplishes the same randomization as the previous bullet.
-
-8. Handshake patterns 
+7. Handshake patterns 
 ======================
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee", "es", "se", "ss")`.  
@@ -670,7 +631,7 @@ second message.
       -> e, es 
       <- e, ee
 
-8.1. Pattern validity 
+7.1. Pattern validity 
 ----------------------
 
 Handshake patterns must be **valid** in the following senses:
@@ -703,7 +664,7 @@ patterns that have been vetted by experts to satisfy the above checks.
 
 \newpage
 
-8.2. One-way patterns 
+7.2. One-way patterns 
 ----------------------
 
 The following example handshake patterns represent "one-way" handshakes
@@ -714,7 +675,7 @@ non-interactive data streams.
 Following a one-way handshake the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
 The second `CipherState` from `Split()` is discarded - the recipient must not
-send any messages using it (as this would violate the rules in [Section 8.1](#pattern-validity)).
+send any messages using it (as this would violate the rules in [Section 7.1](#pattern-validity)).
 
 One-way patterns are named with a single character, which indicates the 
 status of the sender's static key:
@@ -745,7 +706,7 @@ status of the sender's static key:
 add sender authentication, where the sender's public key is either known to the
 recipient beforehand (`Noise_K`) or transmitted under encryption (`Noise_X`).
 
-8.3. Interactive patterns 
+7.3. Interactive patterns 
 --------------------------
 
 The following example handshake patterns represent interactive protocols.
@@ -837,12 +798,12 @@ of "strong" forward secrecy.
 
 The next section provides more analysis of these payload security properties.
 
-8.4. Payload security properties
+7.4. Payload security properties
 ---------------------------------
 
 The following table lists the security properties for Noise handshake and
-transport payloads for all the named patterns in [Section 8.2](#one-way-patterns) and
-[Section 8.3](#interactive-patterns).  Each payload is assigned an "authentication"
+transport payloads for all the named patterns in [Section 7.2](#one-way-patterns) and
+[Section 7.3](#interactive-patterns).  Each payload is assigned an "authentication"
 property regarding the degree of authentication of the sender provided to the
 recipient, and a "confidentiality" property regarding the degree of
 confidentiality provided to the sender.
@@ -1018,11 +979,11 @@ received.
 +--------------------------------------------------------------+
 
 
-8.5. Identity hiding
+7.5. Identity hiding
 ---------------------
 
 The following table lists the identity hiding properties for all the named
-patterns in [Section 8.2](#one-way-patterns) and [Section 8.3](#interactive-patterns).  Each
+patterns in [Section 7.2](#one-way-patterns) and [Section 7.3](#interactive-patterns).  Each
 pattern is assigned properties describing the confidentiality supplied to the
 initiator's static public key, and to the responder's static public key.  The
 underlying assumptions are that ephemeral private keys are secure, and that
@@ -1101,7 +1062,7 @@ The properties for the relevant public key are:
 +------------------------------------------+
 |     Noise_IX       0              6      |
 +------------------------------------------+
-     
+
 
 9. Fallback protocols
 =======================
@@ -1112,8 +1073,8 @@ So far we've discussed Noise protocols which execute a single handshake
 chosen by the initiator.
 
 These include zero-RTT protocols where the initiator encrypts the initial
-message based on some stored information about the responder (such as a
-pre-shared symmetric key, or the responder's static public key).
+message based on some stored information about the responder (such as the
+responder's static public key).
 
 If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this case, the responder might choose to execute a different Noise handshake (a **fallback handshake**).
 
@@ -1286,7 +1247,7 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
    "X25519" in [@rfc7748]).  Invalid public key values will produce an output
    of all zeros.  
    
-     Alternatively, implementations are allowed to detect inputs that would
+     Alternatively, implementations are allowed to detect inputs that 
      produce an all-zeros output and signal an error instead.  This behavior is
      discouraged because it adds complexity and implementation variance, and
      does not improve security.  This behavior is allowed because it might
@@ -1303,7 +1264,7 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
    in [@rfc7748]).  Invalid public key values will produce an output of all
    zeros.  
 
-     Alternatively, implementations are allowed to detect inputs that would
+     Alternatively, implementations are allowed to detect inputs that 
      produce an all-zeros output and signal an error instead.  This behavior is
      discouraged because it adds complexity and implementation variance, and
      does not improve security.  This behavior is allowed because it might
@@ -1372,14 +1333,6 @@ bytes or less.  Examples:
  * `Noise_XXfallback_448_AESGCM_SHA512`
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-If a pre-shared symmetric key is in use, then the prefix `"NoisePSK_"` is used
-instead of `"Noise_"`:
-
- * `NoisePSK_XX_25519_AESGCM_SHA256`
- * `NoisePSK_N_25519_ChaChaPoly_BLAKE2s` 
- * `NoisePSK_XXfallback_448_AESGCM_SHA512`
- * `NoisePSK_IK_448_ChaChaPoly_BLAKE2b`
-
 13. Application responsibilities
 ================================
 
@@ -1445,9 +1398,7 @@ This section collects various security considerations:
    the case, since setting public keys to invalid values might cause
    predictable DH output.  For example, a `Noise_NK_25519` initiator might
    send an invalid ephemeral public key to cause a known DH output of all
-   zeros, despite not knowing the responder's static public key.  If the
-   parties want to authenticate with a shared secret, it must be passed in as a
-   PSK.
+   zeros, despite not knowing the responder's static public key.  
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
@@ -1475,13 +1426,9 @@ This section collects various security considerations:
 
  * **Protocol names**:  The protocol name used with `Initialize()` must
    uniquely identify the combination of handshake pattern and crypto functions
-   for every key it's used with (whether ephemeral key pair, static key pair,
-   or PSK).  If the same secret key was reused with the same protocol name but
-   a different set of cryptographic operations then bad interactions could
-   occur.
-
- * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
-   values with 256 bits of entropy.
+   for every key it's used with (whether ephemeral key pair or static key
+   pair).  If the same secret key was reused with the same protocol name but a
+   different set of cryptographic operations then bad interactions could occur.
 
  * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
    in security as the volume of data encrypted under a single key increases.
@@ -1512,14 +1459,11 @@ This section collects various design rationales.
 15.1. Ciphers and encryption
 --------------
 
-Cipher keys and pre-shared symmetric keys are 256 bits because:
+Cipher keys are 256 bits because:
 
   * 256 bits is a conservative length for cipher keys when considering 
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
-
-  * Pre-shared key length is fixed to simplify testing and implementation, and
-    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
 
 Nonces are 64 bits because:
 
