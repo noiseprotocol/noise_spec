@@ -175,15 +175,17 @@
 <p>Noise defines additional functions based on the above <code>HASH()</code> function:</p>
 <ul>
 <li><p><strong><code>HMAC-HASH(key, data)</code></strong>: Applies <code>HMAC</code> from <span class="citation">[<a href="#ref-rfc2104">3</a>]</span> using the <code>HASH()</code> function. This function is only called as part of <code>HKDF()</code>, below.</p></li>
-<li><strong><code>HKDF(chaining_key, input_key_material)</code></strong>: Takes a <code>chaining_key</code> byte sequence of length <code>HASHLEN</code>, and an <code>input_key_material</code> byte sequence with length either zero bytes, 32 bytes, or <code>DHLEN</code> bytes. Returns two byte sequences of length <code>HASHLEN</code>, as follows:
+<li><strong><code>HKDF(chaining_key, input_key_material, num_outputs)</code></strong>: Takes a <code>chaining_key</code> byte sequence of length <code>HASHLEN</code>, and an <code>input_key_material</code> byte sequence with length either zero bytes, 32 bytes, or <code>DHLEN</code> bytes. Returns either a pair or triple of byte sequences each of length <code>HASHLEN</code>, depending on whether <code>num_outputs</code> is 2 or 3:
 <ul>
 <li>Sets <code>temp_key = HMAC-HASH(chaining_key, input_key_material)</code>.</li>
 <li>Sets <code>output1 = HMAC-HASH(temp_key, byte(0x01))</code>.</li>
 <li>Sets <code>output2 = HMAC-HASH(temp_key, output1 || byte(0x02))</code>.</li>
-<li>Returns the pair <code>(output1, output2)</code>.</li>
+<li>If <code>num_outputs == 2</code> returns <code>(output1, output2)</code>.</li>
+<li>Sets <code>output3 = HMAC-HASH(temp_key, output2 || byte(0x03))</code>.</li>
+<li>If <code>num_outputs == 3</code> returns <code>(output1, output2, output3)</code>.</li>
 </ul></li>
 </ul>
-<p>Note that <code>temp_key</code>, <code>output1</code>, and <code>output2</code> are all <code>HASHLEN</code> bytes in length. Also note that the <code>HKDF()</code> function is simply <code>HKDF</code> from <span class="citation">[<a href="#ref-rfc5869">4</a>]</span> with the <code>chaining_key</code> as HKDF <code>salt</code>, and zero-length HKDF <code>info</code>.</p>
+<p>Note that <code>temp_key</code>, <code>output1</code>, <code>output2</code>, and <code>output3</code> are all <code>HASHLEN</code> bytes in length. Also note that the <code>HKDF()</code> function is simply <code>HKDF</code> from <span class="citation">[<a href="#ref-rfc5869">4</a>]</span> with the <code>chaining_key</code> as HKDF <code>salt</code>, and zero-length HKDF <code>info</code>.</p>
 <h1 id="processing-rules">5. Processing rules</h1>
 <p>To precisely define the processing rules we adopt an object-oriented terminology, and present three &quot;objects&quot; which encapsulate state variables and provide &quot;methods&quot; which implement processing logic. These three objects are presented as a hierarchy: each higher-layer object includes one instance of the object beneath it. From lowest-layer to highest, the objects are:</p>
 <ul>
@@ -223,7 +225,19 @@
 <li><p>Sets <code>ck = h</code>.</p></li>
 <li><p>Calls <code>InitializeKey(empty)</code>.</p></li>
 </ul></li>
-<li><p><strong><code>MixKey(input_key_material)</code></strong>: Sets <code>ck, temp_k = HKDF(ck, input_key_material)</code>. If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes. Calls <code>InitializeKey(temp_k)</code>.</p></li>
+<li><p><strong><code>MixKey(input_key_material)</code></strong>: Executes the following steps:</p>
+<ul>
+<li>Sets <code>ck, temp_k = HKDF(ck,input_key_material, 2)</code>.</li>
+<li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
+<li>Calls <code>InitializeKey(temp_k)</code>.</li>
+</ul></li>
+<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>: Executes the following steps:</p>
+<ul>
+<li>Sets <code>ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)</code>.</li>
+<li>Calls <code>MixHash(temp_h)</code>.</li>
+<li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
+<li>Calls <code>InitializeKey(temp_k)</code>.</li>
+</ul></li>
 <li><p><strong><code>MixHash(data)</code></strong>: Sets <code>h = HASH(h || data)</code>.</p></li>
 <li><p><strong><code>EncryptAndHash(plaintext)</code></strong>: Sets <code>ciphertext = EncryptWithAd(h, plaintext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>ciphertext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>EncryptWithAd()</code> call will set <code>ciphertext</code> equal to <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets <code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>DecryptWithAd()</code> call will set <code>plaintext</code> equal to <code>ciphertext</code>.</p></li>
@@ -339,12 +353,11 @@
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. ignoring the pre-messages, there must be no more than one occurrence of &quot;e&quot;, and one occurrence of &quot;s&quot;, in the messages sent by any party).</p></li>
-<li><p>Parties must send an ephemeral public key at the start of the first message they send (i.e. the first token of the first message pattern in each direction must be <code>&quot;e&quot;</code>). An exception is allowed for the initiator in patterns where the initiator's ephemeral public key is used as a pre-message (i.e. fallback patterns; see <a href="#fallback-patterns">Section 9.1</a>).</p></li>
 <li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data unless they have also performed a DH between an ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>
-<p>The third and fourth checks are necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys. Noise also uses ephemeral public keys to randomize PSK-based encryption. Patterns failing these checks could result in subtle but catastrophic security flaws.</p>
+<p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
 
 <h2 id="one-way-patterns">8.2. One-way patterns</h2>

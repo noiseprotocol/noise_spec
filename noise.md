@@ -288,16 +288,17 @@ Noise defines additional functions based on the above `HASH()` function:
  * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [@rfc2104] 
    using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
 
- * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
+ * **`HKDF(chaining_key, input_key_material, num_outputs)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
-   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns two byte sequences of length `HASHLEN`, as
-   follows:
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns either a pair or triple of byte sequences each of length `HASHLEN`, depending on whether `num_outputs` is 2 or 3:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
-     * Returns the pair `(output1, output2)`.
+     * If `num_outputs == 2` returns `(output1, output2)`.
+     * Sets `output3 = HMAC-HASH(temp_key, output2 || byte(0x03))`.
+     * If `num_outputs == 3` returns `(output1, output2, output3)`.
 
-   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
+   Note that `temp_key`, `output1`, `output2`, and `output3` are all `HASHLEN` bytes in
    length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
@@ -402,9 +403,18 @@ A `SymmetricState` responds to the following methods:
 
       * Calls `InitializeKey(empty)`.
 
-  * **`MixKey(input_key_material)`**:  Sets `ck, temp_k = HKDF(ck,
-    input_key_material)`.  If `HASHLEN` is 64, then truncates `temp_k` to 32
-    bytes.  Calls `InitializeKey(temp_k)`.
+  * **`MixKey(input_key_material)`**:  Executes the following steps:
+  
+      * Sets `ck, temp_k = HKDF(ck,input_key_material, 2)`.
+      * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
+      * Calls `InitializeKey(temp_k)`.
+
+  * **`MixKeyAndHash(input_key_material)`**:  Executes the following steps:
+  
+      * Sets `ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)`.
+      * Calls `MixHash(temp_h)`.
+      * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
+      * Calls `InitializeKey(temp_k)`.
 
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
@@ -674,13 +684,7 @@ Handshake patterns must be **valid** in the following senses:
     no more than one occurrence of "e", and one occurrence of "s", in the
     messages sent by any party).
 
- 3. Parties must send an ephemeral public key at the start of the first message
-    they send (i.e. the first token of the first message pattern in each
-    direction must be `"e"`).  An exception is allowed for the initiator in 
-    patterns where the initiator's ephemeral public key is used as a pre-message (i.e. fallback
-    patterns; see [Section 9.1](#fallback-patterns)).
-
- 4. After performing a DH between a remote public key and any local private key
+ 3. After performing a DH between a remote public key and any local private key
     that is not an ephemeral private key, the local party must not send any
     encrypted data unless they have also performed a DH between an ephemeral
     private key and the remote public key.  
@@ -690,10 +694,9 @@ Patterns failing the first check are obviously nonsense.
 The second check outlaws redundant transmission of values to simplify
 implementation and testing.
 
-The third and fourth checks are necessary because Noise uses DH outputs
-involving ephemeral keys to randomize the shared secret keys.  Noise also uses
-ephemeral public keys to randomize PSK-based encryption.  Patterns failing
-these checks could result in subtle but catastrophic security flaws.  
+The third check is necessary because Noise uses DH outputs
+involving ephemeral keys to randomize the shared secret keys.  Patterns failing
+this check could result in subtle but catastrophic security flaws.  
 
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
