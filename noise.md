@@ -586,13 +586,12 @@ The first actual handshake message is sent from the initiator to the responder
 (with one exception - see next paragraph).  The next message is sent by the
 responder, the next from the initiator, and so on in alternating fashion.
 
-(Exceptional case: Noise allows special **fallback patterns** where the responder switches to a
-different pattern than the initator started with (see [Section
-8.1](#fallback-patterns)).  If the initiator's pre-message
-contains an `"e"` token, then this handshake pattern is a fallback pattern.  In
-the case of a fallback pattern the party's roles are preserved, so the first
-handshake message is sent by the responder, the next from the initiator, and so
-on.)
+(Exceptional case: Noise allows special **fallback patterns** where the
+responder switches to a different pattern than the initator started with (see
+[Section 8.1](#fallback-patterns)).  If the initiator's pre-message contains an
+`"e"` token, then this handshake pattern is a fallback pattern.  In the case of
+a fallback pattern the first handshake message is sent by the responder,
+the next from the initiator, and so on.)
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
