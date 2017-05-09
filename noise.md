@@ -68,7 +68,7 @@ Each party maintains the following variables:
    new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
    **AEAD** cipher mode (in the sense of Rogaway [@Rogaway:2002]) 
-   and includes the current `h` value as **associated data**
+   and uses the current `h` value as **associated data**
    which is covered by the AEAD authentication.  Encryption of static public
    keys and payloads provides some confidentiality and key confirmation during
    the handshake phase.
@@ -286,7 +286,7 @@ Noise defines additional functions based on the above `HASH()` function:
 
  * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
-   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair or byte sequences each of length `HASHLEN`, as follows:
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair of byte sequences each of length `HASHLEN`, as follows:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
@@ -619,9 +619,9 @@ initiator's is listed first (and hashed first).  During `Initialize()`,
 The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral public key.
-This pre-knowledge allows an encrypted payload to be sent in the first message,
-although full forward secrecy and replay protection is only achieved with the
-second message.
+This pre-knowledge allows an encrypted payload to be sent in the first message
+("O-RTT encryption"), although full forward secrecy and replay protection is
+only achieved with the second message.
 
     Noise_NK(rs):
       <- s
