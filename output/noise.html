@@ -273,7 +273,7 @@
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
-<li><p>For <code>&quot;e&quot;</code>: Sets <code>e = GENERATE_KEYPAIR()</code>, overwriting any previous value for <code>e</code>. Appends <code>e.public_key</code> to the buffer. Calls <code>MixHash(e.public_key)</code>.</p></li>
+<li><p>For <code>&quot;e&quot;</code>: Sets <code>e = GENERATE_KEYPAIR()</code>. Appends <code>e.public_key</code> to the buffer. Calls <code>MixHash(e.public_key)</code>.</p></li>
 <li><p>For <code>&quot;s&quot;</code>: Appends <code>EncryptAndHash(s.public_key)</code> to the buffer.</p></li>
 <li><p>For <code>&quot;ee&quot;</code>: Calls <code>MixKey(DH(e, re))</code>.</p></li>
 <li><p>For <code>&quot;es&quot;</code>: Calls <code>MixKey(DH(e, rs))</code> if initiator, <code>MixKey(DH(s, re))</code> if responder.</p></li>
@@ -290,7 +290,7 @@
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
-<li><p>For <code>&quot;e&quot;</code>: Sets <code>re</code> to the next <code>DHLEN</code> bytes from the message, overwriting any previous value for <code>re</code>. Calls <code>MixHash(re.public_key)</code>.</p></li>
+<li><p>For <code>&quot;e&quot;</code>: Sets <code>re</code> to the next <code>DHLEN</code> bytes from the message. Calls <code>MixHash(re.public_key)</code>.</p></li>
 <li><p>For <code>&quot;s&quot;</code>: Sets <code>temp</code> to the next <code>DHLEN + 16</code> bytes of the message if <code>HasKey() == True</code>, or to the next <code>DHLEN</code> bytes otherwise. Sets <code>rs</code> to <code>DecryptAndHash(temp)</code>.</p></li>
 <li><p>For <code>&quot;ee&quot;</code>: Calls <code>MixKey(DH(e, re))</code>.</p></li>
 <li><p>For <code>&quot;es&quot;</code>: Calls <code>MixKey(DH(e, rs))</code> if initiator, <code>MixKey(DH(s, re))</code> if responder.</p></li>
@@ -340,7 +340,7 @@
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
-<li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. ignoring the pre-messages, there must be no more than one occurrence of &quot;e&quot;, and one occurrence of &quot;s&quot;, in the messages sent by any party).</p></li>
+<li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of &quot;e&quot;, and one occurrence of &quot;s&quot;, in the messages sent by any party).</p></li>
 <li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data unless they have also performed a DH between an ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
