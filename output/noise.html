@@ -5,17 +5,17 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2017-04-07" />
-  <title>Noise Protocol Framework: Core Specification</title>
+  <meta name="date" content="2017-05-09" />
+  <title>The Noise Protocol Framework: Book 1</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
 </head>
 <body>
 <div id="header">
-<h1 class="title">Noise Protocol Framework: Core Specification</h1>
+<h1 class="title">The Noise Protocol Framework: Book 1</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
 <b>Revision:</b> 32draft<br/>
-<b>Date:</b> 2017-04-07<br/>
+<b>Date:</b> 2017-05-09<br/>
 </div>
 <div id="TOC">
 <h2 class="toc">Table of Contents</h2>
@@ -53,7 +53,6 @@
 <li><a href="#advanced-features">9. Advanced features</a><ul>
 <li><a href="#dummy-static-public-keys">9.1. Dummy static public keys</a></li>
 <li><a href="#channel-binding">9.2. Channel binding</a></li>
-<li><a href="#rekey">9.3. Rekey</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</a><ul>
 <li><a href="#the-25519-dh-functions">10.1. The <code>25519</code> DH functions</a></li>
@@ -80,6 +79,7 @@
 </div>
 <h1 id="introduction">1. Introduction</h1>
 <p>Noise is a framework for crypto protocols based on Diffie-Hellman key agreement. Noise can describe protocols that consist of a single message as well as interactive protocols.</p>
+<p>This document is the first of two books which provide the specification for Noise. This document can be read as a self-contained specification, however Book 2 adds features that are important in many use cases.</p>
 <h1 id="overview">2. Overview</h1>
 <h2 id="terminology">2.1. Terminology</h2>
 <p>A Noise protocol begins with two parties exchanging <strong>handshake messages</strong>. During this <strong>handshake phase</strong> the parties exchange DH public keys and perform a sequence of DH operations, hashing the DH results into a shared secret key. After the handshake phase each party can use this shared key to send encrypted <strong>transport messages</strong>.</p>
@@ -162,7 +162,6 @@
 <ul>
 <li><p><strong><code>ENCRYPT(k, n, ad, plaintext)</code></strong>: Encrypts <code>plaintext</code> using the cipher key <code>k</code> of 32 bytes and an 8-byte unsigned integer nonce <code>n</code> which must be unique for the key <code>k</code>. Returns the ciphertext. Encryption must be done with an &quot;AEAD&quot; encryption mode with the associated data <code>ad</code> (using the terminology from <span class="citation">[<a href="#ref-Rogaway:2002">1</a>]</span>) and returns a ciphertext that is the same size as the plaintext plus 16 bytes for authentication data. The entire ciphertext must be indistinguishable from random if the key is secret.</p></li>
 <li><p><strong><code>DECRYPT(k, n, ad, ciphertext)</code></strong>: Decrypts <code>ciphertext</code> using a cipher key <code>k</code> of 32 bytes, an 8-byte unsigned integer nonce <code>n</code>, and associated data <code>ad</code>. Returns the plaintext, unless authentication fails, in which case an error is signaled to the caller.</p></li>
-<li><p><strong><code>REKEY(k)</code></strong>: Returns a new 32-byte cipher key as a pseudorandom function of <code>k</code>. If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from <code>ENCRYPT(k, maxnonce, zerolen, zeros)</code>, where <code>MAXNONCE</code> equals 2<sup>64</sup>-1, <code>zerolen</code> is a zero-length byte sequence, and <code>zeros</code> is a sequence of 32 bytes filled with zeros.</p></li>
 </ul>
 <h2 id="hash-functions">4.3. Hash functions</h2>
 <p>Noise depends on the following <strong>hash function</strong> (and associated constants):</p>
@@ -173,8 +172,8 @@
 </ul>
 <p>Noise defines additional functions based on the above <code>HASH()</code> function:</p>
 <ul>
-<li><p><strong><code>HMAC-HASH(key, data)</code></strong>: Applies <code>HMAC</code> from <span class="citation">[<a href="#ref-rfc2104">3</a>]</span> using the <code>HASH()</code> function. This function is only called as part of <code>HKDF()</code>, below.</p></li>
-<li><strong><code>HKDF(chaining_key, input_key_material)</code></strong>: Takes a <code>chaining_key</code> byte sequence of length <code>HASHLEN</code>, and an <code>input_key_material</code> byte sequence with length either zero bytes, 32 bytes, or <code>DHLEN</code> bytes. Returns a pair of byte sequences each of length <code>HASHLEN</code>, as follows:
+<li><p><strong><code>HMAC-HASH(key, data)</code></strong>: Applies <code>HMAC</code> from <span class="citation">[<a href="#ref-rfc2104">3</a>]</span> using the <code>HASH()</code> function. This function is only called as part of <code>HKDF2()</code>, below.</p></li>
+<li><strong><code>HKDF2(chaining_key, input_key_material)</code></strong>: Takes a <code>chaining_key</code> byte sequence of length <code>HASHLEN</code>, and an <code>input_key_material</code> byte sequence with length either zero bytes, 32 bytes, or <code>DHLEN</code> bytes. Returns a pair of byte sequences each of length <code>HASHLEN</code>, as follows:
 <ul>
 <li>Sets <code>temp_key = HMAC-HASH(chaining_key, input_key_material)</code>.</li>
 <li>Sets <code>output1 = HMAC-HASH(temp_key, byte(0x01))</code>.</li>
@@ -182,7 +181,7 @@
 <li>Returns (output1, output2).</li>
 </ul></li>
 </ul>
-<p>Note that <code>temp_key</code>, <code>output1</code>, and <code>output2</code> are all <code>HASHLEN</code> bytes in length. Also note that the <code>HKDF()</code> function is simply <code>HKDF</code> from <span class="citation">[<a href="#ref-rfc5869">4</a>]</span> with the <code>chaining_key</code> as HKDF <code>salt</code>, and zero-length HKDF <code>info</code>.</p>
+<p>Note that <code>temp_key</code>, <code>output1</code>, and <code>output2</code> are all <code>HASHLEN</code> bytes in length. Also note that the <code>HKDF2()</code> function is simply <code>HKDF</code> from <span class="citation">[<a href="#ref-rfc5869">4</a>]</span> with the <code>chaining_key</code> as HKDF <code>salt</code>, and zero-length HKDF <code>info</code>.</p>
 <h1 id="processing-rules">5. Processing rules</h1>
 <p>To precisely define the processing rules we adopt an object-oriented terminology, and present three &quot;objects&quot; which encapsulate state variables and provide &quot;methods&quot; which implement processing logic. These three objects are presented as a hierarchy: each higher-layer object includes one instance of the object beneath it. From lowest-layer to highest, the objects are:</p>
 <ul>
@@ -200,11 +199,10 @@
 <li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which may be <code>empty</code>). <code>Empty</code> is a special value which indicates <code>k</code> has not yet been initialized.</p></li>
 <li><p><strong><code>n</code></strong>: An 8-byte (64-bit) unsigned integer nonce.</p></li>
 </ul>
-<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2<sup>64</sup>-1) is reserved for rekey (see <a href="#cipher-functions">Section 4.2</a> and <a href="#rekey">Section 9.3</a>) and must not be used. If incrementing <code>n</code> results in 2<sup>64</sup>-1, then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
+<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2<sup>64</sup>-1) is reserved for other use. If incrementing <code>n</code> results in 2<sup>64</sup>-1, then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
-<li><p><strong><code>Rekey()</code></strong>: Sets <code>k = REKEY(k)</code>.</p></li>
 <li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If <code>k</code> is non-empty returns <code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If <code>k</code> is non-empty returns <code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns <code>ciphertext</code>. If an authentication failure occurs in <code>DECRYPT()</code> then <code>n</code> is not incremented and an error is signaled to the caller.</p></li>
 </ul>
@@ -224,7 +222,7 @@
 </ul></li>
 <li><p><strong><code>MixKey(input_key_material)</code></strong>: Executes the following steps:</p>
 <ul>
-<li>Sets <code>ck, temp_k = HKDF(ck,input_key_material)</code>.</li>
+<li>Sets <code>ck, temp_k = HKDF2(ck,input_key_material)</code>.</li>
 <li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
@@ -233,7 +231,7 @@
 <li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets <code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>DecryptWithAd()</code> call will set <code>plaintext</code> equal to <code>ciphertext</code>.</p></li>
 <li><strong><code>Split()</code></strong>: Returns a pair of <code>CipherState</code> objects for encrypting transport messages. Executes the following steps, where <code>zerolen</code> is a zero-length byte sequence:
 <ul>
-<li>Sets <code>temp_k1, temp_k2 = HKDF(ck, zerolen)</code>.</li>
+<li>Sets <code>temp_k1, temp_k2 = HKDF2(ck, zerolen)</code>.</li>
 <li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k1</code> and <code>temp_k2</code> to 32 bytes.</li>
 <li>Creates two new <code>CipherState</code> objects <code>c1</code> and <code>c2</code>.</li>
 <li>Calls <code>c1.InitializeKey(temp_k1)</code> and <code>c2.InitializeKey(temp_k2)</code>.</li>
@@ -266,9 +264,6 @@
 <li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 8</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first.</p></li>
 <li><p>Sets <code>message_patterns</code> to the message patterns from <code>handshake_pattern</code>.</p></li>
 </ul></li>
-</ul>
-
-<ul>
 <li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
@@ -753,15 +748,6 @@ Noise_XXfallback(e, s, rs):
 <p>Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
 <p>To support this, Noise libraries should expose the final value of h to the application as a <strong>handshake hash</strong> which uniquely identifies the Noise session.</p>
 <p>Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
-<h2 id="rekey">9.3. Rekey</h2>
-<p>Parties might wish to periodically call the <code>Rekey()</code> function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages. Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on <code>AESGCM</code> data volumes in <a href="#security-considerations">Section 13</a> ).</p>
-<p>It is up to to the application if and when to perform rekey. For example:</p>
-<ul>
-<li><p>Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received. This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.</p></li>
-<li><p>Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.</p></li>
-<li><p>Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.</p></li>
-</ul>
-<p>Note that rekey doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">10. DH functions, cipher functions, and hash functions</h1>
 <h2 id="the-25519-dh-functions">10.1. The <code>25519</code> DH functions</h2>
 <ul>
@@ -809,7 +795,6 @@ Noise_XXfallback(e, s, rs):
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
-
 <h1 id="protocol-names">11. Protocol names</h1>
 <p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII names for the handshake pattern, the DH functions, the cipher functions, and the hash function, with underscore separators. The resulting name must be 255 bytes or less. Examples:</p>
 <ul>
@@ -833,12 +818,12 @@ Noise_XXfallback(e, s, rs):
 <ul>
 <li><p><strong>Session termination</strong>: Preventing attackers from truncating a stream of transport messages is an application responsibility. See previous section.</p></li>
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with fallback handshakes, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
-<li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key.</p></li>
+<li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a &quot;PSK&quot; <span class="citation">[<a href="#ref-book2">11</a>]</span>.</p></li>
 <li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 9.2</a>.</p></li>
-<li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved for rekeying. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
+<li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
 <li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol should send a new ephemeral public key and perform a DH with it prior to sending any encrypted data. Otherwise replay of a handshake message could trigger catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#pattern-validity">Section 7.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair or static key pair). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
-<li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility then different cipher functions should be chosen, or the cipherstate should be rekeyed (<a href="#rekey">Section 9.3</a>) before this limit is reached.</p></li>
+<li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility then different cipher functions should be chosen.</p></li>
 <li><p><strong>Hash collisions</strong>: If an attacker can find hash collisions on prologue data or the handshake hash, they may be able to perform &quot;transcript collision&quot; attacks that trick the parties into having different views of handshake data. It is important to use Noise with collision-resistant hash functions, and replace the hash function at any sign of weakness.</p></li>
 <li><p><strong>Implementation fingerprinting</strong>: If this protocol is used in settings with anonymous parties, care should be taken that implementations behave identically in all cases. This may require mandating exact behavior for handling of invalid DH public keys.</p></li>
 </ul>
@@ -873,16 +858,6 @@ Noise_XXfallback(e, s, rs):
 <li><p>AES-GCM uses a big-endian block counter internally.</p></li>
 <li><p>It makes sense to use consistent endianness in the cipher code.</p></li>
 </ul>
-<p>Rekey defaults to using encryption with the nonce 2<sup>64</sup>-1 because:</p>
-<ul>
-<li>With <code>AESGCM</code> and <code>ChaChaPoly</code> rekey can be computed efficiently (the &quot;encryption&quot; just needs to apply the cipher, and can skip calculation of the authentication tag).</li>
-</ul>
-<p>Rekey doesn't reset the nonce <code>n</code> to zero because:</p>
-<ul>
-<li><p>Leaving <code>n</code> unchanged is simple.</p></li>
-<li><p>If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting <code>n</code> advance will avoid catastrophic reuse of the same <code>k</code> and <code>n</code> values.</p></li>
-<li><p>Letting <code>n</code> advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.</p></li>
-</ul>
 <h2 id="hash-functions-and-hashing">14.2. Hash functions and hashing</h2>
 <p>The recommended hash function families are SHA2 and BLAKE2 because:</p>
 <ul>
@@ -898,12 +873,12 @@ Noise_XXfallback(e, s, rs):
 <p>The <code>MixKey()</code> design uses HKDF because:</p>
 <ul>
 <li><p>HKDF is well-known and HKDF &quot;chains&quot; are used in similar ways in other protocols (e.g. Signal, IPsec, TLS 1.3).</p></li>
-<li><p>HKDF has a published analysis <span class="citation">[<a href="#ref-hkdfpaper">11</a>]</span>.</p></li>
+<li><p>HKDF has a published analysis <span class="citation">[<a href="#ref-hkdfpaper">12</a>]</span>.</p></li>
 <li><p>HKDF applies multiple layers of hashing between each <code>MixKey()</code> input. This &quot;extra&quot; hashing might mitigate the impact of hash function weakness.</p></li>
 </ul>
 <p>HMAC is used with all hash functions instead of allowing hashes to use a more specialized function (e.g. keyed BLAKE2), because:</p>
 <ul>
-<li><p>HKDF requires the use of HMAC, and some of the HKDF analysis in <span class="citation">[<a href="#ref-hkdfpaper">11</a>]</span> depends on the nested structure of HMAC.</p></li>
+<li><p>HKDF requires the use of HMAC, and some of the HKDF analysis in <span class="citation">[<a href="#ref-hkdfpaper">12</a>]</span> depends on the nested structure of HMAC.</p></li>
 <li><p>HMAC is widely used with Merkle-Damgard hashes such as SHA2. SHA3 candidates such as Keccak and BLAKE were required to be suitable with HMAC. Thus, HMAC should be applicable to all widely-used hash functions.</p></li>
 <li><p>HMAC applies nested hashing to process each input. This &quot;extra&quot; hashing might mitigate the impact of hash function weakness.</p></li>
 <li><p>HMAC (and HKDF) are widely-used constructions. If some weakness is found in a hash function, cryptanalysts will likely analyze that weakness in the context of HMAC and HKDF.</p></li>
@@ -941,17 +916,17 @@ Noise_XXfallback(e, s, rs):
 <li><p>Explicit nonces make it easier to &quot;backdoor&quot; crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.</p></li>
 </ul>
 <h1 id="ipr">15. IPR</h1>
-<p>The Noise specification (this document) is hereby placed in the public domain.</p>
+<p>The Noise specification Book 1 (this document) is hereby placed in the public domain.</p>
 <h1 id="acknowledgements">16. Acknowledgements</h1>
 <p>Noise is inspired by:</p>
 <ul>
-<li>The NaCl and CurveCP protocols from Dan Bernstein et al <span class="citation">[<a href="#ref-nacl">12</a>], [<a href="#ref-curvecp">13</a>]</span>.</li>
-<li>The SIGMA and HOMQV protocols from Hugo Krawczyk <span class="citation">[<a href="#ref-sigma">14</a>], [<a href="#ref-homqv">15</a>]</span>.</li>
-<li>The Ntor protocol from Ian Goldberg et al <span class="citation">[<a href="#ref-ntor">16</a>]</span>.</li>
-<li>The analysis of OTR by Mario Di Raimondo et al <span class="citation">[<a href="#ref-otr">17</a>]</span>.</li>
-<li>The analysis by Caroline Kudla and Kenny Paterson of &quot;Protocol 4&quot; by Simon Blake-Wilson et al <span class="citation">[<a href="#ref-kudla2005">18</a>], [<a href="#ref-blakewilson1997">19</a>]</span>.</li>
-<li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">20</a>], [<a href="#ref-strobe">21</a>]</span>.</li>
-<li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">22</a>]</span>.</li>
+<li>The NaCl and CurveCP protocols from Dan Bernstein et al <span class="citation">[<a href="#ref-nacl">13</a>], [<a href="#ref-curvecp">14</a>]</span>.</li>
+<li>The SIGMA and HOMQV protocols from Hugo Krawczyk <span class="citation">[<a href="#ref-sigma">15</a>], [<a href="#ref-homqv">16</a>]</span>.</li>
+<li>The Ntor protocol from Ian Goldberg et al <span class="citation">[<a href="#ref-ntor">17</a>]</span>.</li>
+<li>The analysis of OTR by Mario Di Raimondo et al <span class="citation">[<a href="#ref-otr">18</a>]</span>.</li>
+<li>The analysis by Caroline Kudla and Kenny Paterson of &quot;Protocol 4&quot; by Simon Blake-Wilson et al <span class="citation">[<a href="#ref-kudla2005">19</a>], [<a href="#ref-blakewilson1997">20</a>]</span>.</li>
+<li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
+<li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
 <p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.</p>
@@ -990,41 +965,44 @@ Noise_XXfallback(e, s, rs):
 <div id="ref-rfc7693">
 <p>[10] M.-J. Saarinen and J.-P. Aumasson, “The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC).” Internet Engineering Task Force; RFC 7693 (Informational); IETF, Nov-2015. <a href="http://www.ietf.org/rfc/rfc7693.txt" class="uri">http://www.ietf.org/rfc/rfc7693.txt</a></p>
 </div>
+<div id="ref-book2">
+<p>[11] Trevor Perrin, “The Noise Protocol Framework: Book 2.” 2017. <a href="https://noiseprotocol.org/noise_book2.pdf" class="uri">https://noiseprotocol.org/noise_book2.pdf</a></p>
+</div>
 <div id="ref-hkdfpaper">
-<p>[11] H. Krawczyk, “‘Cryptographic extraction and key derivation: The hkdf scheme’.” Cryptology ePrint Archive, Report 2010/264, 2010. <a href="http://eprint.iacr.org/2010/264" class="uri">http://eprint.iacr.org/2010/264</a></p>
+<p>[12] H. Krawczyk, “‘Cryptographic extraction and key derivation: The hkdf scheme’.” Cryptology ePrint Archive, Report 2010/264, 2010. <a href="http://eprint.iacr.org/2010/264" class="uri">http://eprint.iacr.org/2010/264</a></p>
 </div>
 <div id="ref-nacl">
-<p>[12] D. J. Bernstein, T. Lange, and P. Schwabe, “NaCl: Networking and Cryptography Library.”. <a href="https://nacl.cr.yp.to/" class="uri">https://nacl.cr.yp.to/</a></p>
+<p>[13] D. J. Bernstein, T. Lange, and P. Schwabe, “NaCl: Networking and Cryptography Library.”. <a href="https://nacl.cr.yp.to/" class="uri">https://nacl.cr.yp.to/</a></p>
 </div>
 <div id="ref-curvecp">
-<p>[13] D. J. Bernstein, “CurveCP: Usable security for the Internet.”. <a href="https://curvecp.org" class="uri">https://curvecp.org</a></p>
+<p>[14] D. J. Bernstein, “CurveCP: Usable security for the Internet.”. <a href="https://curvecp.org" class="uri">https://curvecp.org</a></p>
 </div>
 <div id="ref-sigma">
-<p>[14] H. Krawczyk, “SIGMA: The ‘SIGn-and-MAc’ Approach to Authenticated Diffie-Hellman and Its Use in the IKE Protocols,” in Advances in Cryptology - CRYPTO 2003, 2003. <a href="http://webee.technion.ac.il/~hugo/sigma.html" class="uri">http://webee.technion.ac.il/~hugo/sigma.html</a></p>
+<p>[15] H. Krawczyk, “SIGMA: The ‘SIGn-and-MAc’ Approach to Authenticated Diffie-Hellman and Its Use in the IKE Protocols,” in Advances in Cryptology - CRYPTO 2003, 2003. <a href="http://webee.technion.ac.il/~hugo/sigma.html" class="uri">http://webee.technion.ac.il/~hugo/sigma.html</a></p>
 </div>
 <div id="ref-homqv">
-<p>[15] S. Halevi and H. Krawczyk, “One-Pass HMQV and Asymmetric Key-Wrapping.” Cryptology ePrint Archive, Report 2010/638, 2010. <a href="http://eprint.iacr.org/2010/638" class="uri">http://eprint.iacr.org/2010/638</a></p>
+<p>[16] S. Halevi and H. Krawczyk, “One-Pass HMQV and Asymmetric Key-Wrapping.” Cryptology ePrint Archive, Report 2010/638, 2010. <a href="http://eprint.iacr.org/2010/638" class="uri">http://eprint.iacr.org/2010/638</a></p>
 </div>
 <div id="ref-ntor">
-<p>[16] I. Goldberg, D. Stebila, and B. Ustaoglu, “Anonymity and One-way Authentication in Key Exchange Protocols,” Design, Codes, and Cryptography, vol. 67, no. 2, May 2013. <a href="http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf" class="uri">http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf</a></p>
+<p>[17] I. Goldberg, D. Stebila, and B. Ustaoglu, “Anonymity and One-way Authentication in Key Exchange Protocols,” Design, Codes, and Cryptography, vol. 67, no. 2, May 2013. <a href="http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf" class="uri">http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf</a></p>
 </div>
 <div id="ref-otr">
-<p>[17] M. Di Raimondo, R. Gennaro, and H. Krawczyk, “Secure Off-the-record Messaging,” in Proceedings of the 2005 ACM Workshop on Privacy in the Electronic Society, 2005. <a href="http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf" class="uri">http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf</a></p>
+<p>[18] M. Di Raimondo, R. Gennaro, and H. Krawczyk, “Secure Off-the-record Messaging,” in Proceedings of the 2005 ACM Workshop on Privacy in the Electronic Society, 2005. <a href="http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf" class="uri">http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf</a></p>
 </div>
 <div id="ref-kudla2005">
-<p>[18] C. Kudla and K. G. Paterson, “Modular Security Proofs for Key Agreement Protocols,” in Advances in Cryptology - ASIACRYPT 2005: 11th International Conference on the Theory and Application of Cryptology and Information Security, 2005. <a href="http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf" class="uri">http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf</a></p>
+<p>[19] C. Kudla and K. G. Paterson, “Modular Security Proofs for Key Agreement Protocols,” in Advances in Cryptology - ASIACRYPT 2005: 11th International Conference on the Theory and Application of Cryptology and Information Security, 2005. <a href="http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf" class="uri">http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf</a></p>
 </div>
 <div id="ref-blakewilson1997">
-<p>[19] S. Blake-Wilson, D. Johnson, and A. Menezes, “Key agreement protocols and their security analysis,” in Crytography and Coding: 6th IMA International Conference Cirencester, UK, December 17–19, 1997 Proceedings, 1997. <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387" class="uri">http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387</a></p>
+<p>[20] S. Blake-Wilson, D. Johnson, and A. Menezes, “Key agreement protocols and their security analysis,” in Crytography and Coding: 6th IMA International Conference Cirencester, UK, December 17–19, 1997 Proceedings, 1997. <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387" class="uri">http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387</a></p>
 </div>
 <div id="ref-moderncryptostrobe">
-<p>[20] M. Hamburg, “Key Exchange and DuplexWrap-like protocols.” Noise@moderncrypto.org Mailing List, 2015. <a href="https://moderncrypto.org/mail-archive/noise/2015/000098.html" class="uri">https://moderncrypto.org/mail-archive/noise/2015/000098.html</a></p>
+<p>[21] M. Hamburg, “Key Exchange and DuplexWrap-like protocols.” Noise@moderncrypto.org Mailing List, 2015. <a href="https://moderncrypto.org/mail-archive/noise/2015/000098.html" class="uri">https://moderncrypto.org/mail-archive/noise/2015/000098.html</a></p>
 </div>
 <div id="ref-strobe">
-<p>[21] Mike Hamburg, “The STROBE protocol framework.” Cryptology ePrint Archive, Report 2017/003, 2017. <a href="http://eprint.iacr.org/2017/003" class="uri">http://eprint.iacr.org/2017/003</a></p>
+<p>[22] Mike Hamburg, “The STROBE protocol framework.” Cryptology ePrint Archive, Report 2017/003, 2017. <a href="http://eprint.iacr.org/2017/003" class="uri">http://eprint.iacr.org/2017/003</a></p>
 </div>
 <div id="ref-doubleratchet">
-<p>[22] T. Perrin and M. Marlinspike, “The Double Ratchet Algorithm,” 2016. <a href="https://whispersystems.org/docs/specifications/doubleratchet/" class="uri">https://whispersystems.org/docs/specifications/doubleratchet/</a></p>
+<p>[23] T. Perrin and M. Marlinspike, “The Double Ratchet Algorithm,” 2016. <a href="https://whispersystems.org/docs/specifications/doubleratchet/" class="uri">https://whispersystems.org/docs/specifications/doubleratchet/</a></p>
 </div>
 </div>
 </body>

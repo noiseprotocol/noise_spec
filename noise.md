@@ -1,8 +1,8 @@
 ---
-title:      'Noise Protocol Framework: Core Specification'
+title:      'The Noise Protocol Framework: Book 1'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-04-07'
+date:       '2017-05-09'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -13,7 +13,11 @@ csl:        'ieee-with-url.csl'
 
 Noise is a framework for crypto protocols based on Diffie-Hellman key
 agreement.  Noise can describe protocols that consist of a single message as
-well as interactive protocols.
+well as interactive protocols.  
+
+This document is the first of two books which provide the specification for
+Noise.  This document can be read as a self-contained specification, however
+Book 2 adds features that are important in many use cases.
 
 2. Overview
 ============
@@ -260,9 +264,6 @@ Noise depends on the following **cipher functions**:
    data `ad`.  Returns the plaintext, unless authentication fails, in which
    case an error is signaled to the caller.
 
- * **`REKEY(k)`**:  Returns a new 32-byte cipher key as a pseudorandom function
-   of `k`.  If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k, maxnonce, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with zeros.
-
 4.3. Hash functions
 --------------------
 
@@ -282,9 +283,9 @@ Noise depends on the following **hash function** (and associated constants):
 Noise defines additional functions based on the above `HASH()` function:
 
  * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [@rfc2104] 
-   using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
+   using the `HASH()` function.  This function is only called as part of `HKDF2()`, below.
 
- * **`HKDF(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
+ * **`HKDF2(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
    length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair of byte sequences each of length `HASHLEN`, as follows:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
@@ -293,7 +294,7 @@ Noise defines additional functions based on the above `HASH()` function:
      * Returns (output1, output2).
 
    Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
-   length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
+   length.  Also note that the `HKDF2()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 5. Processing rules
@@ -356,16 +357,13 @@ variables:
 
 A `CipherState` responds to the following methods.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
-The maximum `n` value (2^64^-1) is reserved for rekey (see [Section
-4.2](#cipher-functions) and [Section 9.3](#rekey)) and must not be used.  If
-incrementing `n` results in 2^64^-1, then any further `EncryptWithAd()` or
-`DecryptWithAd()` calls will signal an error to the caller.
+The maximum `n` value (2^64^-1) is reserved for other use.  If incrementing `n`
+results in 2^64^-1, then any further `EncryptWithAd()` or `DecryptWithAd()`
+calls will signal an error to the caller.
 
   * **`InitializeKey(key)`**:  Sets `k = key`.  Sets `n = 0`.
 
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
-
-  * **`Rekey()`**: Sets `k = REKEY(k)`.
 
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
     `ENCRYPT(k, n++, ad, plaintext)`.  Otherwise returns `plaintext`.
@@ -399,7 +397,7 @@ A `SymmetricState` responds to the following methods:
 
   * **`MixKey(input_key_material)`**:  Executes the following steps:
   
-      * Sets `ck, temp_k = HKDF(ck,input_key_material)`.
+      * Sets `ck, temp_k = HKDF2(ck,input_key_material)`.
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
 
@@ -416,7 +414,7 @@ A `SymmetricState` responds to the following methods:
   * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
     transport messages.  Executes the following steps, where `zerolen` is a zero-length
     byte sequence:
-      * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen)`.
+      * Sets `temp_k1, temp_k2 = HKDF2(ck, zerolen)`.
       * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes.
       * Creates two new `CipherState` objects `c1` and `c2`.
       * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.
@@ -480,8 +478,6 @@ A `HandshakeState` responds to the following methods:
         are hashed first.
 
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
-
-\newpage
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps:
@@ -1216,20 +1212,6 @@ To support this, Noise libraries should expose the final value of h to the appli
 
 Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
 
-9.3. Rekey
------------
-Parties might wish to periodically call the `Rekey()` function on their transport cipherstates, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on `AESGCM` data volumes in [Section 13](#security-considerations) ).
-
-It is up to to the application if and when to perform rekey.  For example: 
-
- * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.  This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.
-
- * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
-
- * Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
-
-Note that rekey doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
-
 
 10. DH functions, cipher functions, and hash functions
 ======================================================
@@ -1314,8 +1296,6 @@ Note that rekey doesn't reset the cipherstate's `n` value, so applications perfo
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
-\newpage
-
 11. Protocol names 
 ===================
 
@@ -1392,9 +1372,10 @@ This section collects various security considerations:
    with a pre-message public key and assume that a successful handshake implies
    the other party's knowledge of the public key.  Unfortunately, this is not
    the case, since setting public keys to invalid values might cause
-   predictable DH output.  For example, a `Noise_NK_25519` initiator might
-   send an invalid ephemeral public key to cause a known DH output of all
-   zeros, despite not knowing the responder's static public key.  
+   predictable DH output.  For example, a `Noise_NK_25519` initiator might send
+   an invalid ephemeral public key to cause a known DH output of all zeros,
+   despite not knowing the responder's static public key. If the parties want
+   to authenticate with a shared secret, it should be used as a "PSK" [@book2].
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
@@ -1408,9 +1389,8 @@ This section collects various security considerations:
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
    follow the rules for nonces.  Nonces are not allowed to wrap back to zero
-   due to integer overflow, and the maximum nonce value is reserved for
-   rekeying.  This means parties are not allowed to send more than 2^64^-1
-   transport messages.
+   due to integer overflow, and the maximum nonce value is reserved.  This
+   means parties are not allowed to send more than 2^64^-1 transport messages.
 
  * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
    ephemeral public key and perform a DH with it prior to sending any encrypted
@@ -1430,8 +1410,7 @@ This section collects various security considerations:
    in security as the volume of data encrypted under a single key increases.
    Due to this, parties should not send more than 2^56^ bytes (roughly 72
    petabytes) encrypted by a single key.  If sending such large volumes of data
-   is a possibility then different cipher functions should be chosen, or the
-   cipherstate should be rekeyed ([Section 9.3](#rekey)) before this limit is reached.
+   is a possibility then different cipher functions should be chosen.
 
  * **Hash collisions**:  If an attacker can find hash collisions on prologue
    data or the handshake hash, they may be able to perform "transcript
@@ -1500,17 +1479,6 @@ Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, bec
 
   * It makes sense to use consistent endianness in the cipher code.
 
-Rekey defaults to using encryption with the nonce 2^64^-1 because:
-
-  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently (the "encryption" just needs to apply the cipher, and can skip calculation of the authentication tag).
-
-Rekey doesn't reset the nonce `n` to zero because:
-
-  * Leaving `n` unchanged is simple.
-
-  * If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
-
-  * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
 
 14.2. Hash functions and hashing
 --------------
@@ -1620,7 +1588,7 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
 15. IPR
 ========
 
-The Noise specification (this document) is hereby placed in the public domain.
+The Noise specification Book 1 (this document) is hereby placed in the public domain.
 
 16. Acknowledgements
 =====================

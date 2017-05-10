@@ -1,5 +1,5 @@
 
-default: output/noise.html output/noise.pdf
+default: output/noise.html output/noise.pdf output/noise_book2.pdf
 
 # Pandoc 1.17.2, Pandoc-citeproc  
 
@@ -18,5 +18,11 @@ output/noise.pdf: noise.md template_pandoc.latex my.bib
 		--filter pandoc-citeproc \
 		-o output/noise.pdf
 
+output/noise_book2.pdf: noise_book2.md template_pandoc.latex my.bib
+	pandoc noise_book2.md -s --toc \
+	        -f markdown\
+		--template template_pandoc.latex \
+		--filter pandoc-citeproc \
+		-o output/noise_book2.pdf
 clean:
-	rm output/noise.html output/noise.pdf
+	rm output/noise.html output/noise.pdf output/noise_book2.pdf
