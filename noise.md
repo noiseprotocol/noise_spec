@@ -1607,7 +1607,7 @@ An application built on Noise must consider several issues:
    applications are recommended to add a 16-bit big-endian length field prior
    to each message.
 
- * **Types and versions**:  Applications might wish to include a single-byte type
+ * **Type fields**:  Applications might wish to include a single-byte type
    field prior to each Noise handshake message (and prior to the length field,
    if one is included).  A recommended idiom is for zero to indicate
    no change from the current protocol, and for applications to reject
