@@ -1141,6 +1141,12 @@ Noise_XXfallback(e, s, rs):
 <li><p>64 bits makes it easy for the entire nonce to be treated as an integer and incremented.</p></li>
 <li><p>96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.</p></li>
 </ul>
+<p>The authentication data in a ciphertext is 128 bits because:</p>
+<ul>
+<li><p>Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.</p></li>
+<li><p>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.</p></li>
+<li><p>A single fixed length is simpler than supporting variable-length tags.</p></li>
+</ul>
 <p>Rekey defaults to using encryption with the nonce 2<sup>64</sup>-1 because:</p>
 <ul>
 <li>With <code>AESGCM</code> and <code>ChaChaPoly</code> rekey can be computed efficiently (the &quot;encryption&quot; just needs to apply the cipher, and can skip calculation of the authentication tag).</li>
@@ -1150,9 +1156,6 @@ Noise_XXfallback(e, s, rs):
 <li><p>Leaving <code>n</code> unchanged is simple.</p></li>
 <li><p>If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting <code>n</code> advance will avoid catastrophic reuse of the same <code>k</code> and <code>n</code> values.</p></li>
 <li><p>Letting <code>n</code> advance puts a bound on the total number of encryptions that can be performed with a set of derived keys. The authentication data in a ciphertext is 128 bits because:</p></li>
-<li><p>Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.</p></li>
-<li><p>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.</p></li>
-<li><p>A single fixed length is simpler than supporting variable-length tags.</p></li>
 </ul>
 <p>The <code>AESGCM</code> data volume limit is 2<sup>56</sup> bytes because:</p>
 <ul>
@@ -1234,7 +1237,7 @@ Noise_XXfallback(e, s, rs):
 <li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
-<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
+<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.</p>
 <p>Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld provided helpful input and feedback on the key derivation design.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>

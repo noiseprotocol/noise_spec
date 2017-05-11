@@ -1717,6 +1717,16 @@ Nonces are 64 bits because:
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
 
+The authentication data in a ciphertext is 128 bits because:
+
+  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
+    truncated.
+
+  * Noise may be used in a wide variety of contexts, including where attackers
+    can receive rapid feedback on whether MAC guesses are correct.
+
+  * A single fixed length is simpler than supporting variable-length tags.
+
 Rekey defaults to using encryption with the nonce 2^64^-1 because:
 
   * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently (the
@@ -1731,14 +1741,6 @@ Rekey doesn't reset `n` to zero because:
 
   * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
 The authentication data in a ciphertext is 128 bits because:
-
-  * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
-    truncated.
-
-  * Noise may be used in a wide variety of contexts, including where attackers
-    can receive rapid feedback on whether MAC guesses are correct.
-
-  * A single fixed length is simpler than supporting variable-length tags.
 
 The `AESGCM` data volume limit is 2^56^ bytes because:
 
@@ -1880,8 +1882,9 @@ Noise is inspired by:
   * The KDF chains used in the Double Ratchet Algorithm [@doubleratchet].
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
-Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
-Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.
+Donenfeld, Rhys Weatherley, Mike Hamburg, Tiffany Bennett, Jonathan Rudenberg,
+Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa
+Osuntokun.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
 Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.
