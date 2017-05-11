@@ -168,7 +168,7 @@
 <ul>
 <li><p><strong><code>ENCRYPT(k, n, ad, plaintext)</code></strong>: Encrypts <code>plaintext</code> using the cipher key <code>k</code> of 32 bytes and an 8-byte unsigned integer nonce <code>n</code> which must be unique for the key <code>k</code>. Returns the ciphertext. Encryption must be done with an &quot;AEAD&quot; encryption mode with the associated data <code>ad</code> (using the terminology from <span class="citation">[<a href="#ref-Rogaway:2002">1</a>]</span>) and returns a ciphertext that is the same size as the plaintext plus 16 bytes for authentication data. The entire ciphertext must be indistinguishable from random if the key is secret.</p></li>
 <li><p><strong><code>DECRYPT(k, n, ad, ciphertext)</code></strong>: Decrypts <code>ciphertext</code> using a cipher key <code>k</code> of 32 bytes, an 8-byte unsigned integer nonce <code>n</code>, and associated data <code>ad</code>. Returns the plaintext, unless authentication fails, in which case an error is signaled to the caller.</p></li>
-<li><p><strong><code>REKEY(k)</code></strong>: Returns a new 32-byte cipher key as a pseudorandom function of <code>k</code>. If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from <code>ENCRYPT(k,    maxnonce, zerolen, zeros)</code>, where <code>MAXNONCE</code> equals 2<sup>64</sup>-1, <code>zerolen</code> is a zero-length byte sequence, and <code>zeros</code> is a sequence of 32 bytes filled with zeros.</p></li>
+<li><p><strong><code>REKEY(k)</code></strong>: Returns a new 32-byte cipher key as a pseudorandom function of <code>k</code>. If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from <code>ENCRYPT(k,    maxnonce, zerolen, zeros)</code>, where <code>maxnonce</code> equals 2<sup>64</sup>-1, <code>zerolen</code> is a zero-length byte sequence, and <code>zeros</code> is a sequence of 32 bytes filled with zeros.</p></li>
 </ul>
 <h2 id="hash-functions">4.3. Hash functions</h2>
 <p>Noise depends on the following <strong>hash function</strong> (and associated constants):</p>
@@ -244,6 +244,9 @@
 <li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
+</ul>
+
+<ul>
 <li><p><strong><code>EncryptAndHash(plaintext)</code></strong>: Sets <code>ciphertext = EncryptWithAd(h, plaintext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>ciphertext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>EncryptWithAd()</code> call will set <code>ciphertext</code> equal to <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets <code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>DecryptWithAd()</code> call will set <code>plaintext</code> equal to <code>ciphertext</code>.</p></li>
 <li><strong><code>Split()</code></strong>: Returns a pair of <code>CipherState</code> objects for encrypting transport messages. Executes the following steps, where <code>zerolen</code> is a zero-length byte sequence:
@@ -266,7 +269,7 @@
 <p>A <code>HandshakeState</code> also has variables to track its role, and the remaining portion of the handshake pattern:</p>
 <ul>
 <li><p><strong><code>initiator</code></strong>: A boolean indicating the initiator or responder role.</p></li>
-<li><p><strong><code>message_patterns</code></strong>: A sequence of message patterns. Each message pattern is a sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;)</code>.</p></li>
+<li><p><strong><code>message_patterns</code></strong>: A sequence of message patterns. Each message pattern is a sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;)</code>. (An additional <code>&quot;psk&quot;</code> token is introduced in <a href="pre-shared-symmetric-keys">Section 9</a>, but we defer its explanation until then.)</p></li>
 </ul>
 <p>A <code>HandshakeState</code> responds to the following methods:</p>
 <ul>

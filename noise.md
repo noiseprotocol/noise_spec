@@ -265,7 +265,7 @@ Noise depends on the following **cipher functions**:
  * **`REKEY(k)`**:  Returns a new 32-byte cipher key as a pseudorandom function
    of `k`.  If this function is not specifically defined for some set of cipher
    functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k,
-   maxnonce, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a
+   maxnonce, zerolen, zeros)`, where `maxnonce` equals 2^64^-1, `zerolen` is a
    zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with
    zeros.
 
@@ -419,6 +419,8 @@ A `SymmetricState` responds to the following methods:
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
 
+\newpage
+
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
     plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.  Note that if 
     `k` is `empty`, the `EncryptWithAd()` call will set `ciphertext` equal to  `plaintext`.
@@ -455,8 +457,9 @@ portion of the handshake pattern:
   * **`initiator`**: A boolean indicating the initiator or responder role.
 
   * **`message_patterns`**: A sequence of message patterns.  Each message
-    pattern is a sequence of tokens from the set `("e", "s", "ee", "es",
-    "se", "ss")`.
+    pattern is a sequence of tokens from the set `("e", "s", "ee", "es", "se",
+    "ss")`.  (An additional `"psk"` token is introduced in [Section
+    9](pre-shared-symmetric-keys), but we defer its explanation until then.)
 
 A `HandshakeState` responds to the following methods:
 
