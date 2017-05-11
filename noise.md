@@ -1382,7 +1382,10 @@ three handshake patterns - two defined previously, and a new one.  These handsha
       ...
       -> e, es, s, ss          
       <- e, ee, se
-                                        
+
+\newpage
+&nbsp;
+
     Noise_XXfallback(e, s, rs):                   
       -> e
       ...
@@ -1568,8 +1571,6 @@ Note that rekey only updates the cipherstate's `k` value, it doesn't reset the c
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
-\newpage
-
 13. Application responsibilities
 ================================
 
@@ -1606,14 +1607,13 @@ An application built on Noise must consider several issues:
    applications are recommended to add a 16-bit big-endian length field prior
    to each message.
 
- * **Type fields**:  Applications are recommended to include a single-byte type
+ * **Types and versions**:  Applications might wish to include a single-byte type
    field prior to each Noise handshake message (and prior to the length field,
-   if one is included).  A recommended idiom is for the value zero to indicate
-   no change from the current Noise protocol, and for applications to reject
+   if one is included).  A recommended idiom is for zero to indicate
+   no change from the current protocol, and for applications to reject
    messages with an unknown value.  This allows future protocol versions to 
-   specify fallback handshakes or other compatibility-breaking
-   changes (protocol extensions that don't break compatibility can be handled
-   within Noise payloads).
+   specify fallback handshakes, different versions, or other different types
+   of messages during a handshake.
 
 \newpage
 

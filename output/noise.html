@@ -1012,9 +1012,10 @@ Noise_IK(s, rs):
   &lt;- s                         
   ...
   -&gt; e, es, s, ss          
-  &lt;- e, ee, se
-                                    
-Noise_XXfallback(e, s, rs):                   
+  &lt;- e, ee, se</code></pre>
+
+<p> </p>
+<pre><code>Noise_XXfallback(e, s, rs):                   
   -&gt; e
   ...
   &lt;- e, ee, s, es
@@ -1100,7 +1101,6 @@ Noise_XXfallback(e, s, rs):
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
-
 <h1 id="application-responsibilities">13. Application responsibilities</h1>
 <p>An application built on Noise must consider several issues:</p>
 <ul>
@@ -1109,7 +1109,7 @@ Noise_XXfallback(e, s, rs):
 <li><p><strong>Padding</strong>: Applications are recommended to use a data format for the payloads of all encrypted messages that allows padding. This allows implementations to avoid leaking information about message sizes. Using an extensible data format, per the previous bullet, will typically suffice.</p></li>
 <li><p><strong>Session termination</strong>: Applications must consider that a sequence of Noise transport messages could be truncated by an attacker. Applications should include explicit length fields or termination signals inside of transport payloads to signal the end of an interactive session, or the end of a one-way stream of transport messages.</p></li>
 <li><p><strong>Length fields</strong>: Applications must handle any framing or additional length fields for Noise messages, considering that a Noise message may be up to 65535 bytes in length. If an explicit length field is needed, applications are recommended to add a 16-bit big-endian length field prior to each message.</p></li>
-<li><p><strong>Type fields</strong>: Applications are recommended to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for the value zero to indicate no change from the current Noise protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify fallback handshakes or other compatibility-breaking changes (protocol extensions that don't break compatibility can be handled within Noise payloads).</p></li>
+<li><p><strong>Types and versions</strong>: Applications might wish to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for zero to indicate no change from the current protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify fallback handshakes, different versions, or other different types of messages during a handshake.</p></li>
 </ul>
 
 <h1 id="security-considerations">14. Security considerations</h1>
