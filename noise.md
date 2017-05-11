@@ -576,8 +576,8 @@ instead (see [Section 9](pre-shared-symmetric-keys)).
 ======================
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
-"es", "se", "ss", "psk")`.  (The `"psk"` token will be described in
-[Section 9](pre-shared-symmetric-keys)).
+"es", "se", "ss", "psk")`.  (The `"psk"` token is described in [Section
+9](pre-shared-symmetric-keys)).
 
 A **pre-message pattern** is one of the following sequences of tokens:
 
@@ -1119,7 +1119,7 @@ protocols where both parties have a 32-byte shared secret key.
 9.1. Cryptographic functions
 ----------------------------------
 
-PSK mode uses the `SymmetricState.methodsMixKeyAndHash()` function to mix the PSK into both the encryption keys and the `h` value.
+PSK mode uses the `SymmetricState.MixKeyAndHash()` function to mix the PSK into both the encryption keys and the `h` value.
 
 Note that `MixKeyAndHash()` uses `HKDF(..., 3)`.  The third output from `HKDF()` is used as the `k` value so that calculation of `k` may be skipped if `k` is not used.
 
@@ -1722,13 +1722,13 @@ Nonces are 64 bits because:
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
 
-The authentication data in a ciphertext is 128 bits because:
+The authentication data in a ciphertext (i.e. the authentication tag or synthetic IV) is 128 bits because:
 
   * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
     truncated.
 
   * Noise may be used in a wide variety of contexts, including where attackers
-    can receive rapid feedback on whether MAC guesses are correct.
+    can receive rapid feedback on whether guesses for authentication data are correct.
 
   * A single fixed length is simpler than supporting variable-length tags.
 
