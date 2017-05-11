@@ -575,7 +575,9 @@ instead (see [Section 9](pre-shared-symmetric-keys)).
 7. Handshake patterns 
 ======================
 
-A **message pattern** is some sequence of tokens from the set `("e", "s", "ee", "es", "se", "ss")`.  
+A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
+"es", "se", "ss", "psk")`.  (The `"psk"` token will be described in
+[Section 9](pre-shared-symmetric-keys)).
 
 A **pre-message pattern** is one of the following sequences of tokens:
 
@@ -607,8 +609,8 @@ responder, the next from the initiator, and so on in alternating fashion.
 responder switches to a different pattern than the initator started with (see
 [Section 10.1](#fallback-patterns)).  If the initiator's pre-message contains an
 `"e"` token, then this handshake pattern is a fallback pattern.  In the case of
-a fallback pattern the first handshake message is sent by the responder,
-the next from the initiator, and so on.)
+a fallback pattern the first handshake message is sent by the *responder*,
+the next by the *initiator*, and so on.)
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
@@ -637,7 +639,7 @@ The following pattern describes a handshake where the initiator has
 pre-knowledge of the responder's static public key, and performs a DH with the
 responder's static public key as well as the responder's ephemeral public key.
 This pre-knowledge allows an encrypted payload to be sent in the first message
-("O-RTT encryption"), although full forward secrecy and replay protection is
+("zero-RTT encryption"), although full forward secrecy and replay protection is
 only achieved with the second message.
 
     Noise_NK(rs):
@@ -1083,7 +1085,7 @@ The properties for the relevant public key are:
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
 ASCII names for the handshake pattern, the DH functions, the cipher functions,
-and the hash function, with underscore separators.  The resulting name must be 255
+and the hash functions, with underscore separators.  The resulting name must be 255
 bytes or less.  Examples: 
 
  * `Noise_XX_25519_AESGCM_SHA256`
@@ -1417,14 +1419,14 @@ This is fairly easy:
  * An initiator attempting a full handshake will send an ephemeral public key, then
  random padding, and will use `Noise_XXfallback` to handle the response.
  Note that `Noise_XX` isn't used, because the server can't
- distinguish a `Noise_XX` message from `Noise_XXfallback` by using trial decryption.
+ distinguish a `Noise_XX` message from a failed `Noise_IK` attempt by using trial decryption.
 
-This leaves the Noise ephemeral public keys in the clear.  Ephemeral public keys
-are randomly chosen DH public values, but they will typically have enough
+This leaves the Noise ephemeral public keys in the clear.  Ephemeral public
+keys are randomly chosen DH public values, but they will typically have enough
 structure that an eavesdropper might suspect the parties are using Noise, even
 if the eavesdropper can't distinguish the different handshakes.  To make the
-ephemerals indistinguishable from random, techniques like Elligator [@elligator]
-could be used.
+ephemerals indistinguishable from random byte sequences, techniques like
+Elligator [@elligator] could be used.
 
 11. Advanced features
 =====================
@@ -1658,9 +1660,10 @@ This section collects various security considerations:
 
  * **Protocol names**:  The protocol name used with `Initialize()` must
    uniquely identify the combination of handshake pattern and crypto functions
-   for every key it's used with (whether ephemeral key pair or static key
-   pair).  If the same secret key was reused with the same protocol name but a
-   different set of cryptographic operations then bad interactions could occur.
+   for every key it's used with (whether ephemeral key pair, static key pair,
+   or PSK).  If the same secret key was reused with the same protocol name but
+   a different set of cryptographic operations then bad interactions could
+   occur.
 
  * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
    values with 256 bits of entropy.
