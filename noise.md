@@ -1,8 +1,8 @@
 ---
-title:      'The Noise Protocol Framework: Book 1'
+title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-05-09'
+date:       '2017-05-10'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -14,10 +14,6 @@ csl:        'ieee-with-url.csl'
 Noise is a framework for crypto protocols based on Diffie-Hellman key
 agreement.  Noise can describe protocols that consist of a single message as
 well as interactive protocols.  
-
-This document is the first of two books which provide the specification for
-Noise.  This document can be read as a self-contained specification, however
-Book 2 adds features that are important in many use cases.
 
 2. Overview
 ============
@@ -181,8 +177,10 @@ zero-length plaintext.
 
 Static public keys and payloads will be in cleartext if they are sent in a
 handshake prior to a DH operation, and will be AEAD ciphertexts if they occur
-after a DH operation.  Like transport messages, AEAD ciphertexts will expand
-each encrypted field (whether static public key or payload) by 16 bytes.
+after a DH operation.  (If Noise is being used with pre-shared symmetric keys,
+this rule is different; see [Section 9](#pre-shared-symmetric-keys)).  Like transport messages, AEAD
+ciphertexts will expand each encrypted field (whether static public key or
+payload) by 16 bytes.
 
 For an example, consider the handshake pattern:
 
@@ -264,6 +262,13 @@ Noise depends on the following **cipher functions**:
    data `ad`.  Returns the plaintext, unless authentication fails, in which
    case an error is signaled to the caller.
 
+ * **`REKEY(k)`**:  Returns a new 32-byte cipher key as a pseudorandom function
+   of `k`.  If this function is not specifically defined for some set of cipher
+   functions, then it defaults to returning the first 32 bytes from `ENCRYPT(k,
+   maxnonce, zerolen, zeros)`, where `MAXNONCE` equals 2^64^-1, `zerolen` is a
+   zero-length byte sequence, and `zeros` is a sequence of 32 bytes filled with
+   zeros.
+
 4.3. Hash functions
 --------------------
 
@@ -283,18 +288,20 @@ Noise depends on the following **hash function** (and associated constants):
 Noise defines additional functions based on the above `HASH()` function:
 
  * **`HMAC-HASH(key, data)`**:  Applies `HMAC` from [@rfc2104] 
-   using the `HASH()` function.  This function is only called as part of `HKDF2()`, below.
+   using the `HASH()` function.  This function is only called as part of `HKDF()`, below.
 
- * **`HKDF2(chaining_key, input_key_material)`**:  Takes a `chaining_key` byte
+ * **`HKDF(chaining_key, input_key_material, num_outputs)`**:  Takes a `chaining_key` byte
    sequence of length `HASHLEN`, and an `input_key_material` byte sequence with 
-   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair of byte sequences each of length `HASHLEN`, as follows:
+   length either zero bytes, 32 bytes, or `DHLEN` bytes.  Returns a pair or triple of byte sequences each of length `HASHLEN`, depending on whether `num_outputs` is two or three:
      * Sets `temp_key = HMAC-HASH(chaining_key, input_key_material)`.
      * Sets `output1 = HMAC-HASH(temp_key, byte(0x01))`.
      * Sets `output2 = HMAC-HASH(temp_key, output1 || byte(0x02))`.
-     * Returns (output1, output2).
+     * If `num_outputs == 2` then returns the pair `(output1, output2)`.
+     * Sets `output3 = HMAC-HASH(temp_key, output2 || byte(0x03))`.
+     * Returns the triple `(output1, output2, output3)`.
 
-   Note that `temp_key`, `output1`, and `output2` are all `HASHLEN` bytes in
-   length.  Also note that the `HKDF2()` function is simply `HKDF` from [@rfc5869] 
+   Note that `temp_key`, `output1`, `output2`, and `output3` are all `HASHLEN` bytes in
+   length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 5. Processing rules
@@ -373,6 +380,8 @@ calls will signal an error to the caller.
     authentication failure occurs in `DECRYPT()` then `n` is not incremented
     and an error is signaled to the caller.
 
+  * **`Rekey()`**: Sets `k = REKEY(k)`.
+
 5.2. The `SymmetricState` object
 -----------------------------------------
 
@@ -397,11 +406,18 @@ A `SymmetricState` responds to the following methods:
 
   * **`MixKey(input_key_material)`**:  Executes the following steps:
   
-      * Sets `ck, temp_k = HKDF2(ck,input_key_material)`.
+      * Sets `ck, temp_k = HKDF(ck, input_key_material, 2)`.
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
 
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
+
+  * **`MixKeyAndHash(input_key_material)`**:  Executes the following steps:
+  
+      * Sets `ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)`.
+      * Calls `MixHash(temp_h)`.
+      * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
+      * Calls `InitializeKey(temp_k)`.
 
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
     plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.  Note that if 
@@ -414,7 +430,7 @@ A `SymmetricState` responds to the following methods:
   * **`Split()`**:  Returns a pair of `CipherState` objects for encrypting
     transport messages.  Executes the following steps, where `zerolen` is a zero-length
     byte sequence:
-      * Sets `temp_k1, temp_k2 = HKDF2(ck, zerolen)`.
+      * Sets `temp_k1, temp_k2 = HKDF(ck, zerolen, 2)`.
       * If `HASHLEN` is 64, then truncates `temp_k1` and `temp_k2` to 32 bytes.
       * Creates two new `CipherState` objects `c1` and `c2`.
       * Calls `c1.InitializeKey(temp_k1)` and `c2.InitializeKey(temp_k2)`.
@@ -548,7 +564,9 @@ protocol.  To ensure that a "man-in-the-middle" did not edit Bob's list to
 remove options, Alice and Bob could include the list as prologue data.
 
 Note that while the parties confirm their prologues are identical, they don't
-mix prologue data into encryption keys.  
+mix prologue data into encryption keys. If an input contains secret data that’s
+intended to strengthen the encryption, a PSK handshake should be used
+instead (see [Section 9](pre-shared-symmetric-keys)).  
 
 
 7. Handshake patterns 
@@ -1057,11 +1075,234 @@ The properties for the relevant public key are:
 |     Noise_IX       0              6      |
 +------------------------------------------+
 
+8. Protocol names 
+===================
 
-8. Fallback protocols
+To produce a **Noise protocol name** for `Initialize()` you concatenate the
+ASCII names for the handshake pattern, the DH functions, the cipher functions,
+and the hash function, with underscore separators.  The resulting name must be 255
+bytes or less.  Examples: 
+
+ * `Noise_XX_25519_AESGCM_SHA256`
+ * `Noise_N_25519_ChaChaPoly_BLAKE2s`
+ * `Noise_IK_448_ChaChaPoly_BLAKE2b`
+
+Noise allows a **modifier** syntax to specify arbitrary extensions or
+modifications to default behavior.  For example, a modifier could be applied to
+a handshake pattern which transforms it into a different pattern according to some rule.
+
+A modifier is an ASCII string which is added to some component of the Noise
+protocol name.  A modifier can be a **pattern modifier**, **DH modifier**,
+**cipher modifier**, or **hash modifier**, depending on which component of the
+protocol name it is added to.  
+
+The first modifier added onto a base name is simply appended.  Thus, `fallback`
+(defined later) is a pattern modifier added to the `Noise_XX` base name to
+produce `Noise_XXfallback`.  Additional modifiers are separated with a plus
+sign.  Thus, adding the `psk0` pattern modifier (defined in the next section)
+would result in the pattern name `Noise_XXfallback+psk0`.
+
+The final protocol name, including all modifiers, must be less than or equal to 255
+bytes (e.g. `Noise_XXfallback+psk0_25519_AESGCM_SHA256`).
+
+9. Pre-shared symmetric keys
+============
+
+Noise provides a **pre-shared symmetric key** or **PSK** mode to support
+protocols where both parties have a 32-byte shared secret key.
+
+9.1. Cryptographic functions
+----------------------------------
+
+PSK mode uses the `SymmetricState.MixKeyAndHash()` function to mix the PSK into both the encryption keys and the `h` value.
+
+Note that `MixKeyAndHash()` uses `HKDF(..., 3)`.  The third output from `HKDF()` is used as the `k` value so that calculation of `k` may be skipped if `k` is not used.
+
+9.2. Handshake tokens
+-------------------------------
+
+To support PSKs, a `"psk"` token is allowed to appear once (or multiple
+times) in a handshake pattern.  This token can only appear in message patterns
+(not pre-message patterns).  This token is processed by calling
+`MixKeyAndHash(psk)`, where `psk` is a 32-byte secret value provided by the
+application.  
+
+In non-PSK handshakes, the `"e"` token in a pre-message pattern or message pattern always
+results in a call to `MixHash(e.public_key)`.  When PSKs are used, all of these calls
+are followed by `MixKey(e.public_key)`.  In conjunction with the validity rule in the
+next section, this ensures that PSK-based encryption uses encryption keys that are randomized using
+ephemeral public keys as nonces.
+
+9.3. Validity rule
+--------------------
+
+To prevent catastrophic key reuse, handshake patterns using the `"psk"` token must follow an additional validity rule:
+
+ * A party may not send any encrypted data after it processes a `"psk"` token unless it has previously 
+ sent an ephemeral public key (an `"e"` token), either before or after the `"psk"` token.
+
+This rule guarantees that a `k` derived from a PSK will never be used for
+encryption unless it has also been randomized by `MixKey(e.public_key)`
+using a self-chosen ephemeral public key.
+
+9.4. Pattern modifiers
+------------
+
+To indicate PSK mode and the placement of the `"psk"` token, pattern modifiers
+are used (see [Section 8](#protocol-names)).  The modifier `psk0` places a `"psk"`
+token at the beginning of the first handshake message.  The modifiers
+`psk1`, `psk2`, etc., place a `"psk"` token at the end of the
+first, second, etc., handshake message.  
+
+Any pattern using one of these modifiers must process tokens according to the rules in [Section 9.2](#handshake-tokens]), and must follow the validity rule in [Section 9.3](#validity-rule). 
+
+The table below lists some unmodified one-way patterns on the left, and the recommended
+PSK pattern on the right:
+
+
++--------------------------------+--------------------------------------+ 
+|     Noise_N(rs):               |        Noise_Npsk0(rs):              | 
+|       <- s                     |          <- s                        | 
+|       ...                      |          ...                         | 
+|       -> e, es                 |          -> psk, e, es               | 
+|                                |                                      | 
++--------------------------------+--------------------------------------+ 
+|     Noise_K(s, rs):            |        Noise_Kpsk0(s, rs):           | 
+|       <- s                     |          <- s                        | 
+|       ...                      |          ...                         | 
+|       -> e, es, ss             |          -> psk, e, es, ss           | 
+|                                |                                      | 
++--------------------------------+--------------------------------------+ 
+|     Noise_X(s, rs):            |        Noise_Xpsk1(s, rs):           | 
+|       <- s                     |          <- s                        | 
+|       ...                      |          ...                         | 
+|       -> e, es, s, ss          |          -> e, es, s, ss, psk        | 
+|                                |                                      | 
++--------------------------------+--------------------------------------+ 
+
+Note that the `psk1` modifier is recommended for `Noise_X`.  This is because
+`Noise_X` transmits the initiator's static public key.  Because PSKs are
+typically pairwise, the responder likely cannot determine the PSK until it has
+decrypted the initiator's static public key.  Thus, `psk1` is likely to be more
+useful here than `psk0`.
+
+Following similar logic, we can define the most likely interactive PSK patterns:
+
+
++--------------------------------+--------------------------------------+       
+|     Noise_NN():                |     Noise_NNpsk0():                  |
+|       -> e                     |       -> psk, e                      |
+|       <- e, ee                 |       <- e, ee                       |
++--------------------------------+--------------------------------------+
+|     Noise_NN():                |     Noise_NNpsk2():                  |
+|       -> e                     |       -> e                           |
+|       <- e, ee                 |       <- e, ee, psk                  |
++--------------------------------+--------------------------------------+
+|     Noise_NK(rs):              |     Noise_NKpsk0(rs):                |
+|       <- s                     |       <- s                           |
+|       ...                      |       ...                            |
+|       -> e, es                 |       -> psk, e, es                  |
+|       <- e, ee                 |       <- e, ee                       |
++--------------------------------+--------------------------------------+
+|     Noise_NK(rs):              |     Noise_NKpsk2(rs):                |
+|       <- s                     |       <- s                           |
+|       ...                      |       ...                            |
+|       -> e, es                 |       -> e, es                       |
+|       <- e, ee                 |       <- e, ee, psk                  |
++--------------------------------+--------------------------------------+
+|      Noise_NX(rs):             |      Noise_NXpsk2(rs):               |
+|        -> e                    |        -> e                          |
+|        <- e, ee, s, es         |        <- e, ee, s, es, psk          |
++--------------------------------+--------------------------------------+
+|      Noise_XN(s):              |      Noise_XNpsk3(s):                |
+|        -> e                    |        -> e                          |
+|        <- e, ee                |        <- e, ee                      |
+|        -> s, se                |        -> s, se, psk                 |
++--------------------------------+--------------------------------------+
+|      Noise_XK(s, rs):          |      Noise_XKpsk3(s, rs):            |
+|        <- s                    |        <- s                          |
+|        ...                     |        ...                           |
+|        -> e, es                |        -> e, es                      |
+|        <- e, ee                |        <- e, ee                      |
+|        -> s, se                |        -> s, se, psk                 |
++--------------------------------+--------------------------------------+
+|      Noise_XX(s, rs):          |      Noise_XXpsk3(s, rs):            |
+|        -> e                    |        -> e                          |
+|        <- e, ee, s, es         |        <- e, ee, s, es               |
+|        -> s, se                |        -> s, se, psk                 |
++--------------------------------+--------------------------------------+   
+|        Noise_KN(s):            |       Noise_KNpsk0(s):               |
+|          -> s                  |         -> s                         |
+|          ...                   |         ...                          |
+|          -> e                  |         -> psk, e                    |
+|          <- e, ee, se          |         <- e, ee, se                 |
++--------------------------------+--------------------------------------+   
+|        Noise_KN(s):            |       Noise_KNpsk2(s):               |
+|          -> s                  |         -> s                         |
+|          ...                   |         ...                          |
+|          -> e                  |         -> e                         |
+|          <- e, ee, se          |         <- e, ee, se, psk            |
++--------------------------------+--------------------------------------+
+|        Noise_KK(s, rs):        |       Noise_KKpsk0(s, rs):           |
+|          -> s                  |         -> s                         |
+|          <- s                  |         <- s                         |
+|          ...                   |         ...                          |
+|          -> e, es, ss          |         -> psk, e, es, ss            |
+|          <- e, ee, se          |         <- e, ee, se                 |
++--------------------------------+--------------------------------------+
+|        Noise_KK(s, rs):        |       Noise_KKpsk2(s, rs):           |
+|          -> s                  |         -> s                         |
+|          <- s                  |         <- s                         |
+|          ...                   |         ...                          |
+|          -> e, es, ss          |         -> e, es, ss                 |
+|          <- e, ee, se          |         <- e, ee, se, psk            |
++--------------------------------+--------------------------------------+
+|         Noise_KX(s, rs):       |        Noise_KXpsk2(s, rs):          |
+|           -> s                 |          -> s                        |
+|           ...                  |          ...                         |
+|           -> e                 |          -> e                        |
+|           <- e, ee, se, s, es  |          <- e, ee, se, s, es, psk    |
++--------------------------------+--------------------------------------+
+|         Noise_IN(s):           |        Noise_INpsk1(s):              |
+|           -> e, s              |          -> e, s, psk                |
+|           <- e, ee, se         |          <- e, ee, se                |
+|                                |                                      |
++--------------------------------+--------------------------------------+
+|         Noise_IN(s):           |        Noise_INpsk2(s):              |
+|           -> e, s              |          -> e, s                     |
+|           <- e, ee, se         |          <- e, ee, se, psk           |
+|                                |                                      |
++--------------------------------+--------------------------------------+
+|         Noise_IK(s, rs):       |        Noise_IKpsk1(s, rs):          |
+|           <- s                 |          <- s                        |
+|           ...                  |          ...                         |
+|           -> e, es, s, ss      |          -> e, es, s, ss, psk        |
+|           <- e, ee, se         |          <- e, ee, se                |
+|                                |                                      |
++--------------------------------+--------------------------------------+
+|         Noise_IK(s, rs):       |        Noise_IKpsk2(s, rs):          |
+|           <- s                 |          <- s                        |
+|           ...                  |          ...                         |
+|           -> e, es, s, ss      |          -> e, es, s, ss             |
+|           <- e, ee, se         |          <- e, ee, se, psk           |
+|                                |                                      |
++--------------------------------+--------------------------------------+
+|         Noise_IX(s, rs):       |        Noise_IXpsk2(s, rs):          |
+|           -> e, s              |          -> e, s                     |
+|           <- e, ee, se, s, es  |          <- e, ee, se, s, es, psk    |
+|                                |                                      |
++--------------------------------+--------------------------------------+
+
+Of course, the above list does not exhaust all possible patterns that can be
+formed with these modifiers, nor does it exhaust all the ways that `"psk"`
+tokens could be used outside of these modifiers (e.g. multiple PSKs per
+handshake).  Defining additional PSK patterns is outside the scope of this
+document.
+
+10. Fallback protocols
 =======================
 
-8.1. Fallback patterns
+10.1. Fallback patterns
 ------------------------
 So far we've discussed Noise protocols which execute a single handshake
 chosen by the initiator.
@@ -1081,7 +1322,7 @@ To support this case Noise allows **fallback patterns**.  Fallback patterns diff
 Another caveat for fallback handshakes:  If the initial handshake message has a prologue or payload that the responder makes any decisions based on, then the `h` value after processing that handshake message should be included in the prologue for the fallback handshake.
 
 
-8.2. Indicating fallback
+10.2. Indicating fallback
 ------------------------
 
 A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:
@@ -1115,7 +1356,7 @@ Note that the `type` byte doesn't need to be explicitly authenticated (either as
 prologue, or as additional AEAD data), since it's implicitly authenticated if the
 message is processed succesfully.
 
-8.3. Noise Pipes
+10.3. Noise Pipes
 ---
 
 This section defines the **Noise Pipe** protocol.  This protocol uses
@@ -1151,7 +1392,7 @@ which is identical to `Noise_XX` except the ephemeral public key from the first
 `Noise_IK` message is used as the initiator's pre-message.
 
 
-8.4. Handshake indistinguishability
+10.4. Handshake indistinguishability
 -----------------------------------
 
 Parties might wish to hide from an eavesdropper which type of handshake they are
@@ -1182,10 +1423,10 @@ if the eavesdropper can't distinguish the different handshakes.  To make the
 ephemerals indistinguishable from random, techniques like Elligator [@elligator]
 could be used.
 
-9. Advanced features
+11. Advanced features
 =====================
 
-9.1. Dummy static public keys
+11.1. Dummy static public keys
 ------------------------------
 
 Consider a protocol where an initiator will authenticate herself if the responder
@@ -1204,7 +1445,7 @@ computation time.  It could be extended to allow a `Noise_XX` pattern to
 support any permutation of authentications (initiator only, responder only,
 both, or none).
 
-9.2. Channel binding
+11.2. Channel binding
 ---------------------
 Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
 
@@ -1212,11 +1453,29 @@ To support this, Noise libraries should expose the final value of h to the appli
 
 Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
 
+11.3. Rekey
+-----------
+Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on `AESGCM` data volumes in [Section 13](#security-considerations).
 
-10. DH functions, cipher functions, and hash functions
+To enable this, Noise supports a `Rekey()` function which may be called on a `CipherState`.
+
+It is up to to the application if and when to perform rekey.  For example: 
+
+ * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.  This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.
+
+ * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
+
+ * Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
+
+Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.
+
+Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
+
+
+12. DH functions, cipher functions, and hash functions
 ======================================================
 
-10.1. The `25519` DH functions
+12.1. The `25519` DH functions
 ----------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
@@ -1233,7 +1492,7 @@ Parties can then sign the handshake hash, or hash it along with their password, 
 
  * **`DHLEN`** = 32
 
-10.2. The `448` DH functions
+12.2. The `448` DH functions
 --------------------------
 
  * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
@@ -1250,7 +1509,7 @@ Parties can then sign the handshake hash, or hash it along with their password, 
 
  * **`DHLEN`** = 56
 
-10.3. The `ChaChaPoly` cipher functions
+12.3. The `ChaChaPoly` cipher functions
 ------------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
@@ -1260,7 +1519,7 @@ Parties can then sign the handshake hash, or hash it along with their password, 
    implementations it's compatible to encode `n` directly into the ChaCha20
    nonce without the 32-bit zero prefix).
 
-10.4. The `AESGCM` cipher functions
+12.4. The `AESGCM` cipher functions
 ---------------------------
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**: AES256
@@ -1268,48 +1527,36 @@ Parties can then sign the handshake hash, or hash it along with their password, 
    ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros
    followed by big-endian encoding of `n`.
 
-10.5. The `SHA256` hash function
+12.5. The `SHA256` hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA-256` from [@nistsha2].
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
-10.6. The `SHA512` hash function
+12.6. The `SHA512` hash function
 ------------------------------
 
  * **`HASH(input)`**: `SHA-512`  from [@nistsha2].
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
-10.7. The `BLAKE2s` hash function
+12.7. The `BLAKE2s` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2s` from [@rfc7693] with digest length 32.
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
-10.8. The `BLAKE2b` hash function
+12.8. The `BLAKE2b` hash function
 -------------------------------
 
  * **`HASH(input)`**: `BLAKE2b` from [@rfc7693] with digest length 64.
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
-11. Protocol names 
-===================
 
-To produce a **Noise protocol name** for `Initialize()` you concatenate the
-ASCII names for the handshake pattern, the DH functions, the cipher functions,
-and the hash function, with underscore separators.  The resulting name must be 255
-bytes or less.  Examples: 
-
- * `Noise_XX_25519_AESGCM_SHA256`
- * `Noise_N_25519_ChaChaPoly_BLAKE2s`
- * `Noise_XXfallback_448_AESGCM_SHA512`
- * `Noise_IK_448_ChaChaPoly_BLAKE2b`
-
-12. Application responsibilities
+13. Application responsibilities
 ================================
 
 An application built on Noise must consider several issues:
@@ -1354,7 +1601,7 @@ An application built on Noise must consider several issues:
    changes (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
 
-13. Security considerations
+14. Security considerations
 ===========================
 
 This section collects various security considerations:
@@ -1375,7 +1622,7 @@ This section collects various security considerations:
    predictable DH output.  For example, a `Noise_NK_25519` initiator might send
    an invalid ephemeral public key to cause a known DH output of all zeros,
    despite not knowing the responder's static public key. If the parties want
-   to authenticate with a shared secret, it should be used as a "PSK" [@book2].
+   to authenticate with a shared secret, it should be used as a PSK [@book2].
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
@@ -1406,6 +1653,9 @@ This section collects various security considerations:
    pair).  If the same secret key was reused with the same protocol name but a
    different set of cryptographic operations then bad interactions could occur.
 
+ * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
+   values with 256 bits of entropy.
+
  * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
    in security as the volume of data encrypted under a single key increases.
    Due to this, parties should not send more than 2^56^ bytes (roughly 72
@@ -1426,19 +1676,22 @@ This section collects various security considerations:
 
 \newpage
 
-14. Rationales
+15. Rationales
 =============
 
 This section collects various design rationales.
 
-14.1. Ciphers and encryption
+15.1. Ciphers and encryption
 --------------
 
-Cipher keys are 256 bits because:
+Cipher keys and PSKs are 256 bits because:
 
   * 256 bits is a conservative length for cipher keys when considering 
     cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
     quantum attacks.
+
+  * Pre-shared key length is fixed to simplify testing and implementation, and
+    to deter users from mistakenly using low-entropy passwords as pre-shared keys.
 
 Nonces are 64 bits because:
 
@@ -1453,7 +1706,19 @@ Nonces are 64 bits because:
   * 96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if
     random nonces are acceptable.
 
-  
+Rekey defaults to using encryption with the nonce 2^64^-1 because:
+
+  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently (the
+    "encryption" just needs to apply the cipher, and can skip calculation of
+    the authentication tag).
+
+Rekey doesn't reset `n` to zero because:
+
+  * Leaving `n` unchanged is simple.
+
+  * If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
+
+  * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
 The authentication data in a ciphertext is 128 bits because:
 
   * Some algorithms (e.g. GCM) lose more security than an ideal MAC when 
@@ -1480,7 +1745,7 @@ Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, bec
   * It makes sense to use consistent endianness in the cipher code.
 
 
-14.2. Hash functions and hashing
+15.2. Hash functions and hashing
 --------------
 
 The recommended hash function families are SHA2 and BLAKE2 because:
@@ -1552,7 +1817,7 @@ The `h` value hashes handshake ciphertext instead of plaintext because:
   * This provides stronger guarantees against ciphertext malleability. 
 
 
-14.3. Other
+15.3. Other
 ------------
 
 Big-endian length fields are recommended because:
@@ -1585,12 +1850,12 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
   * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
 
 
-15. IPR
+16. IPR
 ========
 
 The Noise specification Book 1 (this document) is hereby placed in the public domain.
 
-16. Acknowledgements
+17. Acknowledgements
 =====================
 
 Noise is inspired by:
@@ -1607,18 +1872,25 @@ General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Tiffany Bennett, Jonathan Rudenberg, Stephen
 Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.
 
-Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.
+Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
+Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
 derivation design.
 
-The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided
-helpful discussion on using BLAKE2 with Noise.
+The PSK approach was largely motivated and designed by Jason Donenfeld, based
+on his experience with PSKs in WireGuard.
+
+The rekey design benefited from discussions with Rhys Weatherley, Alexey
+Ermishkin, and Olaoluwa Osuntokun.  
+
+The BLAKE2 team (in particular J.P.  Aumasson, Samuel Neves, and Zooko)
+provided helpful discussion on using BLAKE2 with Noise.
 
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
 
 
-17.  References
+18.  References
 ================
