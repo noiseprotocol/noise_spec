@@ -309,7 +309,7 @@ Noise defines additional functions based on the above `HASH()` function:
 
 To precisely define the processing rules we adopt an object-oriented
 terminology, and present three "objects" which encapsulate state variables and
-provide "methods" which implement processing logic.  These three objects are
+contain functions which implement processing logic.  These three objects are
 presented as a hierarchy: each higher-layer object includes one instance of the
 object beneath it.  From lowest-layer to highest, the objects are:
 
@@ -362,7 +362,7 @@ variables:
 
   * **`n`**: An 8-byte (64-bit) unsigned integer nonce.
 
-A `CipherState` responds to the following methods.  The `++` post-increment
+A `CipherState` responds to the following functions.  The `++` post-increment
 operator applied to `n` means "use the current `n` value, then increment it".
 The maximum `n` value (2^64^-1) is reserved for other use.  If incrementing `n`
 results in 2^64^-1, then any further `EncryptWithAd()` or `DecryptWithAd()`
@@ -391,7 +391,7 @@ variables:
   * **`ck`**: A chaining key of `HASHLEN` bytes.
   * **`h`**: A hash output of `HASHLEN` bytes.
 
-A `SymmetricState` responds to the following methods:   
+A `SymmetricState` responds to the following functions:   
  
   * **`InitializeSymmetric(protocol_name)`**:  Takes an arbitrary-length
    `protocol_name` byte sequence (see [Section 8](#protocol-names)).  Executes the following steps:
@@ -461,7 +461,7 @@ portion of the handshake pattern:
     "ss")`.  (An additional `"psk"` token is introduced in [Section
     9](pre-shared-symmetric-keys), but we defer its explanation until then.)
 
-A `HandshakeState` responds to the following methods:
+A `HandshakeState` responds to the following functions:
 
   * **`Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)`**:
     Takes a valid `handshake_pattern` (see [Section 7](#handshake-patterns)) and an
@@ -1119,7 +1119,7 @@ protocols where both parties have a 32-byte shared secret key.
 9.1. Cryptographic functions
 ----------------------------------
 
-PSK mode uses the `SymmetricState.MixKeyAndHash()` function to mix the PSK into both the encryption keys and the `h` value.
+PSK mode uses the `SymmetricState.methodsMixKeyAndHash()` function to mix the PSK into both the encryption keys and the `h` value.
 
 Note that `MixKeyAndHash()` uses `HKDF(..., 3)`.  The third output from `HKDF()` is used as the `k` value so that calculation of `k` may be skipped if `k` is not used.
 

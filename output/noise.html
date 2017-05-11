@@ -192,7 +192,7 @@
 </ul>
 <p>Note that <code>temp_key</code>, <code>output1</code>, <code>output2</code>, and <code>output3</code> are all <code>HASHLEN</code> bytes in length. Also note that the <code>HKDF()</code> function is simply <code>HKDF</code> from <span class="citation">[<a href="#ref-rfc5869">4</a>]</span> with the <code>chaining_key</code> as HKDF <code>salt</code>, and zero-length HKDF <code>info</code>.</p>
 <h1 id="processing-rules">5. Processing rules</h1>
-<p>To precisely define the processing rules we adopt an object-oriented terminology, and present three &quot;objects&quot; which encapsulate state variables and provide &quot;methods&quot; which implement processing logic. These three objects are presented as a hierarchy: each higher-layer object includes one instance of the object beneath it. From lowest-layer to highest, the objects are:</p>
+<p>To precisely define the processing rules we adopt an object-oriented terminology, and present three &quot;objects&quot; which encapsulate state variables and contain functions which implement processing logic. These three objects are presented as a hierarchy: each higher-layer object includes one instance of the object beneath it. From lowest-layer to highest, the objects are:</p>
 <ul>
 <li><p>A <strong><code>CipherState</code></strong> object contains <code>k</code> and <code>n</code> variables, which it uses to encrypt and decrypt ciphertexts. During the handshake phase each party has a single <code>CipherState</code>, but during the transport phase each party has two <code>CipherState</code> objects: one for sending, and one for receiving.</p></li>
 <li><p>A <strong><code>SymmetricState</code></strong> object contains a <code>CipherState</code> plus <code>ck</code> and <code>h</code> variables. It is so-named because it encapsulates all the &quot;symmetric crypto&quot; used by Noise. During the handshake phase each party has a single <code>SymmetricState</code>, which can be deleted once the handshake is finished.</p></li>
@@ -208,7 +208,7 @@
 <li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which may be <code>empty</code>). <code>Empty</code> is a special value which indicates <code>k</code> has not yet been initialized.</p></li>
 <li><p><strong><code>n</code></strong>: An 8-byte (64-bit) unsigned integer nonce.</p></li>
 </ul>
-<p>A <code>CipherState</code> responds to the following methods. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2<sup>64</sup>-1) is reserved for other use. If incrementing <code>n</code> results in 2<sup>64</sup>-1, then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
+<p>A <code>CipherState</code> responds to the following functions. The <code>++</code> post-increment operator applied to <code>n</code> means &quot;use the current <code>n</code> value, then increment it&quot;. The maximum <code>n</code> value (2<sup>64</sup>-1) is reserved for other use. If incrementing <code>n</code> results in 2<sup>64</sup>-1, then any further <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will signal an error to the caller.</p>
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
@@ -222,7 +222,7 @@
 <li><strong><code>ck</code></strong>: A chaining key of <code>HASHLEN</code> bytes.</li>
 <li><strong><code>h</code></strong>: A hash output of <code>HASHLEN</code> bytes.</li>
 </ul>
-<p>A <code>SymmetricState</code> responds to the following methods:</p>
+<p>A <code>SymmetricState</code> responds to the following functions:</p>
 <ul>
 <li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>: Takes an arbitrary-length <code>protocol_name</code> byte sequence (see <a href="#protocol-names">Section 8</a>). Executes the following steps:</p>
 <ul>
@@ -271,7 +271,7 @@
 <li><p><strong><code>initiator</code></strong>: A boolean indicating the initiator or responder role.</p></li>
 <li><p><strong><code>message_patterns</code></strong>: A sequence of message patterns. Each message pattern is a sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;)</code>. (An additional <code>&quot;psk&quot;</code> token is introduced in <a href="pre-shared-symmetric-keys">Section 9</a>, but we defer its explanation until then.)</p></li>
 </ul>
-<p>A <code>HandshakeState</code> responds to the following methods:</p>
+<p>A <code>HandshakeState</code> responds to the following functions:</p>
 <ul>
 <li><p><strong><code>Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)</code></strong>: Takes a valid <code>handshake_pattern</code> (see <a href="#handshake-patterns">Section 7</a>) and an <code>initiator</code> boolean specifying this party's role as either initiator or responder.</p>
 <p>Takes a <code>prologue</code> byte sequence which may be zero-length, or which may contain context information that both parties want to confirm is identical (see <a href="#prologue">Section 6</a>).</p>
@@ -715,7 +715,7 @@
 <h1 id="pre-shared-symmetric-keys">9. Pre-shared symmetric keys</h1>
 <p>Noise provides a <strong>pre-shared symmetric key</strong> or <strong>PSK</strong> mode to support protocols where both parties have a 32-byte shared secret key.</p>
 <h2 id="cryptographic-functions">9.1. Cryptographic functions</h2>
-<p>PSK mode uses the <code>SymmetricState.MixKeyAndHash()</code> function to mix the PSK into both the encryption keys and the <code>h</code> value.</p>
+<p>PSK mode uses the <code>SymmetricState.methodsMixKeyAndHash()</code> function to mix the PSK into both the encryption keys and the <code>h</code> value.</p>
 <p>Note that <code>MixKeyAndHash()</code> uses <code>HKDF(..., 3)</code>. The third output from <code>HKDF()</code> is used as the <code>k</code> value so that calculation of <code>k</code> may be skipped if <code>k</code> is not used.</p>
 <h2 id="handshake-tokens">9.2. Handshake tokens</h2>
 <p>To support PSKs, a <code>&quot;psk&quot;</code> token is allowed to appear once (or multiple times) in a handshake pattern. This token can only appear in message patterns (not pre-message patterns). This token is processed by calling <code>MixKeyAndHash(psk)</code>, where <code>psk</code> is a 32-byte secret value provided by the application.</p>
