@@ -58,7 +58,7 @@
 <li><a href="#handshake-indistinguishability">10.4. Handshake indistinguishability</a></li>
 </ul></li>
 <li><a href="#advanced-features">11. Advanced features</a><ul>
-<li><a href="#dummy-static-public-keys">11.1. Dummy static public keys</a></li>
+<li><a href="#dummy-keys">11.1. Dummy keys</a></li>
 <li><a href="#channel-binding">11.2. Channel binding</a></li>
 <li><a href="#rekey">11.3. Rekey</a></li>
 </ul></li>
@@ -149,7 +149,7 @@
 </ol>
 <p> </p>
 <h1 id="crypto-functions">4. Crypto functions</h1>
-<p>A Noise protocol is instantiated with a concrete set of <strong>DH functions</strong>, <strong>cipher functions</strong>, and a <strong>hash function</strong>. The signature for these functions is defined below. Some concrete functions are defined in <a href="#dh-functions-cipher-functions-and-hash-functions">Section 10</a>.</p>
+<p>A Noise protocol is instantiated with a concrete set of <strong>DH functions</strong>, <strong>cipher functions</strong>, and a <strong>hash function</strong>. The signature for these functions is defined below. Some concrete functions are defined in <a href="#dh-functions-cipher-functions-and-hash-functions">Section 12</a>.</p>
 <p>The following notation will be used in algorithm pseudocode:</p>
 <ul>
 <li>The <code>||</code> operator concatenates byte sequences.</li>
@@ -199,7 +199,7 @@
 <li><p>A <strong><code>HandshakeState</code></strong> object contains a <code>SymmetricState</code> plus DH variables <code>(s, e, rs, re)</code> and a variable representing the handshake pattern. During the handshake phase each party has a single <code>HandshakeState</code>, which can be deleted once the handshake is finished.</p></li>
 </ul>
 <p>To execute a Noise protocol you <code>Initialize()</code> a <code>HandshakeState</code>. During initialization you specify the handshake pattern, any local key pairs, and any public keys for the remote party you have knowledge of. After <code>Initialize()</code> you call <code>WriteMessage()</code> and <code>ReadMessage()</code> on the <code>HandshakeState</code> to process each handshake message. If any error is signaled by the <code>DECRYPT()</code> or <code>DH()</code> functions then the handshake has failed and the <code>HandshakeState</code> is deleted.</p>
-<p>Processing the final handshake message returns two <code>CipherState</code> objects, the first for encrypting transport messages from initiator to responder, and the second for messages in the other direction. At that point the <code>HandshakeState</code> should be deleted except for the hash value <code>h</code>, which may be used for post-handshake channel binding (see <a href="#channel-binding">Section 9.2</a>).</p>
+<p>Processing the final handshake message returns two <code>CipherState</code> objects, the first for encrypting transport messages from initiator to responder, and the second for messages in the other direction. At that point the <code>HandshakeState</code> should be deleted except for the hash value <code>h</code>, which may be used for post-handshake channel binding (see <a href="#channel-binding">Section 11.2</a>).</p>
 <p>Transport messages are then encrypted and decrypted by calling <code>EncryptWithAd()</code> and <code>DecryptWithAd()</code> on the relevant <code>CipherState</code> with zero-length associated data. If <code>DecryptWithAd()</code> signals an error due to <code>DECRYPT()</code> failure, then the input message is discarded. The application may choose to delete the <code>CipherState</code> and terminate the session on such an error, or may continue to attempt communications. If <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> signal an error due to nonce exhaustion, then the application must delete the <code>CipherState</code> and terminate the session.</p>
 <p>The below sections describe these objects in detail.</p>
 <h2 id="the-cipherstate-object">5.1 The <code>CipherState</code> object</h2>
@@ -224,7 +224,7 @@
 </ul>
 <p>A <code>SymmetricState</code> responds to the following methods:</p>
 <ul>
-<li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>: Takes an arbitrary-length <code>protocol_name</code> byte sequence (see <a href="#protocol-names">Section 11</a>). Executes the following steps:</p>
+<li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>: Takes an arbitrary-length <code>protocol_name</code> byte sequence (see <a href="#protocol-names">Section 8</a>). Executes the following steps:</p>
 <ul>
 <li><p>If <code>protocol_name</code> is less than or equal to <code>HASHLEN</code> bytes in length, sets <code>h</code> equal to <code>protocol_name</code> with zero bytes appended to make <code>HASHLEN</code> bytes. Otherwise sets <code>h = HASH(protocol_name)</code>.</p></li>
 <li><p>Sets <code>ck = h</code>.</p></li>
@@ -272,13 +272,13 @@
 <ul>
 <li><p><strong><code>Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)</code></strong>: Takes a valid <code>handshake_pattern</code> (see <a href="#handshake-patterns">Section 7</a>) and an <code>initiator</code> boolean specifying this party's role as either initiator or responder.</p>
 <p>Takes a <code>prologue</code> byte sequence which may be zero-length, or which may contain context information that both parties want to confirm is identical (see <a href="#prologue">Section 6</a>).</p>
-<p>Takes a set of DH key pairs <code>(s, e)</code> and public keys <code>(rs, re)</code> for initializing local variables, any of which may be empty. Public keys are only passed in if the <code>handshake_pattern</code> uses pre-messages (see <a href="#handshake-patterns">Section 7</a>). The ephemeral values <code>(e, re)</code> are typically left empty, since they are created and exchanged during the handshake; but there are exceptions (see <a href="fallback-patterns">Section 8.1</a>).</p>
+<p>Takes a set of DH key pairs <code>(s, e)</code> and public keys <code>(rs, re)</code> for initializing local variables, any of which may be empty. Public keys are only passed in if the <code>handshake_pattern</code> uses pre-messages (see <a href="#handshake-patterns">Section 7</a>). The ephemeral values <code>(e, re)</code> are typically left empty, since they are created and exchanged during the handshake; but there are exceptions (see <a href="fallback-patterns">Section 10.1</a>).</p>
 <p>Performs the following steps:</p>
 <ul>
-<li><p>Derives a <code>protocol_name</code> byte sequence by combining the names for the handshake pattern and crypto functions, as specified in <a href="#protocol-names">Section 11</a>. Calls <code>InitializeSymmetric(protocol_name)</code>.</p></li>
+<li><p>Derives a <code>protocol_name</code> byte sequence by combining the names for the handshake pattern and crypto functions, as specified in <a href="#protocol-names">Section 8</a>. Calls <code>InitializeSymmetric(protocol_name)</code>.</p></li>
 <li><p>Calls <code>MixHash(prologue)</code>.</p></li>
 <li><p>Sets the <code>initiator</code>, <code>s</code>, <code>e</code>, <code>rs</code>, and <code>re</code> variables to the corresponding arguments.</p></li>
-<li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 8</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first.</p></li>
+<li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 7</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first.</p></li>
 <li><p>Sets <code>message_patterns</code> to the message patterns from <code>handshake_pattern</code>.</p></li>
 </ul></li>
 <li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps:</p>
@@ -334,7 +334,7 @@
 </ul>
 <p>The pre-messages represent an exchange of public keys that was somehow performed prior to the handshake, so these public keys must be inputs to <code>Initialize()</code> for the &quot;recipient&quot; of the pre-message.</p>
 <p>The first actual handshake message is sent from the initiator to the responder (with one exception - see next paragraph). The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
-<p>(Exceptional case: Noise allows special <strong>fallback patterns</strong> where the responder switches to a different pattern than the initator started with (see <a href="#fallback-patterns">Section 8.1</a>). If the initiator's pre-message contains an <code>&quot;e&quot;</code> token, then this handshake pattern is a fallback pattern. In the case of a fallback pattern the first handshake message is sent by the responder, the next from the initiator, and so on.)</p>
+<p>(Exceptional case: Noise allows special <strong>fallback patterns</strong> where the responder switches to a different pattern than the initator started with (see <a href="#fallback-patterns">Section 10.1</a>). If the initiator's pre-message contains an <code>&quot;e&quot;</code> token, then this handshake pattern is a fallback pattern. In the case of a fallback pattern the first handshake message is sent by the responder, the next from the initiator, and so on.)</p>
 <p>The following handshake pattern describes an unauthenticated DH handshake:</p>
 <pre><code>Noise_NN():
   -&gt; e
@@ -989,7 +989,7 @@
 <li><p>A <strong>fallback handshake</strong> is triggered by the responder if it can't decrypt the initiator's first zero-RTT handshake message.</p></li>
 </ul>
 <p>There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message. If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the second message.</p>
-<p>For example, each handshake message could be preceded by a <code>type</code> byte (see <a href="#application-responsibilities">Section 12</a>). This byte is not part of the Noise message proper, but simply signals which handshake is being used:</p>
+<p>For example, each handshake message could be preceded by a <code>type</code> byte (see <a href="#application-responsibilities">Section 13</a>). This byte is not part of the Noise message proper, but simply signals which handshake is being used:</p>
 <ul>
 <li><p>If <code>type == 0</code> in the initiator's first message then the initiator is performing a full handshake.</p></li>
 <li><p>If <code>type == 1</code> in the initiator's first message then the initiator is performing a zero-RTT handshake.</p></li>
@@ -1029,16 +1029,17 @@ Noise_XXfallback(e, s, rs):
 </ul>
 <p>This leaves the Noise ephemeral public keys in the clear. Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if the eavesdropper can't distinguish the different handshakes. To make the ephemerals indistinguishable from random, techniques like Elligator <span class="citation">[<a href="#ref-elligator">5</a>]</span> could be used.</p>
 <h1 id="advanced-features">11. Advanced features</h1>
-<h2 id="dummy-static-public-keys">11.1. Dummy static public keys</h2>
+<h2 id="dummy-keys">11.1. Dummy keys</h2>
 <p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
 <p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>Noise_XX</code>. The initiator can simulate the <code>Noise_NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter.</p>
 <p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes or computation time. It could be extended to allow a <code>Noise_XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
+<p>Similarly, <strong>dummy PSKs</strong> (e.g. a PSK of all zeros) would allow a protocol to optionally support PSKs.</p>
 <h2 id="channel-binding">11.2. Channel binding</h2>
 <p>Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
 <p>To support this, Noise libraries should expose the final value of h to the application as a <strong>handshake hash</strong> which uniquely identifies the Noise session.</p>
 <p>Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
 <h2 id="rekey">11.3. Rekey</h2>
-<p>Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages. Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on <code>AESGCM</code> data volumes in <a href="#security-considerations">Section 13</a>.</p>
+<p>Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages. Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on <code>AESGCM</code> data volumes in <a href="#security-considerations">Section 14</a>).</p>
 <p>To enable this, Noise supports a <code>Rekey()</code> function which may be called on a <code>CipherState</code>.</p>
 <p>It is up to to the application if and when to perform rekey. For example:</p>
 <ul>
@@ -1095,6 +1096,7 @@ Noise_XXfallback(e, s, rs):
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
+
 <h1 id="application-responsibilities">13. Application responsibilities</h1>
 <p>An application built on Noise must consider several issues:</p>
 <ul>
@@ -1105,13 +1107,14 @@ Noise_XXfallback(e, s, rs):
 <li><p><strong>Length fields</strong>: Applications must handle any framing or additional length fields for Noise messages, considering that a Noise message may be up to 65535 bytes in length. If an explicit length field is needed, applications are recommended to add a 16-bit big-endian length field prior to each message.</p></li>
 <li><p><strong>Type fields</strong>: Applications are recommended to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for the value zero to indicate no change from the current Noise protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify fallback handshakes or other compatibility-breaking changes (protocol extensions that don't break compatibility can be handled within Noise payloads).</p></li>
 </ul>
+
 <h1 id="security-considerations">14. Security considerations</h1>
 <p>This section collects various security considerations:</p>
 <ul>
 <li><p><strong>Session termination</strong>: Preventing attackers from truncating a stream of transport messages is an application responsibility. See previous section.</p></li>
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with fallback handshakes, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
 <li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK <span class="citation">[<a href="#ref-book2">11</a>]</span>.</p></li>
-<li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 9.2</a>.</p></li>
+<li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 11.2</a>.</p></li>
 <li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
 <li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol should send a new ephemeral public key and perform a DH with it prior to sending any encrypted data. Otherwise replay of a handshake message could trigger catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#pattern-validity">Section 7.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair or static key pair). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
@@ -1120,7 +1123,6 @@ Noise_XXfallback(e, s, rs):
 <li><p><strong>Hash collisions</strong>: If an attacker can find hash collisions on prologue data or the handshake hash, they may be able to perform &quot;transcript collision&quot; attacks that trick the parties into having different views of handshake data. It is important to use Noise with collision-resistant hash functions, and replace the hash function at any sign of weakness.</p></li>
 <li><p><strong>Implementation fingerprinting</strong>: If this protocol is used in settings with anonymous parties, care should be taken that implementations behave identically in all cases. This may require mandating exact behavior for handling of invalid DH public keys.</p></li>
 </ul>
-
 <h1 id="rationales">15. Rationales</h1>
 <p>This section collects various design rationales.</p>
 <h2 id="ciphers-and-encryption">15.1. Ciphers and encryption</h2>
@@ -1217,7 +1219,7 @@ Noise_XXfallback(e, s, rs):
 <li><p>Explicit nonces make it easier to &quot;backdoor&quot; crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.</p></li>
 </ul>
 <h1 id="ipr">16. IPR</h1>
-<p>The Noise specification Book 1 (this document) is hereby placed in the public domain.</p>
+<p>The Noise specification (this document) is hereby placed in the public domain.</p>
 <h1 id="acknowledgements">17. Acknowledgements</h1>
 <p>Noise is inspired by:</p>
 <ul>
@@ -1236,6 +1238,7 @@ Noise_XXfallback(e, s, rs):
 <p>The rekey design benefited from discussions with Rhys Weatherley, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided helpful discussion on using BLAKE2 with Noise.</p>
 <p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier versions.</p>
+
 <h1 id="references" class="unnumbered">18. References</h1>
 <div id="refs" class="references">
 <div id="ref-Rogaway:2002">

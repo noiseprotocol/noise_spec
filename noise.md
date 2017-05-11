@@ -210,7 +210,7 @@ Assuming each payload contains a zero-length plaintext, and DH public keys are
 A Noise protocol is instantiated with a concrete set of **DH functions**,
 **cipher functions**, and a **hash function**.  The signature for these
 functions is defined below.  Some concrete functions are defined in [Section
-10](#dh-functions-cipher-functions-and-hash-functions).
+12](#dh-functions-cipher-functions-and-hash-functions).
 
 The following notation will be used in algorithm pseudocode:
 
@@ -338,7 +338,7 @@ process each handshake message.  If any error is signaled by the `DECRYPT()` or
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
 second for messages in the other direction.  At that point the `HandshakeState`
-should be deleted except for the hash value `h`, which may be used for post-handshake channel binding (see [Section 9.2](#channel-binding)).
+should be deleted except for the hash value `h`, which may be used for post-handshake channel binding (see [Section 11.2](#channel-binding)).
 
 Transport messages are then encrypted and decrypted by calling
 `EncryptWithAd()` and `DecryptWithAd()` on the relevant `CipherState` with
@@ -394,7 +394,7 @@ variables:
 A `SymmetricState` responds to the following methods:   
  
   * **`InitializeSymmetric(protocol_name)`**:  Takes an arbitrary-length
-   `protocol_name` byte sequence (see [Section 11](#protocol-names)).  Executes the following steps:
+   `protocol_name` byte sequence (see [Section 8](#protocol-names)).  Executes the following steps:
 
       * If `protocol_name` is less than or equal to `HASHLEN` bytes in length,
         sets `h` equal to `protocol_name` with zero bytes appended to make
@@ -474,13 +474,13 @@ A `HandshakeState` responds to the following methods:
     Public keys are only passed in if the `handshake_pattern` uses pre-messages 
     (see [Section 7](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
     left empty, since they are created and exchanged during the handshake; but there are
-    exceptions (see [Section 8.1](fallback-patterns)).
+    exceptions (see [Section 10.1](fallback-patterns)).
 
     Performs the following steps:
 
       * Derives a `protocol_name` byte sequence by combining the names for the
         handshake pattern and crypto functions, as specified in [Section
-        11](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
+        8](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
 
       * Calls `MixHash(prologue)`.
 
@@ -489,7 +489,7 @@ A `HandshakeState` responds to the following methods:
 
       * Calls `MixHash()` once for each public key listed in the pre-messages
         from `handshake_pattern`, with the specified public key as input (see
-        [Section 8](#handshake-patterns) for an explanation of pre-messages).  If both
+        [Section 7](#handshake-patterns) for an explanation of pre-messages).  If both
         initiator and responder have pre-messages, the initiator's public keys
         are hashed first.
 
@@ -602,7 +602,7 @@ responder, the next from the initiator, and so on in alternating fashion.
 
 (Exceptional case: Noise allows special **fallback patterns** where the
 responder switches to a different pattern than the initator started with (see
-[Section 8.1](#fallback-patterns)).  If the initiator's pre-message contains an
+[Section 10.1](#fallback-patterns)).  If the initiator's pre-message contains an
 `"e"` token, then this handshake pattern is a fallback pattern.  In the case of
 a fallback pattern the first handshake message is sent by the responder,
 the next from the initiator, and so on.)
@@ -1336,7 +1336,7 @@ A typical fallback scenario for zero-RTT encryption involves three different Noi
 There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message.  If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the second message.
 
 For example, each handshake message could be preceded by a `type` byte (see
-[Section 12](#application-responsibilities)).  This byte is not part of the
+[Section 13](#application-responsibilities)).  This byte is not part of the
 Noise message proper, but simply signals which handshake is being used:
 
  * If `type == 0` in the initiator's first message then the initiator is
@@ -1426,8 +1426,8 @@ could be used.
 11. Advanced features
 =====================
 
-11.1. Dummy static public keys
-------------------------------
+11.1. Dummy keys
+-----------------
 
 Consider a protocol where an initiator will authenticate herself if the responder
 requests it.  This could be viewed as the initiator choosing between patterns
@@ -1443,7 +1443,10 @@ This technique is simple, since it allows use of a single handshake pattern.
 It also doesn't reveal which option was chosen from message sizes or
 computation time.  It could be extended to allow a `Noise_XX` pattern to
 support any permutation of authentications (initiator only, responder only,
-both, or none).
+both, or none).  
+
+Similarly, **dummy PSKs** (e.g. a PSK of all zeros) would allow a protocol to
+optionally support PSKs.
 
 11.2. Channel binding
 ---------------------
@@ -1455,7 +1458,7 @@ Parties can then sign the handshake hash, or hash it along with their password, 
 
 11.3. Rekey
 -----------
-Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on `AESGCM` data volumes in [Section 13](#security-considerations).
+Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages.  Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on `AESGCM` data volumes in [Section 14](#security-considerations)).
 
 To enable this, Noise supports a `Rekey()` function which may be called on a `CipherState`.
 
@@ -1555,6 +1558,7 @@ Note that rekey only updates the cipherstate's `k` value, it doesn't reset the c
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
 
+\newpage
 
 13. Application responsibilities
 ================================
@@ -1601,6 +1605,8 @@ An application built on Noise must consider several issues:
    changes (protocol extensions that don't break compatibility can be handled
    within Noise payloads).
 
+\newpage
+
 14. Security considerations
 ===========================
 
@@ -1631,7 +1637,7 @@ This section collects various security considerations:
    possible to set public keys to equivalent values that cause the same DH
    output for different inputs.  This is why a higher-level protocol should use
    the handshake hash (`h`) for a unique channel binding, instead of `ck`, as
-   explained in [Section 9.2](#channel-binding).
+   explained in [Section 11.2](#channel-binding).
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
@@ -1674,7 +1680,6 @@ This section collects various security considerations:
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
 
-\newpage
 
 15. Rationales
 =============
@@ -1853,7 +1858,7 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
 16. IPR
 ========
 
-The Noise specification Book 1 (this document) is hereby placed in the public domain.
+The Noise specification (this document) is hereby placed in the public domain.
 
 17. Acknowledgements
 =====================
@@ -1891,6 +1896,7 @@ provided helpful discussion on using BLAKE2 with Noise.
 Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
 versions.
 
+\newpage
 
 18.  References
 ================
