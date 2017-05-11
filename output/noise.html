@@ -972,7 +972,8 @@
 </tr>
 </tbody>
 </table>
-<p>Of course, the above list does not exhaust all possible patterns that can be formed with these modifiers, nor does it exhaust all the ways that <code>&quot;psk&quot;</code> tokens could be used outside of these modifiers (e.g. multiple PSKs per handshake). Defining additional PSK patterns is outside the scope of this document.</p>
+<p>The above list does not exhaust all possible patterns that can be formed with these modifiers. In particular, any of these PSK modifiers can be safely applied to any previously named pattern, resulting in patterns like <code>Noise_IKpsk0</code>, <code>Noise_KKpsk1</code>, or even <code>Noise_XXpsk0+psk3</code>, which aren't listed above.</p>
+<p>This still doesn't exhaust all the ways that <code>&quot;psk&quot;</code> tokens could be used outside of these modifiers (e.g. placement of <code>&quot;psk&quot;</code> tokens in the middle of a message pattern). Defining additional PSK modifiers is outside the scope of this document.</p>
 <h1 id="fallback-protocols">10. Fallback protocols</h1>
 <h2 id="fallback-patterns">10.1. Fallback patterns</h2>
 <p>So far we've discussed Noise protocols which execute a single handshake chosen by the initiator.</p>

@@ -1298,11 +1298,16 @@ Following similar logic, we can define the most likely interactive PSK patterns:
 |                                |                                      |
 +--------------------------------+--------------------------------------+
 
-Of course, the above list does not exhaust all possible patterns that can be
-formed with these modifiers, nor does it exhaust all the ways that `"psk"`
-tokens could be used outside of these modifiers (e.g. multiple PSKs per
-handshake).  Defining additional PSK patterns is outside the scope of this
-document.
+The above list does not exhaust all possible patterns that can be formed with
+these modifiers.  In particular, any of these PSK modifiers can be safely
+applied to any previously named pattern, resulting in patterns like
+`Noise_IKpsk0`, `Noise_KKpsk1`, or even `Noise_XXpsk0+psk3`, which aren't
+listed above.
+
+This still doesn't exhaust all the ways that `"psk"` tokens could be used
+outside of these modifiers (e.g. placement of `"psk"` tokens in the middle of a
+message pattern).  Defining additional PSK modifiers is outside the scope of
+this document.
 
 10. Fallback protocols
 =======================
