@@ -1109,7 +1109,7 @@ Noise_IK(s, rs):
 <li><p><strong>Padding</strong>: Applications are recommended to use a data format for the payloads of all encrypted messages that allows padding. This allows implementations to avoid leaking information about message sizes. Using an extensible data format, per the previous bullet, will typically suffice.</p></li>
 <li><p><strong>Session termination</strong>: Applications must consider that a sequence of Noise transport messages could be truncated by an attacker. Applications should include explicit length fields or termination signals inside of transport payloads to signal the end of an interactive session, or the end of a one-way stream of transport messages.</p></li>
 <li><p><strong>Length fields</strong>: Applications must handle any framing or additional length fields for Noise messages, considering that a Noise message may be up to 65535 bytes in length. If an explicit length field is needed, applications are recommended to add a 16-bit big-endian length field prior to each message.</p></li>
-<li><p><strong>Types and versions</strong>: Applications might wish to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for zero to indicate no change from the current protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify fallback handshakes, different versions, or other different types of messages during a handshake.</p></li>
+<li><p><strong>Type fields</strong>: Applications might wish to include a single-byte type field prior to each Noise handshake message (and prior to the length field, if one is included). A recommended idiom is for zero to indicate no change from the current protocol, and for applications to reject messages with an unknown value. This allows future protocol versions to specify fallback handshakes, different versions, or other different types of messages during a handshake.</p></li>
 </ul>
 
 <h1 id="security-considerations">14. Security considerations</h1>
@@ -1142,10 +1142,10 @@ Noise_IK(s, rs):
 <li><p>64 bits makes it easy for the entire nonce to be treated as an integer and incremented.</p></li>
 <li><p>96 bits nonces (e.g. in RFC 7539) are a confusing size where it's unclear if random nonces are acceptable.</p></li>
 </ul>
-<p>The authentication data in a ciphertext is 128 bits because:</p>
+<p>The authentication data in a ciphertext (i.e. the authentication tag or synthetic IV) is 128 bits because:</p>
 <ul>
 <li><p>Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.</p></li>
-<li><p>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether MAC guesses are correct.</p></li>
+<li><p>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether guesses for authentication data are correct.</p></li>
 <li><p>A single fixed length is simpler than supporting variable-length tags.</p></li>
 </ul>
 <p>Rekey defaults to using encryption with the nonce 2<sup>64</sup>-1 because:</p>
