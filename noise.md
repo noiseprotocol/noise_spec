@@ -1578,13 +1578,14 @@ Note that rekey only updates the cipherstate's `k` value, it doesn't reset the c
 An application built on Noise must consider several issues:
 
  * **Choosing crypto functions**:  The `25519` DH functions are recommended for
-   typical uses, though the `448` DH functions might offer some extra security
+   typical uses, though the `448` DH functions might offer extra security
    in case a cryptanalytic attack is developed against elliptic curve
    cryptography.  The `448` DH functions should be used with a 512-bit hash
    like `SHA512` or `BLAKE2b`.  The `25519` DH functions may be used with a
    256-bit hash like `SHA256` or `BLAKE2s`, though a 512-bit hash might offer
-   some extra security in case a cryptanalytic attack is developed
-   against the smaller hash functions.
+   extra security in case a cryptanalytic attack is developed
+   against the smaller hash functions.  `AESGCM` is hard to implement with
+   high speed and constant time in software.
 
  * **Extensibility**:  Applications are recommended to use an extensible data
    format for the payloads of all messages (e.g. JSON, Protocol Buffers).  This
