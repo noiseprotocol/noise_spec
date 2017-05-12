@@ -577,7 +577,8 @@ instead (see [Section 9](pre-shared-symmetric-keys)).
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
 "es", "se", "ss", "psk")`.  (The `"psk"` token is described in [Section
-9](pre-shared-symmetric-keys)).
+9](pre-shared-symmetric-keys); future specifications might introduce other
+tokens).
 
 A **pre-message pattern** is one of the following sequences of tokens:
 

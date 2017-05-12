@@ -321,7 +321,7 @@
 <p>For example, suppose Bob communicates to Alice a list of Noise protocols that he is willing to support. Alice will then choose and execute a single protocol. To ensure that a &quot;man-in-the-middle&quot; did not edit Bob's list to remove options, Alice and Bob could include the list as prologue data.</p>
 <p>Note that while the parties confirm their prologues are identical, they don't mix prologue data into encryption keys. If an input contains secret data that’s intended to strengthen the encryption, a PSK handshake should be used instead (see <a href="pre-shared-symmetric-keys">Section 9</a>).</p>
 <h1 id="handshake-patterns">7. Handshake patterns</h1>
-<p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;, &quot;psk&quot;)</code>. (The <code>&quot;psk&quot;</code> token is described in <a href="pre-shared-symmetric-keys">Section 9</a>).</p>
+<p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;, &quot;psk&quot;)</code>. (The <code>&quot;psk&quot;</code> token is described in <a href="pre-shared-symmetric-keys">Section 9</a>; future specifications might introduce other tokens).</p>
 <p>A <strong>pre-message pattern</strong> is one of the following sequences of tokens:</p>
 <ul>
 <li><code>&quot;e&quot;</code></li>
