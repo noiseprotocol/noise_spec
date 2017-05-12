@@ -1656,13 +1656,13 @@ This section collects various security considerations:
    due to integer overflow, and the maximum nonce value is reserved.  This
    means parties are not allowed to send more than 2^64^-1 transport messages.
 
- * **Fresh ephemerals**:  Every party in a Noise protocol should send a new
-   ephemeral public key and perform a DH with it prior to sending any encrypted
-   data.  Otherwise replay of a handshake message could trigger catastrophic
-   key reuse. This is one rationale behind the patterns in [Section 7](#handshake-patterns), and 
-   the validity rules in [Section 7.1](#pattern-validity).  It's also the reason why 
-   one-way handshakes only allow transport messages from the sender, not the 
-   recipient.
+ * **Fresh ephemerals**:  Every party in a Noise protocol must send a fresh
+   ephemeral public key prior to sending any encrypted data.  Ephemeral keys
+   must never be reused.  Violating these rules is likely to cause catastrophic
+   key reuse. This is one rationale behind the patterns in [Section
+   7](#handshake-patterns), and the validity rules in [Section
+   7.1](#pattern-validity).  It's also the reason why one-way handshakes only
+   allow transport messages from the sender, not the recipient.
 
  * **Protocol names**:  The protocol name used with `Initialize()` must
    uniquely identify the combination of handshake pattern and crypto functions
