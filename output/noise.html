@@ -1132,7 +1132,7 @@ Noise_IK(s, rs):
 <h2 id="ciphers-and-encryption">15.1. Ciphers and encryption</h2>
 <p>Cipher keys and PSKs are 256 bits because:</p>
 <ul>
-<li><p>256 bits is a conservative length for cipher keys when considering cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and quantum attacks.</p></li>
+<li><p>256 bits is a conservative length for cipher keys when considering cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, rekeying, and quantum attacks.</p></li>
 <li><p>Pre-shared key length is fixed to simplify testing and implementation, and to deter users from mistakenly using low-entropy passwords as pre-shared keys.</p></li>
 </ul>
 <p>Nonces are 64 bits because:</p>
@@ -1156,7 +1156,7 @@ Noise_IK(s, rs):
 <ul>
 <li><p>Leaving <code>n</code> unchanged is simple.</p></li>
 <li><p>If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting <code>n</code> advance will avoid catastrophic reuse of the same <code>k</code> and <code>n</code> values.</p></li>
-<li><p>Letting <code>n</code> advance puts a bound on the total number of encryptions that can be performed with a set of derived keys. The authentication data in a ciphertext is 128 bits because:</p></li>
+<li><p>Letting <code>n</code> advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.</p></li>
 </ul>
 <p>The <code>AESGCM</code> data volume limit is 2<sup>56</sup> bytes because:</p>
 <ul>

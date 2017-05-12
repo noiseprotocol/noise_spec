@@ -1702,9 +1702,9 @@ This section collects various design rationales.
 
 Cipher keys and PSKs are 256 bits because:
 
-  * 256 bits is a conservative length for cipher keys when considering 
-    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks, and 
-    quantum attacks.
+  * 256 bits is a conservative length for cipher keys when considering
+    cryptanalytic safety margins, time/memory tradeoffs, multi-key attacks,
+    rekeying, and quantum attacks.
 
   * Pre-shared key length is fixed to simplify testing and implementation, and
     to deter users from mistakenly using low-entropy passwords as pre-shared keys.
@@ -1745,7 +1745,6 @@ Rekey doesn't reset `n` to zero because:
   * If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
 
   * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
-The authentication data in a ciphertext is 128 bits because:
 
 The `AESGCM` data volume limit is 2^56^ bytes because:
 
