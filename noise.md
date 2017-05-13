@@ -1127,11 +1127,11 @@ Note that `MixKeyAndHash()` uses `HKDF(..., 3)`.  The third output from `HKDF()`
 9.2. Handshake tokens
 -------------------------------
 
-To support PSKs, a `"psk"` token is allowed to appear once (or multiple
-times) in a handshake pattern.  This token can only appear in message patterns
+When a PSK-mode handshake is used, a `"psk"` token is allowed to appear one or more times
+in a handshake pattern.  This token can only appear in message patterns
 (not pre-message patterns).  This token is processed by calling
 `MixKeyAndHash(psk)`, where `psk` is a 32-byte secret value provided by the
-application.  
+application.
 
 In non-PSK handshakes, the `"e"` token in a pre-message pattern or message pattern always
 results in a call to `MixHash(e.public_key)`.  When PSKs are used, all of these calls
