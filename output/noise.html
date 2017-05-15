@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2017-05-11" />
+  <meta name="date" content="2017-05-15" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -15,7 +15,7 @@
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
 <b>Revision:</b> 32draft<br/>
-<b>Date:</b> 2017-05-11<br/>
+<b>Date:</b> 2017-05-15<br/>
 </div>
 <div id="TOC">
 <h2 class="toc">Table of Contents</h2>
@@ -356,7 +356,7 @@
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of &quot;e&quot;, and one occurrence of &quot;s&quot;, in the messages sent by any party).</p></li>
-<li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data unless they have also performed a DH between an ephemeral private key and the remote public key.</p></li>
+<li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data (i.e. must not call <code>ENCRYPT()</code>) unless it has also performed a DH between an ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>

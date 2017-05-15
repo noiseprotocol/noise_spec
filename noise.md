@@ -2,7 +2,7 @@
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-05-11'
+date:       '2017-05-15'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -665,7 +665,7 @@ Handshake patterns must be **valid** in the following senses:
 
  3. After performing a DH between a remote public key and any local private key
     that is not an ephemeral private key, the local party must not send any
-    encrypted data (i.e. it must not call `ENCRYPT()`) unless it has also
+    encrypted data (i.e. must not call `ENCRYPT()`) unless it has also
     performed a DH between an ephemeral private key and the remote public key.  
 
 Patterns failing the first check are obviously nonsense.
