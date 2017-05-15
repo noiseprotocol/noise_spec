@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2017-05-10" />
+  <meta name="date" content="2017-05-11" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -15,7 +15,7 @@
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
 <b>Revision:</b> 32draft<br/>
-<b>Date:</b> 2017-05-10<br/>
+<b>Date:</b> 2017-05-11<br/>
 </div>
 <div id="TOC">
 <h2 class="toc">Table of Contents</h2>
@@ -718,8 +718,8 @@
 <p>PSK mode uses the <code>SymmetricState.MixKeyAndHash()</code> function to mix the PSK into both the encryption keys and the <code>h</code> value.</p>
 <p>Note that <code>MixKeyAndHash()</code> uses <code>HKDF(..., 3)</code>. The third output from <code>HKDF()</code> is used as the <code>k</code> value so that calculation of <code>k</code> may be skipped if <code>k</code> is not used.</p>
 <h2 id="handshake-tokens">9.2. Handshake tokens</h2>
-<p>To support PSKs, a <code>&quot;psk&quot;</code> token is allowed to appear once (or multiple times) in a handshake pattern. This token can only appear in message patterns (not pre-message patterns). This token is processed by calling <code>MixKeyAndHash(psk)</code>, where <code>psk</code> is a 32-byte secret value provided by the application.</p>
-<p>In non-PSK handshakes, the <code>&quot;e&quot;</code> token in a pre-message pattern or message pattern always results in a call to <code>MixHash(e.public_key)</code>. When PSKs are used, all of these calls are followed by <code>MixKey(e.public_key)</code>. In conjunction with the validity rule in the next section, this ensures that PSK-based encryption uses encryption keys that are randomized using ephemeral public keys as nonces.</p>
+<p>In a PSK handshake, a <code>&quot;psk&quot;</code> token is allowed to appear one or more times in a handshake pattern. This token can only appear in message patterns (not pre-message patterns). This token is processed by calling <code>MixKeyAndHash(psk)</code>, where <code>psk</code> is a 32-byte secret value provided by the application.</p>
+<p>In non-PSK handshakes, the <code>&quot;e&quot;</code> token in a pre-message pattern or message pattern always results in a call to <code>MixHash(e.public_key)</code>. In a PSK handshake, all of these calls are followed by <code>MixKey(e.public_key)</code>. In conjunction with the validity rule in the next section, this ensures that PSK-based encryption uses encryption keys that are randomized using ephemeral public keys as nonces.</p>
 <h2 id="validity-rule">9.3. Validity rule</h2>
 <p>To prevent catastrophic key reuse, handshake patterns using the <code>&quot;psk&quot;</code> token must follow an additional validity rule:</p>
 <ul>

@@ -2,7 +2,7 @@
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '32draft'
-date:       '2017-05-10'
+date:       '2017-05-11'
 bibliography: 'my.bib'
 link-citations: 'true'
 csl:        'ieee-with-url.csl'
@@ -1127,14 +1127,14 @@ Note that `MixKeyAndHash()` uses `HKDF(..., 3)`.  The third output from `HKDF()`
 9.2. Handshake tokens
 -------------------------------
 
-To support PSKs, a `"psk"` token is allowed to appear once (or multiple
-times) in a handshake pattern.  This token can only appear in message patterns
-(not pre-message patterns).  This token is processed by calling
+In a PSK handshake, a `"psk"` token is allowed to appear one or more times in a
+handshake pattern.  This token can only appear in message patterns (not
+pre-message patterns).  This token is processed by calling
 `MixKeyAndHash(psk)`, where `psk` is a 32-byte secret value provided by the
-application.  
+application.
 
 In non-PSK handshakes, the `"e"` token in a pre-message pattern or message pattern always
-results in a call to `MixHash(e.public_key)`.  When PSKs are used, all of these calls
+results in a call to `MixHash(e.public_key)`.  In a PSK handshake, all of these calls
 are followed by `MixKey(e.public_key)`.  In conjunction with the validity rule in the
 next section, this ensures that PSK-based encryption uses encryption keys that are randomized using
 ephemeral public keys as nonces.
