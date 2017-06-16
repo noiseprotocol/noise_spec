@@ -6,6 +6,9 @@
 ;
 ; The "pattern-single" element is intended for applications that wish to
 ; provide an API to define the specific pattern to use in a handshake.
+;
+; Productions that start with "extension-" apply to extension features like
+; Hybrid Forward Secrecy and are not part of the core Noise standard.
 
 ; Syntactic elements
 
@@ -19,11 +22,16 @@ header              = name wsp "(" wsp params wsp ")" wsp ":"
 
 params              = param *(wsp "," wsp param)
 
-param               = "e" / "f" / "s" / "re" / "rf" / "rs"
+param               = standard-param / extension-param
+
+standard-param      = "e" / "s" / "re" / "rs"
+
+extension-param     = "f" / "rf"        ; Hybrid Forward Secrecy
 
 pre-message         = message-init [wsp message-resp] / message-resp
 
-messages            = *(message-pair wsp) message-init / message-pair
+messages            = *(message-pair wsp) message-init [wsp message-resp] /
+                      message-resp *(wsp message-pair) [wsp message-init]
 
 message-pair        = message-init wsp message-resp
 
@@ -33,7 +41,11 @@ message-resp        = "<-" wsp message-tokens
 
 message-tokens      = message-token *(wsp "," wsp message-token)
 
-message-token       = "e" / "f" / "s" / "ee" / "ss" / "se" / "es" / "ff"
+message-token       = standard-token / extension-token
+
+standard-token      = "e" / "s" / "ee" / "ss" / "se" / "es" / "psk"
+
+extension-token     = "f" / "ff"        ; Hybrid Forward Secrecy
 
 ; Lexical tokens
 
