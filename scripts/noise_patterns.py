@@ -64,9 +64,15 @@ class Pattern:
     def isInteractive(self):
         """
         Determine if this is an interactive pattern; that is, there are
-        multiple messages in the body of the pattern.
+        multiple messages in the body of the pattern or the first message
+        is from the responder (implying that there was a previous initiator).
         """
-        return len(self.messages) >= 2
+        if len(self.messages) >= 2:
+            return True
+        if len(self.messages) == 1:
+            direction, message = self.messages[0]
+            return direction == '<-'
+        return False
 
     def baseName(self):
         """
