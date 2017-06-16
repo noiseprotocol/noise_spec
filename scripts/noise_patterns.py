@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 NoiseParameters = ['e', 're', 's', 'rs', 'f', 'rf']
-NoiseTokens = ['e', 's', 'ee', 'es', 'se', 'ss', 'f', 'ff']
+NoiseTokens = ['e', 's', 'ee', 'es', 'se', 'ss', 'psk', 'f', 'ff']
 NoisePremessageTokens = ['e', 's', 'f']
 
 class Pattern:
@@ -321,7 +321,7 @@ class PatternParser:
                 self._tokenizer.nextToken()
                 return token
             else:
-                self._reporter.error(self._tokenizer.line(), "'" + str(tokens) + "') expected")
+                self._reporter.error(self._tokenizer.line(), "'" + str(tokens) + "' expected")
                 return None
 
     def _peek(self, tokens):
@@ -420,19 +420,11 @@ class PatternParser:
             return
 
         messages = []
-        if self._peek('<-'):
-            # Must be a pre-message, because message bodies always start with '->'.
-            if not self._parseMessage(messages, False):
+        initiator = self._peek('->')
+        while self._peek(['->', '<-']):
+            if not self._parseMessage(messages, initiator):
                 return
-            if not self._peek('...'):
-                self._reporter.error(self._tokenizer.line(), "invalid pre-message")
-                return
-        else:
-            initiator = True
-            while self._peek(['->', '<-']):
-                if not self._parseMessage(messages, initiator):
-                    return
-                initiator = not initiator
+            initiator = not initiator
 
         if self._peek('...'):
             # The previous sequences were pre-messages - validate them.
@@ -442,7 +434,7 @@ class PatternParser:
             # Now parse the actual message body.
             self._tokenizer.nextToken()
             messages = []
-            initiator = True
+            initiator = self._peek('->')
             while self._peek(['->', '<-']):
                 if not self._parseMessage(messages, initiator):
                     return
