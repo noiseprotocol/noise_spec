@@ -236,6 +236,7 @@ class PatternTokenizer:
             (r"\bre\b",     lambda scanner,token:"re"),
             (r"\brs\b",     lambda scanner,token:"rs"),
             (r"\brf\b",     lambda scanner,token:"rf"),
+            (r"\bpsk\b",    lambda scanner,token:"psk"),
             (r"<-",         lambda scanner,token:"<-"),
             (r"->",         lambda scanner,token:"->"),
             (r"\.\.\.",     lambda scanner,token:"..."),
