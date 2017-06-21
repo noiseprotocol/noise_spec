@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 NoiseParameters = ['e', 're', 's', 'rs', 'f', 'rf']
-NoiseTokens = ['e', 's', 'ee', 'es', 'se', 'ss', 'f', 'ff']
+NoiseTokens = ['e', 's', 'ee', 'es', 'se', 'ss', 'psk', 'f', 'ff']
 NoisePremessageTokens = ['e', 's', 'f']
 
 class Pattern:
@@ -64,9 +64,15 @@ class Pattern:
     def isInteractive(self):
         """
         Determine if this is an interactive pattern; that is, there are
-        multiple messages in the body of the pattern.
+        multiple messages in the body of the pattern or the first message
+        is from the responder (implying that there was a previous initiator).
         """
-        return len(self.messages) >= 2
+        if len(self.messages) >= 2:
+            return True
+        if len(self.messages) == 1:
+            direction, message = self.messages[0]
+            return direction == '<-'
+        return False
 
     def baseName(self):
         """
@@ -230,6 +236,7 @@ class PatternTokenizer:
             (r"\bre\b",     lambda scanner,token:"re"),
             (r"\brs\b",     lambda scanner,token:"rs"),
             (r"\brf\b",     lambda scanner,token:"rf"),
+            (r"\bpsk\b",    lambda scanner,token:"psk"),
             (r"<-",         lambda scanner,token:"<-"),
             (r"->",         lambda scanner,token:"->"),
             (r"\.\.\.",     lambda scanner,token:"..."),
@@ -321,7 +328,7 @@ class PatternParser:
                 self._tokenizer.nextToken()
                 return token
             else:
-                self._reporter.error(self._tokenizer.line(), "'" + str(tokens) + "') expected")
+                self._reporter.error(self._tokenizer.line(), "'" + str(tokens) + "' expected")
                 return None
 
     def _peek(self, tokens):
@@ -420,19 +427,11 @@ class PatternParser:
             return
 
         messages = []
-        if self._peek('<-'):
-            # Must be a pre-message, because message bodies always start with '->'.
-            if not self._parseMessage(messages, False):
+        initiator = self._peek('->')
+        while self._peek(['->', '<-']):
+            if not self._parseMessage(messages, initiator):
                 return
-            if not self._peek('...'):
-                self._reporter.error(self._tokenizer.line(), "invalid pre-message")
-                return
-        else:
-            initiator = True
-            while self._peek(['->', '<-']):
-                if not self._parseMessage(messages, initiator):
-                    return
-                initiator = not initiator
+            initiator = not initiator
 
         if self._peek('...'):
             # The previous sequences were pre-messages - validate them.
@@ -442,7 +441,7 @@ class PatternParser:
             # Now parse the actual message body.
             self._tokenizer.nextToken()
             messages = []
-            initiator = True
+            initiator = self._peek('->')
             while self._peek(['->', '<-']):
                 if not self._parseMessage(messages, initiator):
                     return

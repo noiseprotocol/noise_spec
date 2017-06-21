@@ -1,8 +1,8 @@
 ---
 title:      'Noise Extension: Hybrid Forward Secrecy'
 author:     'Rhys Weatherley (rhys.weatherley@gmail.com)'
-revision:   '1draft-4'
-date:       '2016-12-19'
+revision:   '1draft-5'
+date:       '2017-06-17'
 ---
 
 1. Motivation
@@ -36,7 +36,7 @@ include a pair of identifiers separated by a plus sign; for example:
     Noise_XXhfs_25519+448_AESGCM_SHA256
 
 The pattern name `XXhfs` indicates that that pattern `XX` has been
-transformed using the "hybrid forward secrecy" transformation, which
+transformed using the "hybrid forward secrecy" modifier, which
 is defined later.
 
 The function for the first name in the pair (`25519`) plays the same
@@ -161,24 +161,13 @@ Token handling for `ReadMessage()` is modified as follows:
 Note that the `"f"` token values will be encrypted if a `"xy"` token has
 already been seen in the pattern, or if pre-shared keys are involved.
 
-4.4. Handling of pre-shared keys
---------------------------------
-
-The standard Noise specification modifies `Initialize()` and the handling
-of the `"e"` token to mix the pre-shared key with the handshake state,
-using the value of `e.public_key` as a random nonce.
-
-This behavior is retained when hybrid forward secrecy is in use.  Operations
-involving `e` are modified but operations involving `f` are not modified.
-The `e.public_key` value should be sufficient as a random nonce on its own.
-
 5. Message patterns for hybrid forward secrecy
 ==============================================
 
-5.1. The `hfs` pattern transformation
--------------------------------------
+5.1. The `hfs` pattern modifier
+-------------------------------
 
-This extension defines a transformation named `hfs` that modifies an
+This extension defines a pattern modifier named `hfs` that transforms an
 existing interactive pattern into one involving hybrid forward secrecy.
 The transformation rules are:
 
@@ -191,7 +180,7 @@ The transformation rules are:
  * If the pattern contains `"re"` in its parameters, then `"rf"` is added
    to the parameters.
 
-The following examples demonstrate the transformation:
+The following examples demonstrate the modifier:
 
     Noise_NNhfs():
       -> e, f
@@ -208,17 +197,11 @@ The following examples demonstrate the transformation:
       -> e, f, es, s, ss
       <- e, f, ee, ff, se
 
-    Noise_XXfallback+hfs(s, rs, re, rf):
-      <- e, f
+    Noise_XXfallback+hfs(e, f, s, rs):
+      -> e, f
       ...
-      -> e, f, ee, ff, s, se
-      <- s, es
-
-When pattern transformations are composed, we use a plus sign as a separator,
-mirroring the practice for DH function names.  The transformations should
-be listed in the order in which they are applied to a basic pattern.
-If the order doesn't matter, then the parties will need to agree on a
-canonical ordering for the purpose of choosing a common protocol name.
+      <- e, f, ee, ff, s, es
+      -> s, se
 
 5.2. Pattern validity
 ---------------------
@@ -238,7 +221,7 @@ The following validity rules apply:
 5.3. Hybrid pattern list
 ------------------------
 
-Standard interactive Noise patterns that are transformed with `hfs` fall
+Standard interactive Noise patterns that are modified with `hfs` fall
 into two broad categories: fully hybrid and partially hybrid.
 
 Fully hybrid patterns are those where the first two mixing operations
@@ -288,30 +271,11 @@ The following patterns are fully hybrid:
       -> e, f, s
       <- e, f, ee, ff, se, s, es
 
-    Noise_XXfallback+hfs(s, rs, re):
-      <- e, f
+    Noise_XXfallback+hfs(e, f, s, rs):
+      -> e, f
       ...
-      -> e, f, ee, ff, s, se
-      <- s, es
-
-    Noise_NXnoidh+hfs(rs):
-      -> e, f
-      <- e, f, s, ee, ff, es
-
-    Noise_XXnoidh+hfs(s, rs):
-      -> e, f
-      <- e, f, s, ee, ff, es
+      <- e, f, ee, ff, s, es
       -> s, se
-
-    Noise_KXnoidh+hfs(s, rs):
-      -> s
-      ...
-      -> e, f
-      <- e, f, s, ee, ff, se, es
-
-    Noise_IXnoidh+hfs(s, rs):
-      -> e, f, s
-      <- e, f, s, ee, ff, se, es
 
 Partially hybrid patterns are those where a `"xy"` operation involving a
 static public key precedes the first `"ee"` operation.  Static public
@@ -348,17 +312,11 @@ The following patterns are partially hybrid:
       -> e, f, es, s, ss
       <- e, f, ee, ff, se
 
-    Noise_IKnoidh+hfs(s, rs):
-      <- s
-      ...
-      -> e, f, s, es, ss
-      <- e, f, ee, ff, se
-
 As can be seen, all of the standard interactive patterns that end in
-`"K"` become partially hybrid when transformed with `hfs`.
+`"K"` become partially hybrid when modified with `hfs`.
 
 It is disappointing that `"IK+hfs"` is partially hybrid because it means
-that a post-quantum Noise Pipes is not a simple matter of transforming
+that a post-quantum Noise Pipes is not a simple matter of modifying
 `"XX"`, `"IK"`, and `"XXfallback"` with `hfs`.
 
 6. Future Directions
@@ -367,7 +325,7 @@ that a post-quantum Noise Pipes is not a simple matter of transforming
 6.1. Other hybrid patterns
 --------------------------
 
-Partially hybrid patterns can be improved by using another transformation
+Partially hybrid patterns can be improved by using another modifier
 to move static public key values to later in the handshake to hide identity
 information:
 
@@ -389,8 +347,8 @@ communications.
 
 Transforming patterns in this way tends to increase the number of
 turn-arounds.  More experimentation is required before such a
-transformation can be standardized.  This extension provides the basic
-tools that could be used to define such a transformation later.
+modifier can be standardized.  This extension provides the basic
+tools that could be used to define such a modifier later.
 
 6.2. Encryption of hybrid forward secrecy values
 ------------------------------------------------
