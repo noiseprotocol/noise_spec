@@ -6,6 +6,12 @@
 ;
 ; The "pattern-single" element is intended for applications that wish to
 ; provide an API to define the specific pattern to use in a handshake.
+;
+; The "protocol-name" lexical token describes the structure of Noise
+; protocol names in ABNF.
+;
+; Productions that start with "extension-" apply to extension features like
+; Hybrid Forward Secrecy and are not part of the core Noise standard.
 
 ; Syntactic elements
 
@@ -15,15 +21,20 @@ pattern-single      = wsp pattern wsp
 
 pattern             = header wsp [pre-message wsp "..." wsp] messages
 
-header              = name wsp "(" wsp params wsp ")" wsp ":"
+header              = "Noise_" pattern-name wsp "(" wsp params wsp ")" wsp ":"
 
 params              = param *(wsp "," wsp param)
 
-param               = "e" / "f" / "s" / "re" / "rf" / "rs"
+param               = standard-param / extension-param
+
+standard-param      = "e" / "s" / "re" / "rs"
+
+extension-param     = "f" / "rf"        ; Hybrid Forward Secrecy
 
 pre-message         = message-init [wsp message-resp] / message-resp
 
-messages            = *(message-pair wsp) message-init / message-pair
+messages            = *(message-pair wsp) message-init [wsp message-resp] /
+                      message-resp *(wsp message-pair) [wsp message-init]
 
 message-pair        = message-init wsp message-resp
 
@@ -33,13 +44,30 @@ message-resp        = "<-" wsp message-tokens
 
 message-tokens      = message-token *(wsp "," wsp message-token)
 
-message-token       = "e" / "f" / "s" / "ee" / "ss" / "se" / "es" / "ff"
+message-token       = standard-token / extension-token
+
+standard-token      = "e" / "s" / "ee" / "ss" / "se" / "es" / "psk"
+
+extension-token     = "f" / "ff"        ; Hybrid Forward Secrecy
 
 ; Lexical tokens
 
-name                = "Noise_" name-component *("+" name-component)
+protocol-name       = "Noise_" pattern-name "_" dh-algorithms
+                      "_" cipher-algorithms "_" hash-algorithms
 
-name-component      = 1*(ALPHA / DIGIT)
+pattern-name        = base-pattern-name [modifier-name *("+" modifier-name)]
+
+base-pattern-name   = 1*(%x41-5A)           ; 1 or more uppercase letters
+
+modifier-name       = 1*(%x61-7A / DIGIT)   ; Lower case and digits
+
+dh-algorithms       = name-component *("+" name-component)
+
+cipher-algorithms   = name-component *("+" name-component)
+
+hash-algorithms     = name-component *("+" name-component)
+
+name-component      = 1*(ALPHA / DIGIT / "/")
 
 wsp                 = *(WSP / eol / comment)
 
