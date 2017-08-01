@@ -1,8 +1,8 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '32'
-date:       '2017-05-17'
+revision:   '33draft'
+date:       '2017-06-17'
 bibliography: 'my.bib'
 link-citations: 'true'
 pdfn: 'noise.pdf'
@@ -1094,23 +1094,49 @@ bytes or less.  Examples:
  * `Noise_N_25519_ChaChaPoly_BLAKE2s`
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-Noise allows a **modifier** syntax to specify arbitrary extensions or
-modifications to default behavior.  For example, a modifier could be applied to
-a handshake pattern which transforms it into a different pattern according to some rule.
+8.1  Pattern names and modifiers
+---------------------------------
 
-A modifier is an ASCII string which is added to some component of the Noise
-protocol name.  A modifier can be a **pattern modifier**, **DH modifier**,
-**cipher modifier**, or **hash modifier**, depending on which component of the
-protocol name it is added to.  
+Base pattern names (eg. `XX` or `IK`) are uppercase alpha-only ASCII strings.
 
-The first modifier added onto a base name is simply appended.  Thus, `fallback`
-(defined later) is a pattern modifier added to the `Noise_XX` base name to
-produce `Noise_XXfallback`.  Additional modifiers are separated with a plus
-sign.  Thus, adding the `psk0` pattern modifier (defined in the next section)
-would result in the pattern name `Noise_XXfallback+psk0`.
+Noise also allows a **pattern modifier** syntax to specify transformations to a
+base handshake pattern according to the rule specified by the modifier.
+
+A pattern modifier is a lowercase alphanumeric ASCII string which is included
+with the pattern in the protocol name, as specified below.
+
+The first modifier added onto a base pattern is simply appended.  Thus, `fallback`
+(defined later) when added to the `XX` base pattern produces `XXfallback`.
+Additional modifiers are separated with a plus sign.  Thus, adding the `psk0`
+pattern modifier (defined in the next section) would result in the pattern
+name `XXfallback+psk0`.
+
+When multiple modifiers are used, they *should* be sorted alphabetically. This
+convention is important because while `XXfallback+psk0` and
+`XXpsk0+fallback` are logically equivalent, they are incompatible, since
+`InitializeSymmetric(protocol_name)` will produce different keys for these two
+patterns.
 
 The final protocol name, including all modifiers, must be less than or equal to 255
-bytes (e.g. `Noise_XXfallback+psk0_25519_AESGCM_SHA256`).
+bytes. Examples:
+
+ * `Noise_IKpsk0_25519_AESGCM_SHA256`
+ * `Noise_XXpsk0+psk2_25519_ChaChaPoly_BLAKE2s`
+ * `Noise_XXfallback+psk0_25519_AESGCM_SHA256`
+ * `Noise_XXpsk0+psk2_25519_ChaChaPoly_BLAKE2s`
+
+8.2 Function names and multi-function support
+----------------------------------------------
+
+A function name is an alphanumeric ASCII string (eg. `ChaChaPoly` or `25519`).
+
+Noise allows for, when a corresponding pattern modifier supports it, multiple
+values to be specified for the DH, cipher, and hash sections of the protocol name.
+Multiple functions are separated with a plus sign (eg. `25519+448`).
+
+For example, if a hybrid-forward-secrecy modifier `hfs` requires two DH
+functions to be specified, a full handshake could be
+`Noise_XXhfs_25519+448_ChaChaPoly_BLAKE2s`.
 
 9. Pre-shared symmetric keys
 ============
