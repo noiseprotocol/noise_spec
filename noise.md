@@ -460,7 +460,7 @@ portion of the handshake pattern:
   * **`message_patterns`**: A sequence of message patterns.  Each message
     pattern is a sequence of tokens from the set `("e", "s", "ee", "es", "se",
     "ss")`.  (An additional `"psk"` token is introduced in [Section
-    9](pre-shared-symmetric-keys), but we defer its explanation until then.)
+    9](#pre-shared-symmetric-keys), but we defer its explanation until then.)
 
 A `HandshakeState` responds to the following functions:
 
