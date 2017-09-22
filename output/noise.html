@@ -62,6 +62,7 @@
 <li><a href="#dummy-keys">11.1. Dummy keys</a></li>
 <li><a href="#channel-binding">11.2. Channel binding</a></li>
 <li><a href="#rekey">11.3. Rekey</a></li>
+<li><a href="#half-duplex-protocols">11.4. Half-duplex protocols</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</a><ul>
 <li><a href="#the-25519-dh-functions">12.1. The <code>25519</code> DH functions</a></li>
@@ -1057,50 +1058,53 @@ Noise_IK(s, rs):
 </ul>
 <p>Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.</p>
 <p>Note that rekey only updates the cipherstate's <code>k</code> value, it doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
+<h2 id="half-duplex-protocols">11.4. Half-duplex protocols</h2>
+<p>In some application protocols the parties strictly alternate sending messages. In this case Noise can be used in a &quot;half-duplex&quot; mode <span class="citation">[<a href="#ref-blinker">6</a>]</span> where the first <code>CipherState</code> returned by <code>Split()</code> is used for encrypting messages in both directions. This provides a small optimization, since <code>Split()</code> only has to output a single <code>CipherState</code>, and both parties only need to store a single <code>CipherState</code> during the transport phase.</p>
+<p>This feature must be used with extreme caution. In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same <code>CipherState</code> and nonce value.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</h1>
 <h2 id="the-25519-dh-functions">12.1. The <code>25519</code> DH functions</h2>
 <ul>
 <li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new Curve25519 key pair.</p></li>
-<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes the Curve25519 DH function (aka &quot;X25519&quot; in <span class="citation">[<a href="#ref-rfc7748">6</a>]</span>). Invalid public key values will produce an output of all zeros.</p>
+<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes the Curve25519 DH function (aka &quot;X25519&quot; in <span class="citation">[<a href="#ref-rfc7748">7</a>]</span>). Invalid public key values will produce an output of all zeros.</p>
 <p>Alternatively, implementations are allowed to detect inputs that produce an all-zeros output and signal an error instead. This behavior is discouraged because it adds complexity and implementation variance, and does not improve security. This behavior is allowed because it might match the behavior of some software.</p></li>
 <li><p><strong><code>DHLEN</code></strong> = 32</p></li>
 </ul>
 <h2 id="the-448-dh-functions">12.2. The <code>448</code> DH functions</h2>
 <ul>
 <li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new Curve448 key pair.</p></li>
-<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes the Curve448 DH function (aka &quot;X448&quot; in <span class="citation">[<a href="#ref-rfc7748">6</a>]</span>). Invalid public key values will produce an output of all zeros.</p>
+<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes the Curve448 DH function (aka &quot;X448&quot; in <span class="citation">[<a href="#ref-rfc7748">7</a>]</span>). Invalid public key values will produce an output of all zeros.</p>
 <p>Alternatively, implementations are allowed to detect inputs that produce an all-zeros output and signal an error instead. This behavior is discouraged because it adds complexity and implementation variance, and does not improve security. This behavior is allowed because it might match the behavior of some software.</p></li>
 <li><p><strong><code>DHLEN</code></strong> = 56</p></li>
 </ul>
 <h2 id="the-chachapoly-cipher-functions">12.3. The <code>ChaChaPoly</code> cipher functions</h2>
 <ul>
-<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: <code>AEAD_CHACHA20_POLY1305</code> from <span class="citation">[<a href="#ref-rfc7539">7</a>]</span>. The 96-bit nonce is formed by encoding 32 bits of zeros followed by little-endian encoding of <code>n</code>. (Earlier implementations of ChaCha20 used a 64-bit nonce; with these implementations it's compatible to encode <code>n</code> directly into the ChaCha20 nonce without the 32-bit zero prefix).</li>
+<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: <code>AEAD_CHACHA20_POLY1305</code> from <span class="citation">[<a href="#ref-rfc7539">8</a>]</span>. The 96-bit nonce is formed by encoding 32 bits of zeros followed by little-endian encoding of <code>n</code>. (Earlier implementations of ChaCha20 used a 64-bit nonce; with these implementations it's compatible to encode <code>n</code> directly into the ChaCha20 nonce without the 32-bit zero prefix).</li>
 </ul>
 <h2 id="the-aesgcm-cipher-functions">12.4. The <code>AESGCM</code> cipher functions</h2>
 <ul>
-<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256 with GCM from <span class="citation">[<a href="#ref-nistgcm">8</a>]</span> with a 128-bit tag appended to the ciphertext. The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of <code>n</code>.</li>
+<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> / <code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256 with GCM from <span class="citation">[<a href="#ref-nistgcm">9</a>]</span> with a 128-bit tag appended to the ciphertext. The 96-bit nonce is formed by encoding 32 bits of zeros followed by big-endian encoding of <code>n</code>.</li>
 </ul>
 <h2 id="the-sha256-hash-function">12.5. The <code>SHA256</code> hash function</h2>
 <ul>
-<li><strong><code>HASH(input)</code></strong>: <code>SHA-256</code> from <span class="citation">[<a href="#ref-nistsha2">9</a>]</span>.</li>
+<li><strong><code>HASH(input)</code></strong>: <code>SHA-256</code> from <span class="citation">[<a href="#ref-nistsha2">10</a>]</span>.</li>
 <li><strong><code>HASHLEN</code></strong> = 32</li>
 <li><strong><code>BLOCKLEN</code></strong> = 64</li>
 </ul>
 <h2 id="the-sha512-hash-function">12.6. The <code>SHA512</code> hash function</h2>
 <ul>
-<li><strong><code>HASH(input)</code></strong>: <code>SHA-512</code> from <span class="citation">[<a href="#ref-nistsha2">9</a>]</span>.</li>
+<li><strong><code>HASH(input)</code></strong>: <code>SHA-512</code> from <span class="citation">[<a href="#ref-nistsha2">10</a>]</span>.</li>
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
 <h2 id="the-blake2s-hash-function">12.7. The <code>BLAKE2s</code> hash function</h2>
 <ul>
-<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2s</code> from <span class="citation">[<a href="#ref-rfc7693">10</a>]</span> with digest length 32.</li>
+<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2s</code> from <span class="citation">[<a href="#ref-rfc7693">11</a>]</span> with digest length 32.</li>
 <li><strong><code>HASHLEN</code></strong> = 32</li>
 <li><strong><code>BLOCKLEN</code></strong> = 64</li>
 </ul>
 <h2 id="the-blake2b-hash-function">12.8. The <code>BLAKE2b</code> hash function</h2>
 <ul>
-<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2b</code> from <span class="citation">[<a href="#ref-rfc7693">10</a>]</span> with digest length 64.</li>
+<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2b</code> from <span class="citation">[<a href="#ref-rfc7693">11</a>]</span> with digest length 64.</li>
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
@@ -1120,7 +1124,7 @@ Noise_IK(s, rs):
 <ul>
 <li><p><strong>Session termination</strong>: Preventing attackers from truncating a stream of transport messages is an application responsibility. See previous section.</p></li>
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with fallback handshakes, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
-<li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK <span class="citation">[<a href="#ref-book2">11</a>]</span>.</p></li>
+<li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK.</p></li>
 <li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 11.2</a>.</p></li>
 <li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
 <li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol must send a fresh ephemeral public key prior to sending any encrypted data. Ephemeral keys must never be reused. Violating these rules is likely to cause catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#pattern-validity">Section 7.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
@@ -1241,7 +1245,7 @@ Noise_IK(s, rs):
 <li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
-<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
+<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial feedback.</p>
 <p>Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld provided helpful input and feedback on the key derivation design.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
@@ -1266,23 +1270,23 @@ Noise_IK(s, rs):
 <div id="ref-elligator">
 <p>[5] D. J. Bernstein, M. Hamburg, A. Krasnova, and T. Lange, “Elligator: Elliptic-curve points indistinguishable from uniform random strings.” Cryptology ePrint Archive, Report 2013/325, 2013. <a href="http://eprint.iacr.org/2013/325" class="uri">http://eprint.iacr.org/2013/325</a></p>
 </div>
+<div id="ref-blinker">
+<p>[6] Markku-Juhani O. Saarinen, “Beyond Modes: Building a Secure Record Protocol from a Cryptographic Sponge Permutation.” Cryptology ePrint Archive, Report 2013/772, 2013. <a href="http://eprint.iacr.org/2013/772" class="uri">http://eprint.iacr.org/2013/772</a></p>
+</div>
 <div id="ref-rfc7748">
-<p>[6] A. Langley, M. Hamburg, and S. Turner, “Elliptic Curves for Security.” Internet Engineering Task Force; RFC 7748 (Informational); IETF, Jan-2016. <a href="http://www.ietf.org/rfc/rfc7748.txt" class="uri">http://www.ietf.org/rfc/rfc7748.txt</a></p>
+<p>[7] A. Langley, M. Hamburg, and S. Turner, “Elliptic Curves for Security.” Internet Engineering Task Force; RFC 7748 (Informational); IETF, Jan-2016. <a href="http://www.ietf.org/rfc/rfc7748.txt" class="uri">http://www.ietf.org/rfc/rfc7748.txt</a></p>
 </div>
 <div id="ref-rfc7539">
-<p>[7] Y. Nir and A. Langley, “ChaCha20 and Poly1305 for IETF Protocols.” Internet Engineering Task Force; RFC 7539 (Informational); IETF, May-2015. <a href="http://www.ietf.org/rfc/rfc7539.txt" class="uri">http://www.ietf.org/rfc/rfc7539.txt</a></p>
+<p>[8] Y. Nir and A. Langley, “ChaCha20 and Poly1305 for IETF Protocols.” Internet Engineering Task Force; RFC 7539 (Informational); IETF, May-2015. <a href="http://www.ietf.org/rfc/rfc7539.txt" class="uri">http://www.ietf.org/rfc/rfc7539.txt</a></p>
 </div>
 <div id="ref-nistgcm">
-<p>[8] M. J. Dworkin, “SP 800-38D. Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC,” National Institute of Standards &amp; Technology, Gaithersburg, MD, United States, 2007. <a href="http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf" class="uri">http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf</a></p>
+<p>[9] M. J. Dworkin, “SP 800-38D. Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC,” National Institute of Standards &amp; Technology, Gaithersburg, MD, United States, 2007. <a href="http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf" class="uri">http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf</a></p>
 </div>
 <div id="ref-nistsha2">
-<p>[9] NIST, “FIPS 180-4. Secure Hash Standard (SHS),” National Institute of Standards &amp; Technology, Gaithersburg, MD, United States, 2012. <a href="http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf" class="uri">http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf</a></p>
+<p>[10] NIST, “FIPS 180-4. Secure Hash Standard (SHS),” National Institute of Standards &amp; Technology, Gaithersburg, MD, United States, 2012. <a href="http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf" class="uri">http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf</a></p>
 </div>
 <div id="ref-rfc7693">
-<p>[10] M.-J. Saarinen and J.-P. Aumasson, “The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC).” Internet Engineering Task Force; RFC 7693 (Informational); IETF, Nov-2015. <a href="http://www.ietf.org/rfc/rfc7693.txt" class="uri">http://www.ietf.org/rfc/rfc7693.txt</a></p>
-</div>
-<div id="ref-book2">
-<p>[11] Trevor Perrin, “The Noise Protocol Framework: Book 2.” 2017. <a href="https://noiseprotocol.org/noise_book2.pdf" class="uri">https://noiseprotocol.org/noise_book2.pdf</a></p>
+<p>[11] M.-J. Saarinen and J.-P. Aumasson, “The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC).” Internet Engineering Task Force; RFC 7693 (Informational); IETF, Nov-2015. <a href="http://www.ietf.org/rfc/rfc7693.txt" class="uri">http://www.ietf.org/rfc/rfc7693.txt</a></p>
 </div>
 <div id="ref-hkdfpaper">
 <p>[12] H. Krawczyk, “‘Cryptographic extraction and key derivation: The hkdf scheme’.” Cryptology ePrint Archive, Report 2010/264, 2010. <a href="http://eprint.iacr.org/2010/264" class="uri">http://eprint.iacr.org/2010/264</a></p>

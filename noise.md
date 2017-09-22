@@ -1490,6 +1490,12 @@ Applications must make these decisions on their own; there are no modifiers whic
 
 Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
+11.4. Half-duplex protocols
+----------------------------
+In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a "half-duplex" mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions.  This provides a small optimization, since `Split()` only has to output a single `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
+
+This feature must be used with extreme caution.  In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same `CipherState` and nonce value.
+
 
 12. DH functions, cipher functions, and hash functions
 ======================================================
@@ -1642,7 +1648,7 @@ This section collects various security considerations:
    predictable DH output.  For example, a `Noise_NK_25519` initiator might send
    an invalid ephemeral public key to cause a known DH output of all zeros,
    despite not knowing the responder's static public key. If the parties want
-   to authenticate with a shared secret, it should be used as a PSK [@book2].
+   to authenticate with a shared secret, it should be used as a PSK.
 
  * **Channel binding**:  Depending on the DH functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
@@ -1890,9 +1896,9 @@ Noise is inspired by:
   * The KDF chains used in the Double Ratchet Algorithm [@doubleratchet].
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
-Donenfeld, Rhys Weatherley, Mike Hamburg, Tiffany Bennett, Jonathan Rudenberg,
-Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa
-Osuntokun.
+Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Tiffany Bennett, Jonathan
+Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and
+Olaoluwa Osuntokun.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
 Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial
