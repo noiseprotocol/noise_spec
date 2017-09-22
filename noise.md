@@ -1895,7 +1895,8 @@ Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa
 Osuntokun.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
-Burkert, Jake McGinty, and Yin Guanhao for editorial feedback.
+Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial
+feedback.
 
 Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
 Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
