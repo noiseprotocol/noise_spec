@@ -1,8 +1,8 @@
 ---
 title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
-revision:   '32'
-date:       '2017-05-17'
+revision:   '33draft'
+date:       '2017-09-22'
 bibliography: 'my.bib'
 link-citations: 'true'
 pdfn: 'noise.pdf'
@@ -460,7 +460,7 @@ portion of the handshake pattern:
   * **`message_patterns`**: A sequence of message patterns.  Each message
     pattern is a sequence of tokens from the set `("e", "s", "ee", "es", "se",
     "ss")`.  (An additional `"psk"` token is introduced in [Section
-    9](pre-shared-symmetric-keys), but we defer its explanation until then.)
+    9](#pre-shared-symmetric-keys), but we defer its explanation until then.)
 
 A `HandshakeState` responds to the following functions:
 
@@ -478,7 +478,7 @@ A `HandshakeState` responds to the following functions:
     Public keys are only passed in if the `handshake_pattern` uses pre-messages 
     (see [Section 7](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
     left empty, since they are created and exchanged during the handshake; but there are
-    exceptions (see [Section 10.1](fallback-patterns)).
+    exceptions (see [Section 10.1](#fallback-patterns)).
 
     Performs the following steps:
 
