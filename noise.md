@@ -1082,7 +1082,7 @@ The properties for the relevant public key are:
 |     Noise_IX       0              6      |
 +------------------------------------------+
 
-8. Protocol names 
+8. Protocol names and modifiers
 ===================
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
@@ -1094,23 +1094,63 @@ bytes or less.  Examples:
  * `Noise_N_25519_ChaChaPoly_BLAKE2s`
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-Noise allows a **modifier** syntax to specify arbitrary extensions or
-modifications to default behavior.  For example, a modifier could be applied to
-a handshake pattern which transforms it into a different pattern according to some rule.
+The resulting name must be in the form `Noise_` followed by four
+underscore-separated name sections.  Each name section must consist only of
+alphanumeric characters (i.e. characters in one of the ranges `A`...`Z`,
+`a`...`z`, and `0`...`9`), and the two special characters `+` and `/`.
 
-A modifier is an ASCII string which is added to some component of the Noise
-protocol name.  A modifier can be a **pattern modifier**, **DH modifier**,
-**cipher modifier**, or **hash modifier**, depending on which component of the
-protocol name it is added to.  
+Additional rules apply to each name section, as specified below.
 
-The first modifier added onto a base name is simply appended.  Thus, `fallback`
-(defined later) is a pattern modifier added to the `Noise_XX` base name to
-produce `Noise_XXfallback`.  Additional modifiers are separated with a plus
-sign.  Thus, adding the `psk0` pattern modifier (defined in the next section)
-would result in the pattern name `Noise_XXfallback+psk0`.
+8.1. Handshake pattern name section
+------------------------------------
 
-The final protocol name, including all modifiers, must be less than or equal to 255
-bytes (e.g. `Noise_XXfallback+psk0_25519_AESGCM_SHA256`).
+A Noise pattern's **base name** is an uppercase ASCII string containing only
+alphabetic characters (e.g. `XX` or `IK`).
+
+A handshake pattern name section contains a base name plus a sequence of
+zero or more **pattern modifiers**.  Pattern modifiers specify arbitrary
+extensions or modifications to the behavior specified by the handshake pattern.
+For example, a modifier could be applied to a handshake pattern which
+transforms it into a different pattern according to some rule.  
+
+As examples of such a modifier, the `psk0` and `fallback` modifiers 
+described later in this document modify the base pattern to either
+incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.
+
+A pattern modifier is named with a lowercase alphanumeric ASCII string which
+is appended to the base pattern as specified below.
+
+The first modifier added onto a base pattern is simply appended.  Thus
+the `fallback` modifier, when added to the `XX` base pattern, produces `XXfallback`.
+Additional modifiers are separated with a plus sign.  Thus, adding the `psk0`
+modifier would result in the name section `XXfallback+psk0`, or a
+full protocol name such as `Noise_XXfallback+psk0_25519_AESGCM_SHA256`.
+
+In some cases the sequential order of modifiers will specify different
+protocols.  However, if the order of modifiers does not matter, they are
+required to be sorted alphabetically (this is an arbitrary convention to ensure
+interoperability).
+
+8.2. Cryptographic algorithm name sections
+-------------------------------------------
+
+The rules for the DH, cipher, and hash name sections are identical.  Each name
+section must contain one or more algorithm names separated by plus signs.  
+
+Each algorithm name must consist solely of alphanumeric characters and the
+forward-slash (`/`) character.  Algorithm names are recommended to be short,
+and to use the `/` character only when necessary to avoid ambiguity (e.g.
+`SHA3/256` is preferable to `SHA3256`).
+
+In most cases there will be a single algorithm name in each name section (i.e.
+no plus signs).  Multiple algorithms are only used when called for by the base
+pattern or a modifier.  
+
+None of the base patterns or modifiers in this document require multiple
+cryptographic algorithms in any name section.  However, this functionality
+might be useful in future extensions, e.g. using multiple algorithms in the DH
+section to provide "hybrid" post-quantum forward secrecy, or using different hash
+algorithms for different purposes.
 
 9. Pre-shared symmetric keys
 ============
@@ -1896,9 +1936,9 @@ Noise is inspired by:
   * The KDF chains used in the Double Ratchet Algorithm [@doubleratchet].
 
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
-Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Tiffany Bennett, Jonathan
-Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and
-Olaoluwa Osuntokun.
+Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany
+Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
+Ermishkin, and Olaoluwa Osuntokun.
 
 Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
 Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial
