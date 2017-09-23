@@ -341,14 +341,14 @@
 <p>The first actual handshake message is sent from the initiator to the responder (with one exception - see next paragraph). The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
 <p>(Exceptional case: Noise allows special <strong>fallback patterns</strong> where the responder switches to a different pattern than the initator started with (see <a href="#fallback-patterns">Section 10.1</a>). If the initiator's pre-message contains an <code>&quot;e&quot;</code> token, then this handshake pattern is a fallback pattern. In the case of a fallback pattern the first handshake message is sent by the <em>responder</em>, the next by the <em>initiator</em>, and so on.)</p>
 <p>The following handshake pattern describes an unauthenticated DH handshake:</p>
-<pre><code>Noise_NN():
+<pre><code>NN():
   -&gt; e
   &lt;- e, ee</code></pre>
-<p>The handshake pattern name is <code>Noise_NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code>, <code>&quot;e&quot;</code>, or <code>&quot;e, s&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code>, <code>&quot;re&quot;</code>, or <code>&quot;re, rs&quot;</code> would indicate the same thing for the responder.</p>
+<p>The handshake pattern name is <code>NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code>, <code>&quot;e&quot;</code>, or <code>&quot;e, s&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code>, <code>&quot;re&quot;</code>, or <code>&quot;re, rs&quot;</code> would indicate the same thing for the responder.</p>
 <p>Right-pointing arrows show messages sent by the initiator. Left-pointing arrows show messages sent by the responder.</p>
 <p>Non-empty pre-messages are shown as patterns prior to the delimiter &quot;...&quot;, with a right-pointing arrow for the initiator's pre-message, and a left-pointing arrow for the responder's pre-message. If both parties have a pre-message, the initiator's is listed first (and hashed first). During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
 <p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key, and performs a DH with the responder's static public key as well as the responder's ephemeral public key. This pre-knowledge allows an encrypted payload to be sent in the first message (&quot;zero-RTT encryption&quot;), although full forward secrecy and replay protection is only achieved with the second message.</p>
-<pre><code>Noise_NK(rs):
+<pre><code>NK(rs):
   &lt;- s
   ...
   -&gt; e, es 
@@ -379,27 +379,27 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>Noise_N(rs):
+<td><pre><code>N(rs):
   &lt;- s
   ...
   -&gt; e, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_K(s, rs):
+<td><pre><code>K(s, rs):
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_X(s, rs):
+<td><pre><code>X(s, rs):
   &lt;- s
   ...
   -&gt; e, es, s, ss</code></pre></td>
 </tr>
 </tbody>
 </table>
-<p><code>Noise_N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>Noise_K</code>) or transmitted under encryption (<code>Noise_X</code>).</p>
+<p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
 <h2 id="interactive-patterns">7.3. Interactive patterns</h2>
 <p>The following example handshake patterns represent interactive protocols.</p>
 <p>Interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
@@ -424,22 +424,22 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>Noise_NN():
+<td><pre><code>NN():
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>   Noise_KN(s):
+<td><pre><code>   KN(s):
      -&gt; s
      ...
      -&gt; e
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_NK(rs):
+<td><pre><code>NK(rs):
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>   Noise_KK(s, rs):
+<td><pre><code>   KK(s, rs):
      -&gt; s
      &lt;- s
      ...
@@ -447,50 +447,50 @@
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> Noise_NX(rs):
+<td><pre><code> NX(rs):
    -&gt; e
    &lt;- e, ee, s, es</code></pre></td>
-<td><pre><code>    Noise_KX(s, rs):
+<td><pre><code>    KX(s, rs):
       -&gt; s
       ...
       -&gt; e
       &lt;- e, ee, se, s, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> Noise_XN(s):
+<td><pre><code> XN(s):
    -&gt; e
    &lt;- e, ee
    -&gt; s, se</code></pre></td>
-<td><pre><code>    Noise_IN(s):
+<td><pre><code>    IN(s):
       -&gt; e, s
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> Noise_XK(s, rs):
+<td><pre><code> XK(s, rs):
    &lt;- s
    ...
    -&gt; e, es
    &lt;- e, ee
    -&gt; s, se</code></pre></td>
-<td><pre><code>    Noise_IK(s, rs):
+<td><pre><code>    IK(s, rs):
       &lt;- s
       ...
       -&gt; e, es, s, ss
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> Noise_XX(s, rs):
+<td><pre><code> XX(s, rs):
    -&gt; e
    &lt;- e, ee, s, es
    -&gt; s, se</code></pre></td>
-<td><pre><code>    Noise_IX(s, rs):
+<td><pre><code>    IX(s, rs):
       -&gt; e, s
       &lt;- e, ee, se, s, es</code></pre></td>
 </tr>
 </tbody>
 </table>
 
-<p>The <code>Noise_XX</code> pattern is the most generically useful, since it is efficient and supports mutual authentication and transmission of static public keys.</p>
+<p>The <code>XX</code> pattern is the most generically useful, since it is efficient and supports mutual authentication and transmission of static public keys.</p>
 <p>All interactive patterns allow some encryption of handshake payloads:</p>
 <ul>
 <li><p>Patterns where the initiator has pre-knowledge of the responder's static public key (i.e. patterns ending in <code>&quot;K&quot;</code>) allow <strong>zero-RTT</strong> encryption, meaning the initiator can encrypt the first handshake payload.</p></li>
@@ -527,22 +527,22 @@
 <td><pre><code>                     Authentication   Confidentiality</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_N                     0                2</code></pre></td>
+<td><pre><code>N                           0                2</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_K                     1                2</code></pre></td>
+<td><pre><code>K                           1                2</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_X                     1                2</code></pre></td>
+<td><pre><code>X                           1                2</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_NN
+<td><pre><code>NN
   -&gt; e                      0                0
   &lt;- e, ee                  0                1
   -&gt;                        0                1</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_NK
+<td><pre><code>NK
   &lt;- s
   ...
   -&gt; e, es                  0                2
@@ -550,20 +550,20 @@
   -&gt;                        0                5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_NX
+<td><pre><code>NX
   -&gt; e                      0                0
   &lt;- e, ee, s, es           2                1
   -&gt;                        0                5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_XN
+<td><pre><code>XN
   -&gt; e                      0                0
   &lt;- e, ee                  0                1
   -&gt; s, se                  2                1
   &lt;-                        0                5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_XK
+<td><pre><code>XK
   &lt;- s
   ...
   -&gt; e, es                  0                2
@@ -572,14 +572,14 @@
   &lt;-                        2                5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_XX
+<td><pre><code>XX
  -&gt; e                       0                0
  &lt;- e, ee, s, es            2                1
  -&gt; s, se                   2                5
  &lt;-                         2                5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_KN
+<td><pre><code>KN
   -&gt; s
   ...
   -&gt; e                      0                0
@@ -588,7 +588,7 @@
   &lt;-                        0                5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_KK
+<td><pre><code>KK
   -&gt; s
   &lt;- s
   ...
@@ -598,7 +598,7 @@
   &lt;-                        2                5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_KX
+<td><pre><code>KX
   -&gt; s
   ...
   -&gt; e                      0                0
@@ -607,14 +607,14 @@
   &lt;-                        2                5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_IN
+<td><pre><code>IN
   -&gt; e, s                   0                0
   &lt;- e, ee, se              0                3
   -&gt;                        2                1
   &lt;-                        0                5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_IK
+<td><pre><code>IK
   &lt;- s
   ...
   -&gt; e, es, s, ss           1                2
@@ -623,7 +623,7 @@
   &lt;-                        2                5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_IX
+<td><pre><code>IX
   -&gt; e, s                   0                0
   &lt;- e, ee, se, s, es       2                3
   -&gt;                        2                5
@@ -656,73 +656,74 @@
 <td><pre><code>           Initiator      Responder</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_N        -              3</code></pre></td>
+<td><pre><code>N              -              3</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_K        5              5</code></pre></td>
+<td><pre><code>K              5              5</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_X        4              3</code></pre></td>
+<td><pre><code>X              4              3</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_NN       -              -</code></pre></td>
+<td><pre><code>NN             -              -</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_NK       -              3</code></pre></td>
+<td><pre><code>NK             -              3</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_NX       -              1</code></pre></td>
+<td><pre><code>NX             -              1</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_XN       2              -</code></pre></td>
+<td><pre><code>XN             2              -</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_XK       8              3</code></pre></td>
+<td><pre><code>XK             8              3</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_XX       8              1</code></pre></td>
+<td><pre><code>XX             8              1</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_KN       7              -</code></pre></td>
+<td><pre><code>KN             7              -</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_KK       5              5</code></pre></td>
+<td><pre><code>KK             5              5</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_KX       7              6</code></pre></td>
+<td><pre><code>KX             7              6</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_IN       0              -</code></pre></td>
+<td><pre><code>IN             0              -</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_IK       4              3</code></pre></td>
+<td><pre><code>IK             4              3</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_IX       0              6</code></pre></td>
+<td><pre><code>IX             0              6</code></pre></td>
 </tr>
 </tbody>
 </table>
 <h1 id="protocol-names-and-modifiers">8. Protocol names and modifiers</h1>
-<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII names for the handshake pattern, the DH functions, the cipher functions, and the hash functions, with underscore separators. The resulting name must be 255 bytes or less. Examples:</p>
+<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII string <code>Noise_</code> with four underscore-separated name sections which sequentially name the handshake pattern, the DH functions, the cipher functions, and then the hash functions. The resulting name must be 255 bytes or less. Examples:</p>
 <ul>
 <li><code>Noise_XX_25519_AESGCM_SHA256</code></li>
 <li><code>Noise_N_25519_ChaChaPoly_BLAKE2s</code></li>
 <li><code>Noise_IK_448_ChaChaPoly_BLAKE2b</code></li>
 </ul>
-<p>The resulting name must be in the form <code>Noise_</code> followed by four underscore-separated name sections. Each name section must consist only of alphanumeric characters (i.e. characters in one of the ranges <code>A</code>...<code>Z</code>, <code>a</code>...<code>z</code>, and <code>0</code>...<code>9</code>), and the two special characters <code>+</code> and <code>/</code>.</p>
+<p>Each name section must consist only of alphanumeric characters (i.e. characters in one of the ranges <code>A</code>...<code>Z</code>, <code>a</code>...<code>z</code>, and <code>0</code>...<code>9</code>), and the two special characters <code>+</code> and <code>/</code>.</p>
 <p>Additional rules apply to each name section, as specified below.</p>
 <h2 id="handshake-pattern-name-section">8.1. Handshake pattern name section</h2>
-<p>A Noise pattern's <strong>base name</strong> is an uppercase ASCII string containing only alphabetic characters (e.g. <code>XX</code> or <code>IK</code>).</p>
-<p>A handshake pattern name section contains a base name plus a sequence of zero or more <strong>pattern modifiers</strong>. Pattern modifiers specify arbitrary extensions or modifications to the behavior specified by the handshake pattern. For example, a modifier could be applied to a handshake pattern which transforms it into a different pattern according to some rule.</p>
+<p>A handshake pattern name section contains a handshake pattern name plus a sequence of zero or more <strong>pattern modifiers</strong>.</p>
+<p>The handshake pattern name must be an uppercase ASCII string containing only alphabetic characters (e.g. <code>XX</code> or <code>IK</code>).</p>
+<p>Pattern modifiers specify arbitrary extensions or modifications to the behavior specified by the handshake pattern. For example, a modifier could be applied to a handshake pattern which transforms it into a different pattern according to some rule.</p>
 <p>As examples of such a modifier, the <code>psk0</code> and <code>fallback</code> modifiers described later in this document modify the base pattern to either incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.</p>
 <p>A pattern modifier is named with a lowercase alphanumeric ASCII string which is appended to the base pattern as described below:</p>
-<p>The first modifier added onto a base pattern is simply appended. Thus the <code>fallback</code> modifier, when added to the <code>XX</code> base pattern, produces <code>XXfallback</code>. Additional modifiers are separated with a plus sign. Thus, adding the <code>psk0</code> modifier would result in the name section <code>XXfallback+psk0</code>, or a full protocol name such as <code>Noise_XXfallback+psk0_25519_AESGCM_SHA256</code>.</p>
-<p>In some cases the sequential order of modifiers will specify different protocols. However, if the order of some modifiers does not matter, then they are required to be sorted alphabetically (this is an arbitrary convention to ensure interoperability).</p>
+<p>The first modifier added onto a base pattern is simply appended. Thus the <code>fallback</code> modifier, when added to the <code>XX</code> pattern, produces <code>XXfallback</code>. Additional modifiers are separated with a plus sign. Thus, adding the <code>psk0</code> modifier would result in the name section <code>XXfallback+psk0</code>, or a full protocol name such as <code>Noise_XXfallback+psk0_25519_AESGCM_SHA256</code>.</p>
+<p>In some cases the sequential ordering of modifiers will specify different protocols. However, if the order of some modifiers does not matter, then they are required to be sorted alphabetically (this is an arbitrary convention to ensure interoperability).</p>
 <h2 id="cryptographic-algorithm-name-sections">8.2. Cryptographic algorithm name sections</h2>
 <p>The rules for the DH, cipher, and hash name sections are identical. Each name section must contain one or more algorithm names separated by plus signs.</p>
 <p>Each algorithm name must consist solely of alphanumeric characters and the forward-slash (<code>/</code>) character. Algorithm names are recommended to be short, and to use the <code>/</code> character only when necessary to avoid ambiguity (e.g. <code>SHA3/256</code> is preferable to <code>SHA3256</code>).</p>
-<p>In most cases there will be a single algorithm name in each name section (i.e. no plus signs). Multiple algorithms are only used when called for by the base pattern or a modifier.</p>
-<p>None of the base patterns or modifiers in this document require multiple cryptographic algorithms in any name section. However, this functionality might be useful in future extensions, e.g. using multiple algorithms in the DH section to provide &quot;hybrid&quot; post-quantum forward secrecy, or using different hash algorithms for different purposes.</p>
+<p>In most cases there will be a single algorithm name in each name section (i.e. no plus signs). Multiple algorithms are only used when called for by the pattern or a modifier.</p>
+<p>None of the patterns or modifiers in this document require multiple cryptographic algorithms in any name section. However, this functionality might be useful in future extensions, e.g. using multiple algorithms in the DH section to provide &quot;hybrid&quot; post-quantum forward secrecy, or using different hash algorithms for different purposes.</p>
 <h1 id="pre-shared-symmetric-keys">9. Pre-shared symmetric keys</h1>
 <p>Noise provides a <strong>pre-shared symmetric key</strong> or <strong>PSK</strong> mode to support protocols where both parties have a 32-byte shared secret key.</p>
 <h2 id="cryptographic-functions">9.1. Cryptographic functions</h2>
@@ -748,40 +749,40 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>Noise_N(rs):
+<td><pre><code>N(rs):
   &lt;- s
   ...
   -&gt; e, es</code></pre></td>
-<td><pre><code>   Noise_Npsk0(rs):
+<td><pre><code>   Npsk0(rs):
      &lt;- s
      ...
      -&gt; psk, e, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_K(s, rs):
+<td><pre><code>K(s, rs):
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss</code></pre></td>
-<td><pre><code>   Noise_Kpsk0(s, rs):
+<td><pre><code>   Kpsk0(s, rs):
      -&gt; s
      &lt;- s
      ...
      -&gt; psk, e, es, ss</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_X(s, rs):
+<td><pre><code>X(s, rs):
   &lt;- s
   ...
   -&gt; e, es, s, ss</code></pre></td>
-<td><pre><code>   Noise_Xpsk1(s, rs):
+<td><pre><code>   Xpsk1(s, rs):
      &lt;- s
      ...
      -&gt; e, es, s, ss, psk</code></pre></td>
 </tr>
 </tbody>
 </table>
-<p>Note that the <code>psk1</code> modifier is recommended for <code>Noise_X</code>. This is because <code>Noise_X</code> transmits the initiator's static public key. Because PSKs are typically pairwise, the responder likely cannot determine the PSK until it has decrypted the initiator's static public key. Thus, <code>psk1</code> is likely to be more useful here than <code>psk0</code>.</p>
+<p>Note that the <code>psk1</code> modifier is recommended for <code>X</code>. This is because <code>X</code> transmits the initiator's static public key. Because PSKs are typically pairwise, the responder likely cannot determine the PSK until it has decrypted the initiator's static public key. Thus, <code>psk1</code> is likely to be more useful here than <code>psk0</code>.</p>
 <p>Following similar logic, we can define the most likely interactive PSK patterns:</p>
 
 <table>
@@ -791,71 +792,71 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>Noise_NN():
+<td><pre><code>NN():
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>Noise_NNpsk0():
+<td><pre><code>NNpsk0():
   -&gt; psk, e
   &lt;- e, ee</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_NN():
+<td><pre><code>NN():
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>Noise_NNpsk2():
+<td><pre><code>NNpsk2():
   -&gt; e
   &lt;- e, ee, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>Noise_NK(rs):
+<td><pre><code>NK(rs):
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>Noise_NKpsk0(rs):
+<td><pre><code>NKpsk0(rs):
   &lt;- s
   ...
   -&gt; psk, e, es
   &lt;- e, ee</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>Noise_NK(rs):
+<td><pre><code>NK(rs):
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>Noise_NKpsk2(rs):
+<td><pre><code>NKpsk2(rs):
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> Noise_NX(rs):
-   -&gt; e
-   &lt;- e, ee, s, es</code></pre></td>
-<td><pre><code> Noise_NXpsk2(rs):
+<td><pre><code>NX(rs):
+  -&gt; e
+  &lt;- e, ee, s, es</code></pre></td>
+<td><pre><code> NXpsk2(rs):
    -&gt; e
    &lt;- e, ee, s, es, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> Noise_XN(s):
-   -&gt; e
-   &lt;- e, ee
-   -&gt; s, se</code></pre></td>
-<td><pre><code> Noise_XNpsk3(s):
+<td><pre><code>XN(s):
+  -&gt; e
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code> XNpsk3(s):
    -&gt; e
    &lt;- e, ee
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> Noise_XK(s, rs):
-   &lt;- s
-   ...
-   -&gt; e, es
-   &lt;- e, ee
-   -&gt; s, se</code></pre></td>
-<td><pre><code> Noise_XKpsk3(s, rs):
+<td><pre><code>XK(s, rs):
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code> XKpsk3(s, rs):
    &lt;- s
    ...
    -&gt; e, es
@@ -863,47 +864,47 @@
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> Noise_XX(s, rs):
-   -&gt; e
-   &lt;- e, ee, s, es
-   -&gt; s, se</code></pre></td>
-<td><pre><code> Noise_XXpsk3(s, rs):
+<td><pre><code>XX(s, rs):
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre></td>
+<td><pre><code> XXpsk3(s, rs):
    -&gt; e
    &lt;- e, ee, s, es
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>   Noise_KN(s):
-     -&gt; s
-     ...
-     -&gt; e
-     &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  Noise_KNpsk0(s):
+<td><pre><code>KN(s):
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>  KNpsk0(s):
     -&gt; s
     ...
     -&gt; psk, e
     &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>   Noise_KN(s):
-     -&gt; s
-     ...
-     -&gt; e
-     &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  Noise_KNpsk2(s):
+<td><pre><code>KN(s):
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>  KNpsk2(s):
     -&gt; s
     ...
     -&gt; e
     &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>   Noise_KK(s, rs):
-     -&gt; s
-     &lt;- s
-     ...
-     -&gt; e, es, ss
-     &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  Noise_KKpsk0(s, rs):
+<td><pre><code>KK(s, rs):
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>  KKpsk0(s, rs):
     -&gt; s
     &lt;- s
     ...
@@ -911,13 +912,13 @@
     &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>   Noise_KK(s, rs):
-     -&gt; s
-     &lt;- s
-     ...
-     -&gt; e, es, ss
-     &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  Noise_KKpsk2(s, rs):
+<td><pre><code>KK(s, rs):
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>  KKpsk2(s, rs):
     -&gt; s
     &lt;- s
     ...
@@ -925,68 +926,68 @@
     &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>    Noise_KX(s, rs):
-      -&gt; s
-      ...
-      -&gt; e
-      &lt;- e, ee, se, s, es</code></pre></td>
-<td><pre><code>   Noise_KXpsk2(s, rs):
+<td><pre><code>KX(s, rs):
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>   KXpsk2(s, rs):
      -&gt; s
      ...
      -&gt; e
      &lt;- e, ee, se, s, es, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>    Noise_IN(s):
-      -&gt; e, s
-      &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   Noise_INpsk1(s):
+<td><pre><code>IN(s):
+  -&gt; e, s
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>   INpsk1(s):
      -&gt; e, s, psk
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>    Noise_IN(s):
-      -&gt; e, s
-      &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   Noise_INpsk2(s):
+<td><pre><code>IN(s):
+  -&gt; e, s
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>   INpsk2(s):
      -&gt; e, s
      &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>    Noise_IK(s, rs):
-      &lt;- s
-      ...
-      -&gt; e, es, s, ss
-      &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   Noise_IKpsk1(s, rs):
+<td><pre><code>IK(s, rs):
+  &lt;- s
+  ...
+  -&gt; e, es, s, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>   IKpsk1(s, rs):
      &lt;- s
      ...
      -&gt; e, es, s, ss, psk
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>    Noise_IK(s, rs):
-      &lt;- s
-      ...
-      -&gt; e, es, s, ss
-      &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   Noise_IKpsk2(s, rs):
+<td><pre><code>IK(s, rs):
+  &lt;- s
+  ...
+  -&gt; e, es, s, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>   IKpsk2(s, rs):
      &lt;- s
      ...
      -&gt; e, es, s, ss
      &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>    Noise_IX(s, rs):
-      -&gt; e, s
-      &lt;- e, ee, se, s, es</code></pre></td>
-<td><pre><code>   Noise_IXpsk2(s, rs):
+<td><pre><code>IX(s, rs):
+  -&gt; e, s
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>   IXpsk2(s, rs):
      -&gt; e, s
      &lt;- e, ee, se, s, es, psk</code></pre></td>
 </tr>
 </tbody>
 </table>
-<p>The above list does not exhaust all possible patterns that can be formed with these modifiers. In particular, any of these PSK modifiers can be safely applied to any previously named pattern, resulting in patterns like <code>Noise_IKpsk0</code>, <code>Noise_KKpsk1</code>, or even <code>Noise_XXpsk0+psk3</code>, which aren't listed above.</p>
+<p>The above list does not exhaust all possible patterns that can be formed with these modifiers. In particular, any of these PSK modifiers can be safely applied to any previously named pattern, resulting in patterns like <code>IKpsk0</code>, <code>KKpsk1</code>, or even <code>XXpsk0+psk3</code>, which aren't listed above.</p>
 <p>This still doesn't exhaust all the ways that <code>&quot;psk&quot;</code> tokens could be used outside of these modifiers (e.g. placement of <code>&quot;psk&quot;</code> tokens in the middle of a message pattern). Defining additional PSK modifiers is outside the scope of this document.</p>
 <h1 id="fallback-protocols">10. Fallback protocols</h1>
 <h2 id="fallback-patterns">10.1. Fallback patterns</h2>
@@ -1017,41 +1018,40 @@
 <p>Note that the <code>type</code> byte doesn't need to be explicitly authenticated (either as prologue, or as additional AEAD data), since it's implicitly authenticated if the message is processed succesfully.</p>
 <h2 id="noise-pipes">10.3. Noise Pipes</h2>
 <p>This section defines the <strong>Noise Pipe</strong> protocol. This protocol uses three handshake patterns - two defined previously, and a new one. These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:</p>
-<pre><code>Noise_XX(s, rs):  
+<pre><code>XX(s, rs):  
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se
 
-Noise_IK(s, rs):                   
+IK(s, rs):                   
   &lt;- s                         
   ...
   -&gt; e, es, s, ss          
-  &lt;- e, ee, se</code></pre>
+  &lt;- e, ee, se
 
-<p> </p>
-<pre><code>Noise_XXfallback(e, s, rs):                   
+XXfallback(e, s, rs):                   
   -&gt; e
   ...
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre>
-<p>The <code>Noise_XX</code> pattern is used for a <strong>full handshake</strong> if the parties haven't communicated before, after which the initiator can cache the responder's static public key.</p>
-<p>The <code>Noise_IK</code> pattern is used for a <strong>zero-RTT handshake</strong>.</p>
-<p>The <code>Noise_XXfallback</code> pattern is used if the responder fails to decrypt the first <code>Noise_IK</code> message (perhaps due to changing a static key). In this case the responder will switch to a <strong>fallback handshake</strong> using <code>Noise_XXfallback</code>, which is identical to <code>Noise_XX</code> except the ephemeral public key from the first <code>Noise_IK</code> message is used as the initiator's pre-message.</p>
+<p>The <code>XX</code> pattern is used for a <strong>full handshake</strong> if the parties haven't communicated before, after which the initiator can cache the responder's static public key.</p>
+<p>The <code>IK</code> pattern is used for a <strong>zero-RTT handshake</strong>.</p>
+<p>The <code>XXfallback</code> pattern is used if the responder fails to decrypt the first <code>IK</code> message (perhaps due to changing a static key). In this case the responder will switch to a <strong>fallback handshake</strong> using <code>XXfallback</code>, which is identical to <code>XX</code> except the ephemeral public key from the first <code>IK</code> message is used as the initiator's pre-message.</p>
 <h2 id="handshake-indistinguishability">10.4. Handshake indistinguishability</h2>
 <p>Parties might wish to hide from an eavesdropper which type of handshake they are performing. For example, suppose parties are using Noise Pipes, and want to hide whether they are performing a full handshake, zero-RTT handshake, or fallback handshake.</p>
 <p>This is fairly easy:</p>
 <ul>
 <li><p>The first three messages can have their payloads padded with random bytes to a constant size, regardless of which handshake is executed.</p></li>
-<li><p>The responder will attempt to decrypt the first message as a <code>NoiseIK</code> message, and will fallback to <code>Noise_XXfallback</code> if decryption fails.</p></li>
-<li><p>An initiator who sends a <code>Noise_IK</code> initial message can use trial decryption to differentiate between a response using <code>Noise_IK</code> or <code>Noise_XXfallback</code>.</p></li>
-<li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>Noise_XXfallback</code> to handle the response. Note that <code>Noise_XX</code> isn't used, because the server can't distinguish a <code>Noise_XX</code> message from a failed <code>Noise_IK</code> attempt by using trial decryption.</p></li>
+<li><p>The responder will attempt to decrypt the first message as a <code>NoiseIK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
+<li><p>An initiator who sends a <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
+<li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish a <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
 </ul>
 <p>This leaves the Noise ephemeral public keys in the clear. Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if the eavesdropper can't distinguish the different handshakes. To make the ephemerals indistinguishable from random byte sequences, techniques like Elligator <span class="citation">[<a href="#ref-elligator">5</a>]</span> could be used.</p>
 <h1 id="advanced-features">11. Advanced features</h1>
 <h2 id="dummy-keys">11.1. Dummy keys</h2>
-<p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>Noise_NX</code> and <code>Noise_XX</code> based on some value inside the responder's first handshake payload.</p>
-<p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>Noise_XX</code>. The initiator can simulate the <code>Noise_NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter.</p>
-<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes or computation time. It could be extended to allow a <code>Noise_XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
+<p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>NX</code> and <code>XX</code> based on some value inside the responder's first handshake payload.</p>
+<p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>XX</code>. The initiator can simulate the <code>NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter.</p>
+<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes or computation time. It could be extended to allow a <code>XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
 <p>Similarly, <strong>dummy PSKs</strong> (e.g. a PSK of all zeros) would allow a protocol to optionally support PSKs.</p>
 <h2 id="channel-binding">11.2. Channel binding</h2>
 <p>Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>

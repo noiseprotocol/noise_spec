@@ -622,11 +622,11 @@ the next by the *initiator*, and so on.)
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
-    Noise_NN():
+    NN():
       -> e
       <- e, ee
 
-The handshake pattern name is `Noise_NN`.  This naming convention will be
+The handshake pattern name is `NN`.  This naming convention will be
 explained in [Section 7.3](#interactive-patterns).  The empty parentheses
 indicate that neither party is initialized with any key pairs.  The tokens
 `"s"`, `"e"`, or `"e, s"` inside the parentheses would indicate that the
@@ -650,7 +650,7 @@ This pre-knowledge allows an encrypted payload to be sent in the first message
 ("zero-RTT encryption"), although full forward secrecy and replay protection is
 only achieved with the second message.
 
-    Noise_NK(rs):
+    NK(rs):
       <- s
       ...
       -> e, es 
@@ -708,26 +708,26 @@ status of the sender's static key:
  * **`X`** = Static key for sender **`X`**mitted ("transmitted") to recipient
 
 +-------------------------+
-|     Noise_N(rs):        |
+|     N(rs):              |
 |       <- s              |
 |       ...               |
 |       -> e, es          |
 +-------------------------+
-|     Noise_K(s, rs):     |
+|     K(s, rs):           |
 |       -> s              |
 |       <- s              |
 |       ...               |
 |       -> e, es, ss      |
 +-------------------------+
-|     Noise_X(s, rs):     |
+|     X(s, rs):           |
 |       <- s              |
 |       ...               |
 |       -> e, es, s, ss   |
 +-------------------------+
 
-`Noise_N` is a conventional DH-based public-key encryption.  The other patterns
+`N` is a conventional DH-based public-key encryption.  The other patterns
 add sender authentication, where the sender's public key is either known to the
-recipient beforehand (`Noise_K`) or transmitted under encryption (`Noise_X`).
+recipient beforehand (`K`) or transmitted under encryption (`X`).
 
 7.3. Interactive patterns 
 --------------------------
@@ -754,38 +754,38 @@ The second character refers to the responder's static key:
 \newpage
 
 +---------------------------+--------------------------------+
-|     Noise_NN():           |        Noise_KN(s):            |
+|     NN():                 |        KN(s):                  |
 |       -> e                |          -> s                  |
 |       <- e, ee            |          ...                   |
 |                           |          -> e                  |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
-|     Noise_NK(rs):         |        Noise_KK(s, rs):        |
+|     NK(rs):               |        KK(s, rs):              |
 |       <- s                |          -> s                  |
 |       ...                 |          <- s                  |
 |       -> e, es            |          ...                   |
 |       <- e, ee            |          -> e, es, ss          |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
-|      Noise_NX(rs):        |         Noise_KX(s, rs):       |
+|      NX(rs):              |         KX(s, rs):             |
 |        -> e               |           -> s                 |
 |        <- e, ee, s, es    |           ...                  |
 |                           |           -> e                 |
 |                           |           <- e, ee, se, s, es  |
 +---------------------------+--------------------------------+
-|      Noise_XN(s):         |         Noise_IN(s):           |
+|      XN(s):               |         IN(s):                 |
 |        -> e               |           -> e, s              |
 |        <- e, ee           |           <- e, ee, se         |
 |        -> s, se           |                                |
 +---------------------------+--------------------------------+
-|      Noise_XK(s, rs):     |         Noise_IK(s, rs):       |
+|      XK(s, rs):           |         IK(s, rs):             |
 |        <- s               |           <- s                 |      
 |        ...                |           ...                  |
 |        -> e, es           |           -> e, es, s, ss      |
 |        <- e, ee           |           <- e, ee, se         |
 |        -> s, se           |                                |
 +---------------------------+--------------------------------+
-|      Noise_XX(s, rs):     |         Noise_IX(s, rs):       |
+|      XX(s, rs):           |         IX(s, rs):             |
 |        -> e               |           -> e, s              |
 |        <- e, ee, s, es    |           <- e, ee, se, s, es  |
 |        -> s, se           |                                |
@@ -793,7 +793,7 @@ The second character refers to the responder's static key:
 
 \newpage
 
-The `Noise_XX` pattern is the most generically useful, since it is efficient
+The `XX` pattern is the most generically useful, since it is efficient
 and supports mutual authentication and transmission of static public keys.
 
 All interactive patterns allow some encryption of handshake payloads:
@@ -911,37 +911,37 @@ received.
 +--------------------------------------------------------------+
 |                          Authentication   Confidentiality    |
 +--------------------------------------------------------------+
-|     Noise_N                     0                2           |
+|     N                           0                2           | 
 +--------------------------------------------------------------+
-|     Noise_K                     1                2           |
+|     K                           1                2           |
 +--------------------------------------------------------------+
-|     Noise_X                     1                2           |
+|     X                           1                2           |
 +--------------------------------------------------------------+
-|     Noise_NN                                                 |             
+|     NN                                                       |             
 |       -> e                      0                0           |               
 |       <- e, ee                  0                1           |               
 |       ->                        0                1           |               
 +--------------------------------------------------------------+
-|     Noise_NK                                                 |                                 
+|     NK                                                       |                                 
 |       <- s                                                   |
 |       ...                                                    |                                 
 |       -> e, es                  0                2           |               
 |       <- e, ee                  2                1           |               
 |       ->                        0                5           |               
 +--------------------------------------------------------------+
-|     Noise_NX                                                 |             
+|     NX                                                       |             
 |       -> e                      0                0           |               
 |       <- e, ee, s, es           2                1           |               
 |       ->                        0                5           |               
 +--------------------------------------------------------------+
-|     Noise_XN                                                 |                                 
+|     XN                                                       |                                 
 |       -> e                      0                0           |               
 |       <- e, ee                  0                1           |               
 |       -> s, se                  2                1           |               
 |       <-                        0                5           |               
 |                                                              |                                 
 +--------------------------------------------------------------+
-|     Noise_XK                                                 |                                 
+|     XK                                                       |                                 
 |       <- s                                                   |                                 
 |       ...                                                    |                                 
 |       -> e, es                  0                2           |               
@@ -949,13 +949,13 @@ received.
 |       -> s, se                  2                5           |               
 |       <-                        2                5           |               
 +--------------------------------------------------------------+
-|     Noise_XX                                                 |                                 
+|     XX                                                       |                                 
 |      -> e                       0                0           |               
 |      <- e, ee, s, es            2                1           |               
 |      -> s, se                   2                5           |               
 |      <-                         2                5           |               
 +--------------------------------------------------------------+
-|     Noise_KN                                                 |                                 
+|     KN                                                       |                                 
 |       -> s                                                   |                                 
 |       ...                                                    |                                 
 |       -> e                      0                0           |               
@@ -963,7 +963,7 @@ received.
 |       ->                        2                1           |               
 |       <-                        0                5           |               
 +--------------------------------------------------------------+
-|     Noise_KK                                                 |                                 
+|     KK                                                       |                                 
 |       -> s                                                   |                                 
 |       <- s                                                   |                                 
 |       ...                                                    |                                 
@@ -972,7 +972,7 @@ received.
 |       ->                        2                5           |               
 |       <-                        2                5           |               
 +--------------------------------------------------------------+
-|     Noise_KX                                                 |                           
+|     KX                                                       |                           
 |       -> s                                                   |                           
 |       ...                                                    |                                 
 |       -> e                      0                0           |               
@@ -980,13 +980,13 @@ received.
 |       ->                        2                5           |               
 |       <-                        2                5           |               
 +--------------------------------------------------------------+
-|     Noise_IN                                                 |    
+|     IN                                                       |    
 |       -> e, s                   0                0           |         
 |       <- e, ee, se              0                3           |         
 |       ->                        2                1           |         
 |       <-                        0                5           |         
 +--------------------------------------------------------------+
-|     Noise_IK                                                 |                        
+|     IK                                                       |                        
 |       <- s                                                   |                        
 |       ...                                                    |                        
 |       -> e, es, s, ss           1                2           |         
@@ -994,7 +994,7 @@ received.
 |       ->                        2                5           |         
 |       <-                        2                5           |         
 +--------------------------------------------------------------+
-|     Noise_IX                                                 |                        
+|     IX                                                       |                        
 |       -> e, s                   0                0           |         
 |       <- e, ee, se, s, es       2                3           |         
 |       ->                        2                5           |         
@@ -1055,67 +1055,69 @@ The properties for the relevant public key are:
 +------------------------------------------+
 |                Initiator      Responder  |           
 +------------------------------------------+
-|     Noise_N        -              3      |
+|     N              -              3      |
 +------------------------------------------+
-|     Noise_K        5              5      |
+|     K              5              5      |
 +------------------------------------------+
-|     Noise_X        4              3      |
+|     X              4              3      |
 +------------------------------------------+
-|     Noise_NN       -              -      |
+|     NN             -              -      |
 +------------------------------------------+
-|     Noise_NK       -              3      |
+|     NK             -              3      |
 +------------------------------------------+
-|     Noise_NX       -              1      |
+|     NX             -              1      |
 +------------------------------------------+
-|     Noise_XN       2              -      |
+|     XN             2              -      |
 +------------------------------------------+
-|     Noise_XK       8              3      |
+|     XK             8              3      |
 +------------------------------------------+
-|     Noise_XX       8              1      |
+|     XX             8              1      |
 +------------------------------------------+
-|     Noise_KN       7              -      |
+|     KN             7              -      |
 +------------------------------------------+
-|     Noise_KK       5              5      |
+|     KK             5              5      |
 +------------------------------------------+
-|     Noise_KX       7              6      |
+|     KX             7              6      |
 +------------------------------------------+
-|     Noise_IN       0              -      |
+|     IN             0              -      |
 +------------------------------------------+
-|     Noise_IK       4              3      |
+|     IK             4              3      |
 +------------------------------------------+
-|     Noise_IX       0              6      |
+|     IX             0              6      |
 +------------------------------------------+
 
 8. Protocol names and modifiers
 ===================
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
-ASCII names for the handshake pattern, the DH functions, the cipher functions,
-and the hash functions, with underscore separators.  The resulting name must be 255
-bytes or less.  Examples: 
+ASCII string `Noise_` with four underscore-separated name sections which
+sequentially name the handshake pattern, the DH functions, the cipher
+functions, and then the hash functions.  The resulting name must be 255 bytes
+or less.  Examples:
 
  * `Noise_XX_25519_AESGCM_SHA256`
  * `Noise_N_25519_ChaChaPoly_BLAKE2s`
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
-The resulting name must be in the form `Noise_` followed by four
-underscore-separated name sections.  Each name section must consist only of
-alphanumeric characters (i.e. characters in one of the ranges `A`...`Z`,
-`a`...`z`, and `0`...`9`), and the two special characters `+` and `/`.
+Each name section must consist only of alphanumeric characters (i.e. characters
+in one of the ranges `A`...`Z`, `a`...`z`, and `0`...`9`), and the two special
+characters `+` and `/`.
 
 Additional rules apply to each name section, as specified below.
 
 8.1. Handshake pattern name section
 ------------------------------------
 
-A Noise pattern's **base name** is an uppercase ASCII string containing only
+A handshake pattern name section contains a handshake pattern name plus a
+sequence of zero or more **pattern modifiers**.
+
+The handshake pattern name must be an uppercase ASCII string containing only
 alphabetic characters (e.g. `XX` or `IK`).
 
-A handshake pattern name section contains a base name plus a sequence of
-zero or more **pattern modifiers**.  Pattern modifiers specify arbitrary
-extensions or modifications to the behavior specified by the handshake pattern.
-For example, a modifier could be applied to a handshake pattern which
-transforms it into a different pattern according to some rule.  
+Pattern modifiers specify arbitrary extensions or modifications to the behavior
+specified by the handshake pattern.  For example, a modifier could be applied
+to a handshake pattern which transforms it into a different pattern according
+to some rule.  
 
 As examples of such a modifier, the `psk0` and `fallback` modifiers 
 described later in this document modify the base pattern to either
@@ -1125,12 +1127,12 @@ A pattern modifier is named with a lowercase alphanumeric ASCII string which
 is appended to the base pattern as described below:
 
 The first modifier added onto a base pattern is simply appended.  Thus
-the `fallback` modifier, when added to the `XX` base pattern, produces `XXfallback`.
+the `fallback` modifier, when added to the `XX` pattern, produces `XXfallback`.
 Additional modifiers are separated with a plus sign.  Thus, adding the `psk0`
 modifier would result in the name section `XXfallback+psk0`, or a
 full protocol name such as `Noise_XXfallback+psk0_25519_AESGCM_SHA256`.
 
-In some cases the sequential order of modifiers will specify different
+In some cases the sequential ordering of modifiers will specify different
 protocols.  However, if the order of some modifiers does not matter, then they are
 required to be sorted alphabetically (this is an arbitrary convention to ensure
 interoperability).
@@ -1147,10 +1149,10 @@ and to use the `/` character only when necessary to avoid ambiguity (e.g.
 `SHA3/256` is preferable to `SHA3256`).
 
 In most cases there will be a single algorithm name in each name section (i.e.
-no plus signs).  Multiple algorithms are only used when called for by the base
+no plus signs).  Multiple algorithms are only used when called for by the 
 pattern or a modifier.  
 
-None of the base patterns or modifiers in this document require multiple
+None of the patterns or modifiers in this document require multiple
 cryptographic algorithms in any name section.  However, this functionality
 might be useful in future extensions, e.g. using multiple algorithms in the DH
 section to provide "hybrid" post-quantum forward secrecy, or using different hash
@@ -1212,28 +1214,28 @@ PSK pattern on the right:
 
 
 +--------------------------------+--------------------------------------+ 
-|     Noise_N(rs):               |        Noise_Npsk0(rs):              | 
+|     N(rs):                     |        Npsk0(rs):                    | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es                 |          -> psk, e, es               | 
 |                                |                                      | 
 +--------------------------------+--------------------------------------+ 
-|     Noise_K(s, rs):            |        Noise_Kpsk0(s, rs):           | 
+|     K(s, rs):                  |        Kpsk0(s, rs):                 | 
 |       -> s                     |          -> s                        | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es, ss             |          -> psk, e, es, ss           | 
 |                                |                                      | 
 +--------------------------------+--------------------------------------+ 
-|     Noise_X(s, rs):            |        Noise_Xpsk1(s, rs):           | 
+|     X(s, rs):                  |        Xpsk1(s, rs):                 | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es, s, ss          |          -> e, es, s, ss, psk        | 
 |                                |                                      | 
 +--------------------------------+--------------------------------------+ 
 
-Note that the `psk1` modifier is recommended for `Noise_X`.  This is because
-`Noise_X` transmits the initiator's static public key.  Because PSKs are
+Note that the `psk1` modifier is recommended for `X`.  This is because
+`X` transmits the initiator's static public key.  Because PSKs are
 typically pairwise, the responder likely cannot determine the PSK until it has
 decrypted the initiator's static public key.  Thus, `psk1` is likely to be more
 useful here than `psk0`.
@@ -1243,113 +1245,113 @@ Following similar logic, we can define the most likely interactive PSK patterns:
 \newpage
 
 +--------------------------------+--------------------------------------+       
-|     Noise_NN():                |     Noise_NNpsk0():                  |
+|     NN():                      |     NNpsk0():                        |
 |       -> e                     |       -> psk, e                      |
 |       <- e, ee                 |       <- e, ee                       |
 +--------------------------------+--------------------------------------+
-|     Noise_NN():                |     Noise_NNpsk2():                  |
+|     NN():                      |     NNpsk2():                        |
 |       -> e                     |       -> e                           |
 |       <- e, ee                 |       <- e, ee, psk                  |
 +--------------------------------+--------------------------------------+
-|     Noise_NK(rs):              |     Noise_NKpsk0(rs):                |
+|     NK(rs):                    |     NKpsk0(rs):                      |
 |       <- s                     |       <- s                           |
 |       ...                      |       ...                            |
 |       -> e, es                 |       -> psk, e, es                  |
 |       <- e, ee                 |       <- e, ee                       |
 +--------------------------------+--------------------------------------+
-|     Noise_NK(rs):              |     Noise_NKpsk2(rs):                |
+|     NK(rs):                    |     NKpsk2(rs):                      |
 |       <- s                     |       <- s                           |
 |       ...                      |       ...                            |
 |       -> e, es                 |       -> e, es                       |
 |       <- e, ee                 |       <- e, ee, psk                  |
 +--------------------------------+--------------------------------------+
-|      Noise_NX(rs):             |      Noise_NXpsk2(rs):               |
-|        -> e                    |        -> e                          |
-|        <- e, ee, s, es         |        <- e, ee, s, es, psk          |
+|     NX(rs):                    |      NXpsk2(rs):                     |
+|       -> e                     |        -> e                          |
+|       <- e, ee, s, es          |        <- e, ee, s, es, psk          |
 +--------------------------------+--------------------------------------+
-|      Noise_XN(s):              |      Noise_XNpsk3(s):                |
-|        -> e                    |        -> e                          |
-|        <- e, ee                |        <- e, ee                      |
-|        -> s, se                |        -> s, se, psk                 |
+|     XN(s):                     |      XNpsk3(s):                      |
+|       -> e                     |        -> e                          |
+|       <- e, ee                 |        <- e, ee                      |
+|       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+
-|      Noise_XK(s, rs):          |      Noise_XKpsk3(s, rs):            |
-|        <- s                    |        <- s                          |
-|        ...                     |        ...                           |
-|        -> e, es                |        -> e, es                      |
-|        <- e, ee                |        <- e, ee                      |
-|        -> s, se                |        -> s, se, psk                 |
+|     XK(s, rs):                 |      XKpsk3(s, rs):                  |
+|       <- s                     |        <- s                          |
+|       ...                      |        ...                           |
+|       -> e, es                 |        -> e, es                      |
+|       <- e, ee                 |        <- e, ee                      |
+|       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+
-|      Noise_XX(s, rs):          |      Noise_XXpsk3(s, rs):            |
-|        -> e                    |        -> e                          |
-|        <- e, ee, s, es         |        <- e, ee, s, es               |
-|        -> s, se                |        -> s, se, psk                 |
+|     XX(s, rs):                 |      XXpsk3(s, rs):                  |
+|       -> e                     |        -> e                          |
+|       <- e, ee, s, es          |        <- e, ee, s, es               |
+|       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+   
-|        Noise_KN(s):            |       Noise_KNpsk0(s):               |
-|          -> s                  |         -> s                         |
-|          ...                   |         ...                          |
-|          -> e                  |         -> psk, e                    |
-|          <- e, ee, se          |         <- e, ee, se                 |
+|     KN(s):                     |       KNpsk0(s):                     |
+|       -> s                     |         -> s                         |
+|       ...                      |         ...                          |
+|       -> e                     |         -> psk, e                    |
+|       <- e, ee, se             |         <- e, ee, se                 |
 +--------------------------------+--------------------------------------+   
-|        Noise_KN(s):            |       Noise_KNpsk2(s):               |
-|          -> s                  |         -> s                         |
-|          ...                   |         ...                          |
-|          -> e                  |         -> e                         |
-|          <- e, ee, se          |         <- e, ee, se, psk            |
+|     KN(s):                     |       KNpsk2(s):                     |
+|       -> s                     |         -> s                         |
+|       ...                      |         ...                          |
+|       -> e                     |         -> e                         |
+|       <- e, ee, se             |         <- e, ee, se, psk            |
 +--------------------------------+--------------------------------------+
-|        Noise_KK(s, rs):        |       Noise_KKpsk0(s, rs):           |
-|          -> s                  |         -> s                         |
-|          <- s                  |         <- s                         |
-|          ...                   |         ...                          |
-|          -> e, es, ss          |         -> psk, e, es, ss            |
-|          <- e, ee, se          |         <- e, ee, se                 |
+|     KK(s, rs):                 |       KKpsk0(s, rs):                 |
+|       -> s                     |         -> s                         |
+|       <- s                     |         <- s                         |
+|       ...                      |         ...                          |
+|       -> e, es, ss             |         -> psk, e, es, ss            |
+|       <- e, ee, se             |         <- e, ee, se                 |
 +--------------------------------+--------------------------------------+
-|        Noise_KK(s, rs):        |       Noise_KKpsk2(s, rs):           |
-|          -> s                  |         -> s                         |
-|          <- s                  |         <- s                         |
-|          ...                   |         ...                          |
-|          -> e, es, ss          |         -> e, es, ss                 |
-|          <- e, ee, se          |         <- e, ee, se, psk            |
+|     KK(s, rs):                 |       KKpsk2(s, rs):                 |
+|       -> s                     |         -> s                         |
+|       <- s                     |         <- s                         |
+|       ...                      |         ...                          |
+|       -> e, es, ss             |         -> e, es, ss                 |
+|       <- e, ee, se             |         <- e, ee, se, psk            |
 +--------------------------------+--------------------------------------+
-|         Noise_KX(s, rs):       |        Noise_KXpsk2(s, rs):          |
-|           -> s                 |          -> s                        |
-|           ...                  |          ...                         |
-|           -> e                 |          -> e                        |
-|           <- e, ee, se, s, es  |          <- e, ee, se, s, es, psk    |
+|     KX(s, rs):                 |        KXpsk2(s, rs):                |
+|       -> s                     |          -> s                        |
+|       ...                      |          ...                         |
+|       -> e                     |          -> e                        |
+|       <- e, ee, se, s, es      |          <- e, ee, se, s, es, psk    |
 +--------------------------------+--------------------------------------+
-|         Noise_IN(s):           |        Noise_INpsk1(s):              |
-|           -> e, s              |          -> e, s, psk                |
-|           <- e, ee, se         |          <- e, ee, se                |
+|     IN(s):                     |        INpsk1(s):                    |
+|       -> e, s                  |          -> e, s, psk                |
+|       <- e, ee, se             |          <- e, ee, se                |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|         Noise_IN(s):           |        Noise_INpsk2(s):              |
-|           -> e, s              |          -> e, s                     |
-|           <- e, ee, se         |          <- e, ee, se, psk           |
+|     IN(s):                     |        INpsk2(s):                    |
+|       -> e, s                  |          -> e, s                     |
+|       <- e, ee, se             |          <- e, ee, se, psk           |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|         Noise_IK(s, rs):       |        Noise_IKpsk1(s, rs):          |
-|           <- s                 |          <- s                        |
-|           ...                  |          ...                         |
-|           -> e, es, s, ss      |          -> e, es, s, ss, psk        |
-|           <- e, ee, se         |          <- e, ee, se                |
+|     IK(s, rs):                 |        IKpsk1(s, rs):                |
+|       <- s                     |          <- s                        |
+|       ...                      |          ...                         |
+|       -> e, es, s, ss          |          -> e, es, s, ss, psk        |
+|       <- e, ee, se             |          <- e, ee, se                |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|         Noise_IK(s, rs):       |        Noise_IKpsk2(s, rs):          |
-|           <- s                 |          <- s                        |
-|           ...                  |          ...                         |
-|           -> e, es, s, ss      |          -> e, es, s, ss             |
-|           <- e, ee, se         |          <- e, ee, se, psk           |
+|     IK(s, rs):                 |        IKpsk2(s, rs):                |
+|       <- s                     |          <- s                        |
+|       ...                      |          ...                         |
+|       -> e, es, s, ss          |          -> e, es, s, ss             |
+|       <- e, ee, se             |          <- e, ee, se, psk           |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|         Noise_IX(s, rs):       |        Noise_IXpsk2(s, rs):          |
-|           -> e, s              |          -> e, s                     |
-|           <- e, ee, se, s, es  |          <- e, ee, se, s, es, psk    |
+|     IX(s, rs):                 |        IXpsk2(s, rs):                |
+|       -> e, s                  |          -> e, s                     |
+|       <- e, ee, se, s, es      |          <- e, ee, se, s, es, psk    |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
 
 The above list does not exhaust all possible patterns that can be formed with
 these modifiers.  In particular, any of these PSK modifiers can be safely
 applied to any previously named pattern, resulting in patterns like
-`Noise_IKpsk0`, `Noise_KKpsk1`, or even `Noise_XXpsk0+psk3`, which aren't
+`IKpsk0`, `KKpsk1`, or even `XXpsk0+psk3`, which aren't
 listed above.
 
 This still doesn't exhaust all the ways that `"psk"` tokens could be used
@@ -1420,37 +1422,34 @@ message is processed succesfully.
 This section defines the **Noise Pipe** protocol.  This protocol uses
 three handshake patterns - two defined previously, and a new one.  These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:
 
-    Noise_XX(s, rs):  
+    XX(s, rs):  
       -> e
       <- e, ee, s, es
       -> s, se
 
-    Noise_IK(s, rs):                   
+    IK(s, rs):                   
       <- s                         
       ...
       -> e, es, s, ss          
       <- e, ee, se
 
-\newpage
-&nbsp;
-
-    Noise_XXfallback(e, s, rs):                   
+    XXfallback(e, s, rs):                   
       -> e
       ...
       <- e, ee, s, es
       -> s, se
 
-The `Noise_XX` pattern is used for a **full handshake** if the parties haven't
+The `XX` pattern is used for a **full handshake** if the parties haven't
 communicated before, after which the initiator can cache the responder's static
 public key.  
 
-The `Noise_IK` pattern is used for a **zero-RTT handshake**.  
+The `IK` pattern is used for a **zero-RTT handshake**.  
 
-The `Noise_XXfallback` pattern is used if the responder fails to decrypt the
-first `Noise_IK` message (perhaps due to changing a static key).  In this case
-the responder will switch to a **fallback handshake** using `Noise_XXfallback`,
-which is identical to `Noise_XX` except the ephemeral public key from the first
-`Noise_IK` message is used as the initiator's pre-message.
+The `XXfallback` pattern is used if the responder fails to decrypt the
+first `IK` message (perhaps due to changing a static key).  In this case
+the responder will switch to a **fallback handshake** using `XXfallback`,
+which is identical to `XX` except the ephemeral public key from the first
+`IK` message is used as the initiator's pre-message.
 
 
 10.4. Handshake indistinguishability
@@ -1467,15 +1466,15 @@ This is fairly easy:
    a constant size, regardless of which handshake is executed.
 
  * The responder will attempt to decrypt the first message as a `NoiseIK` message,
-   and will fallback to `Noise_XXfallback` if decryption fails.
+   and will fallback to `XXfallback` if decryption fails.
 
- * An initiator who sends a `Noise_IK` initial message can use trial decryption
-   to differentiate between a response using `Noise_IK` or `Noise_XXfallback`. 
+ * An initiator who sends a `IK` initial message can use trial decryption
+   to differentiate between a response using `IK` or `XXfallback`. 
 
  * An initiator attempting a full handshake will send an ephemeral public key, then
- random padding, and will use `Noise_XXfallback` to handle the response.
- Note that `Noise_XX` isn't used, because the server can't
- distinguish a `Noise_XX` message from a failed `Noise_IK` attempt by using trial decryption.
+ random padding, and will use `XXfallback` to handle the response.
+ Note that `XX` isn't used, because the server can't
+ distinguish a `XX` message from a failed `IK` attempt by using trial decryption.
 
 This leaves the Noise ephemeral public keys in the clear.  Ephemeral public
 keys are randomly chosen DH public values, but they will typically have enough
@@ -1492,17 +1491,17 @@ Elligator [@elligator] could be used.
 
 Consider a protocol where an initiator will authenticate herself if the responder
 requests it.  This could be viewed as the initiator choosing between patterns
-like `Noise_NX` and `Noise_XX` based on some value inside the responder's first
+like `NX` and `XX` based on some value inside the responder's first
 handshake payload.  
 
 Noise doesn't directly support this.  Instead, this could be simulated by
-always executing `Noise_XX`.  The initiator can simulate the `Noise_NX` case by
+always executing `XX`.  The initiator can simulate the `NX` case by
 sending a **dummy static public key** if authentication is not requested.  The
 value of the dummy public key doesn't matter.
 
 This technique is simple, since it allows use of a single handshake pattern.
 It also doesn't reveal which option was chosen from message sizes or
-computation time.  It could be extended to allow a `Noise_XX` pattern to
+computation time.  It could be extended to allow a `XX` pattern to
 support any permutation of authentications (initiator only, responder only,
 both, or none).  
 
