@@ -1551,9 +1551,13 @@ message alongside that message.  On receiving such a message the recipient
 would call the `SetNonce()` function on the receiving `CipherState` using the
 received `n` value.  
 
-Recipients doing this must track the received `n` values
-for which decryption was successful and reject any message which repeats such a
-value, to prevent replay attacks.
+Recipients doing this must track the received `n` values for which decryption
+was successful and reject any message which repeats such a value, to prevent
+replay attacks.
+
+Note that lossy and out-of-order message delivery introduces many other concerns
+(including out-of-order handshake messages and denial of service risks) which
+are outside the scope of this document.
 
 11.5. Half-duplex protocols
 ----------------------------
