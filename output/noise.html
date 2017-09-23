@@ -231,7 +231,7 @@
 </ul>
 <p>A <code>SymmetricState</code> responds to the following functions:</p>
 <ul>
-<li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>: Takes an arbitrary-length <code>protocol_name</code> byte sequence (see <a href="#protocol-names">Section 8</a>). Executes the following steps:</p>
+<li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>: Takes an arbitrary-length <code>protocol_name</code> byte sequence (see <a href="#protocol-names-and-modifiers">Section 8</a>). Executes the following steps:</p>
 <ul>
 <li><p>If <code>protocol_name</code> is less than or equal to <code>HASHLEN</code> bytes in length, sets <code>h</code> equal to <code>protocol_name</code> with zero bytes appended to make <code>HASHLEN</code> bytes. Otherwise sets <code>h = HASH(protocol_name)</code>.</p></li>
 <li><p>Sets <code>ck = h</code>.</p></li>
@@ -282,7 +282,7 @@
 <p>Takes a set of DH key pairs <code>(s, e)</code> and public keys <code>(rs, re)</code> for initializing local variables, any of which may be empty. Public keys are only passed in if the <code>handshake_pattern</code> uses pre-messages (see <a href="#handshake-patterns">Section 7</a>). The ephemeral values <code>(e, re)</code> are typically left empty, since they are created and exchanged during the handshake; but there are exceptions (see <a href="#fallback-patterns">Section 10.1</a>).</p>
 <p>Performs the following steps:</p>
 <ul>
-<li><p>Derives a <code>protocol_name</code> byte sequence by combining the names for the handshake pattern and crypto functions, as specified in <a href="#protocol-names">Section 8</a>. Calls <code>InitializeSymmetric(protocol_name)</code>.</p></li>
+<li><p>Derives a <code>protocol_name</code> byte sequence by combining the names for the handshake pattern and crypto functions, as specified in <a href="#protocol-names-and-modifiers">Section 8</a>. Calls <code>InitializeSymmetric(protocol_name)</code>.</p></li>
 <li><p>Calls <code>MixHash(prologue)</code>.</p></li>
 <li><p>Sets the <code>initiator</code>, <code>s</code>, <code>e</code>, <code>rs</code>, and <code>re</code> variables to the corresponding arguments.</p></li>
 <li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 7</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first.</p></li>
@@ -737,7 +737,7 @@
 </ul>
 <p>This rule guarantees that a <code>k</code> derived from a PSK will never be used for encryption unless it has also been randomized by <code>MixKey(e.public_key)</code> using a self-chosen ephemeral public key.</p>
 <h2 id="pattern-modifiers">9.4. Pattern modifiers</h2>
-<p>To indicate PSK mode and the placement of the <code>&quot;psk&quot;</code> token, pattern modifiers are used (see <a href="#protocol-names">Section 8</a>). The modifier <code>psk0</code> places a <code>&quot;psk&quot;</code> token at the beginning of the first handshake message. The modifiers <code>psk1</code>, <code>psk2</code>, etc., place a <code>&quot;psk&quot;</code> token at the end of the first, second, etc., handshake message.</p>
+<p>To indicate PSK mode and the placement of the <code>&quot;psk&quot;</code> token, pattern modifiers are used (see <a href="#protocol-names-and-modifiers">Section 8</a>). The modifier <code>psk0</code> places a <code>&quot;psk&quot;</code> token at the beginning of the first handshake message. The modifiers <code>psk1</code>, <code>psk2</code>, etc., place a <code>&quot;psk&quot;</code> token at the end of the first, second, etc., handshake message.</p>
 <p>Any pattern using one of these modifiers must process tokens according to the rules in <a href="#handshake-tokens%5D">Section 9.2</a>, and must follow the validity rule in <a href="#validity-rule">Section 9.3</a>.</p>
 <p>The table below lists some unmodified one-way patterns on the left, and the recommended PSK pattern on the right:</p>
 <table>

@@ -398,7 +398,7 @@ variables:
 A `SymmetricState` responds to the following functions:   
  
   * **`InitializeSymmetric(protocol_name)`**:  Takes an arbitrary-length
-   `protocol_name` byte sequence (see [Section 8](#protocol-names)).  Executes the following steps:
+   `protocol_name` byte sequence (see [Section 8](#protocol-names-and-modifiers)).  Executes the following steps:
 
       * If `protocol_name` is less than or equal to `HASHLEN` bytes in length,
         sets `h` equal to `protocol_name` with zero bytes appended to make
@@ -485,7 +485,7 @@ A `HandshakeState` responds to the following functions:
 
       * Derives a `protocol_name` byte sequence by combining the names for the
         handshake pattern and crypto functions, as specified in [Section
-        8](#protocol-names). Calls `InitializeSymmetric(protocol_name)`.
+        8](#protocol-names-and-modifiers). Calls `InitializeSymmetric(protocol_name)`.
 
       * Calls `MixHash(prologue)`.
 
@@ -1195,7 +1195,7 @@ using a self-chosen ephemeral public key.
 ------------
 
 To indicate PSK mode and the placement of the `"psk"` token, pattern modifiers
-are used (see [Section 8](#protocol-names)).  The modifier `psk0` places a `"psk"`
+are used (see [Section 8](#protocol-names-and-modifiers)).  The modifier `psk0` places a `"psk"`
 token at the beginning of the first handshake message.  The modifiers
 `psk1`, `psk2`, etc., place a `"psk"` token at the end of the
 first, second, etc., handshake message.  
