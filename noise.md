@@ -1535,8 +1535,9 @@ Note that rekey only updates the cipherstate's `k` value, it doesn't reset the c
 
 In some use cases, Noise transport messages might be lost or arrive
 out-of-order (e.g. when messages are sent over UDP).  To handle this, an
-application protocol can attach the `n` value to each message, and recipients
-can call the `SetNonce()` function on the receiving `CipherState` using the
+application protocol can send the `n` value used for encrypting each transport
+message alongside that message.  On receiving such a message the recipient
+would call the `SetNonce()` function on the receiving `CipherState` using the
 received nonce.  Recipients doing this must track the received `n` values and
 reject repeated values to prevent replay attacks.
 
@@ -1682,14 +1683,14 @@ An application built on Noise must consider several issues:
 
 This section collects various security considerations:
 
- * **Authentication**:  A Noise protocol with static public keys checks that
+ * **Authentication**:  A Noise protocol with static public keys verifies that
    the corresponding private keys are possessed by the participant(s), but it's
-   up to the application to authenticate that the public keys are correct.
-   Methods for doing so include certificates which sign the public key (and
-   which may be passed in handshake payloads), preconfigured lists of public
-   keys, or "pinning" / "key-continuity" approaches where parties remember
-   public keys they encounter and check whether the same party presents the
-   same public key in the future.
+   up to the application to determine whether the remote party's static public
+   key is acceptable.  Methods for doing so include certificates which sign the
+   public key (and which may be passed in handshake payloads), preconfigured
+   lists of public keys, or "pinning" / "key-continuity" approaches where
+   parties remember public keys they encounter and check whether the same party
+   presents the same public key in the future.
 
  * **Session termination**:  Preventing attackers from truncating a stream of
    transport messages is an application responsibility.  See previous section.
