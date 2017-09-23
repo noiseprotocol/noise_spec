@@ -1117,7 +1117,7 @@ described later in this document modify the base pattern to either
 incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.
 
 A pattern modifier is named with a lowercase alphanumeric ASCII string which
-is appended to the base pattern as specified below.
+is appended to the base pattern as described below:
 
 The first modifier added onto a base pattern is simply appended.  Thus
 the `fallback` modifier, when added to the `XX` base pattern, produces `XXfallback`.
@@ -1126,7 +1126,7 @@ modifier would result in the name section `XXfallback+psk0`, or a
 full protocol name such as `Noise_XXfallback+psk0_25519_AESGCM_SHA256`.
 
 In some cases the sequential order of modifiers will specify different
-protocols.  However, if the order of modifiers does not matter, they are
+protocols.  However, if the order of some modifiers does not matter, then they are
 required to be sorted alphabetically (this is an arbitrary convention to ensure
 interoperability).
 
@@ -1538,8 +1538,11 @@ out-of-order (e.g. when messages are sent over UDP).  To handle this, an
 application protocol can send the `n` value used for encrypting each transport
 message alongside that message.  On receiving such a message the recipient
 would call the `SetNonce()` function on the receiving `CipherState` using the
-received nonce.  Recipients doing this must track the received `n` values and
-reject repeated values to prevent replay attacks.
+received `n` value.  
+
+Recipients doing this must track the received `n` values
+for which decryption was successful and reject any message which repeats such a
+value, to prevent replay attacks.
 
 11.5. Half-duplex protocols
 ----------------------------
