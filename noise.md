@@ -528,7 +528,7 @@ A `HandshakeState` responds to the following functions:
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
     message's plaintext payload into.  Performs the following steps, aborting
-    if any `EncryptAndHash()` call returns an error:
+    if any `DecryptAndHash()` call returns an error:
 
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
