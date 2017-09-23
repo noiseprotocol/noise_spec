@@ -302,7 +302,7 @@
 <li><p>Appends <code>EncryptAndHash(payload)</code> to the buffer.</p></li>
 <li><p>If there are no more message patterns returns two new <code>CipherState</code> objects by calling <code>Split()</code>.</p></li>
 </ul></li>
-<li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps, aborting if any <code>EncryptAndHash()</code> call returns an error:</p>
+<li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps, aborting if any <code>DecryptAndHash()</code> call returns an error:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
