@@ -373,6 +373,9 @@ calls will signal an error to the caller.
 
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
+  * **`SetNonce(nonce)`**: Sets `n = nonce`.  This function is only used for
+    handling out-of-order nonces, as described in [Section 11.3](#out-of-order-nonces).  
+
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
     `ENCRYPT(k, n++, ad, plaintext)`.  Otherwise returns `plaintext`.
 
@@ -419,8 +422,6 @@ A `SymmetricState` responds to the following functions:
       * Calls `MixHash(temp_h)`.
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
-
-\newpage
 
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
     plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.  Note that if 
@@ -522,8 +523,6 @@ A `HandshakeState` responds to the following functions:
 
       * If there are no more message patterns returns two new `CipherState`
         objects by calling `Split()`.
-
-\newpage
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
@@ -680,8 +679,6 @@ this check could result in subtle but catastrophic security flaws.
 
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
-
-\newpage
 
 7.2. One-way patterns 
 ----------------------
@@ -1236,6 +1233,7 @@ useful here than `psk0`.
 
 Following similar logic, we can define the most likely interactive PSK patterns:
 
+\newpage
 
 +--------------------------------+--------------------------------------+       
 |     Noise_NN():                |     Noise_NNpsk0():                  |
@@ -1529,6 +1527,16 @@ It is up to to the application if and when to perform rekey.  For example:
 Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.
 
 Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
+
+11.3. Out-of-order nonces
+--------------------------
+
+In some use cases, Noise transport messages might be lost or arrive
+out-of-order (e.g. when messages are sent over UDP).  To handle this, an
+application protocol can attach the `n` value to each message, and recipients
+can call the `SetNonce()` function on the receiving `CipherState` using the
+received nonce.  Recipients doing this must track the received `n` values and
+reject repeated values to prevent replay attacks.
 
 11.4. Half-duplex protocols
 ----------------------------

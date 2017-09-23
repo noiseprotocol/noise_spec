@@ -65,6 +65,7 @@
 <li><a href="#dummy-keys">11.1. Dummy keys</a></li>
 <li><a href="#channel-binding">11.2. Channel binding</a></li>
 <li><a href="#rekey">11.3. Rekey</a></li>
+<li><a href="#out-of-order-nonces">11.3. Out-of-order nonces</a></li>
 <li><a href="#half-duplex-protocols">11.4. Half-duplex protocols</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</a><ul>
@@ -217,6 +218,7 @@
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
+<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order nonces, as described in <a href="#out-of-order-nonces">Section 11.3</a>.</p></li>
 <li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If <code>k</code> is non-empty returns <code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If <code>k</code> is non-empty returns <code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns <code>ciphertext</code>. If an authentication failure occurs in <code>DECRYPT()</code> then <code>n</code> is not incremented and an error is signaled to the caller.</p></li>
 <li><p><strong><code>Rekey()</code></strong>: Sets <code>k = REKEY(k)</code>.</p></li>
@@ -249,9 +251,6 @@
 <li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
-</ul>
-
-<ul>
 <li><p><strong><code>EncryptAndHash(plaintext)</code></strong>: Sets <code>ciphertext = EncryptWithAd(h, plaintext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>ciphertext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>EncryptWithAd()</code> call will set <code>ciphertext</code> equal to <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets <code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>DecryptWithAd()</code> call will set <code>plaintext</code> equal to <code>ciphertext</code>.</p></li>
 <li><strong><code>Split()</code></strong>: Returns a pair of <code>CipherState</code> objects for encrypting transport messages. Executes the following steps, where <code>zerolen</code> is a zero-length byte sequence:
@@ -303,9 +302,6 @@
 <li><p>Appends <code>EncryptAndHash(payload)</code> to the buffer.</p></li>
 <li><p>If there are no more message patterns returns two new <code>CipherState</code> objects by calling <code>Split()</code>.</p></li>
 </ul></li>
-</ul>
-
-<ul>
 <li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
@@ -367,7 +363,6 @@
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>
 <p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
-
 <h2 id="one-way-patterns">7.2. One-way patterns</h2>
 <p>The following example handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
 <p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#pattern-validity">Section 7.1</a>).</p>
@@ -787,6 +782,7 @@
 </table>
 <p>Note that the <code>psk1</code> modifier is recommended for <code>Noise_X</code>. This is because <code>Noise_X</code> transmits the initiator's static public key. Because PSKs are typically pairwise, the responder likely cannot determine the PSK until it has decrypted the initiator's static public key. Thus, <code>psk1</code> is likely to be more useful here than <code>psk0</code>.</p>
 <p>Following similar logic, we can define the most likely interactive PSK patterns:</p>
+
 <table>
 <colgroup>
 <col width="45%" />
@@ -1071,6 +1067,8 @@ Noise_IK(s, rs):
 </ul>
 <p>Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.</p>
 <p>Note that rekey only updates the cipherstate's <code>k</code> value, it doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
+<h2 id="out-of-order-nonces">11.3. Out-of-order nonces</h2>
+<p>In some use cases, Noise transport messages might be lost or arrive out-of-order (e.g. when messages are sent over UDP). To handle this, an application protocol can attach the <code>n</code> value to each message, and recipients can call the <code>SetNonce()</code> function on the receiving <code>CipherState</code> using the received nonce. Recipients doing this must track the received <code>n</code> values and reject repeated values to prevent replay attacks.</p>
 <h2 id="half-duplex-protocols">11.4. Half-duplex protocols</h2>
 <p>In some application protocols the parties strictly alternate sending messages. In this case Noise can be used in a &quot;half-duplex&quot; mode <span class="citation">[<a href="#ref-blinker">6</a>]</span> where the first <code>CipherState</code> returned by <code>Split()</code> is used for encrypting messages in both directions. This provides a small optimization, since <code>Split()</code> only has to output a single <code>CipherState</code>, and both parties only need to store a single <code>CipherState</code> during the transport phase.</p>
 <p>This feature must be used with extreme caution. In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same <code>CipherState</code> and nonce value.</p>
@@ -1258,7 +1256,7 @@ Noise_IK(s, rs):
 <li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
-<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
+<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial feedback.</p>
 <p>Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld provided helpful input and feedback on the key derivation design.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
