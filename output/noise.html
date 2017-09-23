@@ -65,8 +65,8 @@
 <li><a href="#dummy-keys">11.1. Dummy keys</a></li>
 <li><a href="#channel-binding">11.2. Channel binding</a></li>
 <li><a href="#rekey">11.3. Rekey</a></li>
-<li><a href="#out-of-order-nonces">11.3. Out-of-order nonces</a></li>
-<li><a href="#half-duplex-protocols">11.4. Half-duplex protocols</a></li>
+<li><a href="#out-of-order-nonces">11.4. Out-of-order nonces</a></li>
+<li><a href="#half-duplex-protocols">11.5. Half-duplex protocols</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</a><ul>
 <li><a href="#the-25519-dh-functions">12.1. The <code>25519</code> DH functions</a></li>
@@ -218,7 +218,7 @@
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
-<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order nonces, as described in <a href="#out-of-order-nonces">Section 11.3</a>.</p></li>
+<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order nonces, as described in <a href="#out-of-order-nonces">Section 11.4</a>.</p></li>
 <li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If <code>k</code> is non-empty returns <code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If <code>k</code> is non-empty returns <code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns <code>ciphertext</code>. If an authentication failure occurs in <code>DECRYPT()</code> then <code>n</code> is not incremented and an error is signaled to the caller.</p></li>
 <li><p><strong><code>Rekey()</code></strong>: Sets <code>k = REKEY(k)</code>.</p></li>
@@ -288,7 +288,7 @@
 <li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 7</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first.</p></li>
 <li><p>Sets <code>message_patterns</code> to the message patterns from <code>handshake_pattern</code>.</p></li>
 </ul></li>
-<li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps:</p>
+<li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps, aborting if any <code>EncryptAndHash()</code> call returns an error:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
@@ -302,7 +302,7 @@
 <li><p>Appends <code>EncryptAndHash(payload)</code> to the buffer.</p></li>
 <li><p>If there are no more message patterns returns two new <code>CipherState</code> objects by calling <code>Split()</code>.</p></li>
 </ul></li>
-<li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps:</p>
+<li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps, aborting if any <code>EncryptAndHash()</code> call returns an error:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
@@ -1067,9 +1067,9 @@ Noise_IK(s, rs):
 </ul>
 <p>Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.</p>
 <p>Note that rekey only updates the cipherstate's <code>k</code> value, it doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
-<h2 id="out-of-order-nonces">11.3. Out-of-order nonces</h2>
+<h2 id="out-of-order-nonces">11.4. Out-of-order nonces</h2>
 <p>In some use cases, Noise transport messages might be lost or arrive out-of-order (e.g. when messages are sent over UDP). To handle this, an application protocol can attach the <code>n</code> value to each message, and recipients can call the <code>SetNonce()</code> function on the receiving <code>CipherState</code> using the received nonce. Recipients doing this must track the received <code>n</code> values and reject repeated values to prevent replay attacks.</p>
-<h2 id="half-duplex-protocols">11.4. Half-duplex protocols</h2>
+<h2 id="half-duplex-protocols">11.5. Half-duplex protocols</h2>
 <p>In some application protocols the parties strictly alternate sending messages. In this case Noise can be used in a &quot;half-duplex&quot; mode <span class="citation">[<a href="#ref-blinker">6</a>]</span> where the first <code>CipherState</code> returned by <code>Split()</code> is used for encrypting messages in both directions. This provides a small optimization, since <code>Split()</code> only has to output a single <code>CipherState</code>, and both parties only need to store a single <code>CipherState</code> during the transport phase.</p>
 <p>This feature must be used with extreme caution. In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same <code>CipherState</code> and nonce value.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</h1>
@@ -1133,6 +1133,7 @@ Noise_IK(s, rs):
 <h1 id="security-considerations">14. Security considerations</h1>
 <p>This section collects various security considerations:</p>
 <ul>
+<li><p><strong>Authentication</strong>: A Noise protocol with static public keys checks that the corresponding private keys are possessed by the participant(s), but it's up to the application to authenticate that the public keys are correct. Methods for doing so include certificates which sign the public key (and which may be passed in handshake payloads), preconfigured lists of public keys, or &quot;pinning&quot; / &quot;key-continuity&quot; approaches where parties remember public keys they encounter and check whether the same party presents the same public key in the future.</p></li>
 <li><p><strong>Session termination</strong>: Preventing attackers from truncating a stream of transport messages is an application responsibility. See previous section.</p></li>
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with fallback handshakes, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
 <li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK.</p></li>

@@ -374,7 +374,7 @@ calls will signal an error to the caller.
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
   * **`SetNonce(nonce)`**: Sets `n = nonce`.  This function is only used for
-    handling out-of-order nonces, as described in [Section 11.3](#out-of-order-nonces).  
+    handling out-of-order nonces, as described in [Section 11.4](#out-of-order-nonces).  
 
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
     `ENCRYPT(k, n++, ad, plaintext)`.  Otherwise returns `plaintext`.
@@ -501,7 +501,8 @@ A `HandshakeState` responds to the following functions:
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
-   which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps:
+   which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps, aborting
+   if any `EncryptAndHash()` call returns an error:
   
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
@@ -526,7 +527,8 @@ A `HandshakeState` responds to the following functions:
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
-    message's plaintext payload into.  Performs the following steps:
+    message's plaintext payload into.  Performs the following steps, aborting
+    if any `EncryptAndHash()` call returns an error:
 
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
@@ -1528,7 +1530,7 @@ Applications must make these decisions on their own; there are no modifiers whic
 
 Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
-11.3. Out-of-order nonces
+11.4. Out-of-order nonces
 --------------------------
 
 In some use cases, Noise transport messages might be lost or arrive
@@ -1538,7 +1540,7 @@ can call the `SetNonce()` function on the receiving `CipherState` using the
 received nonce.  Recipients doing this must track the received `n` values and
 reject repeated values to prevent replay attacks.
 
-11.4. Half-duplex protocols
+11.5. Half-duplex protocols
 ----------------------------
 In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a "half-duplex" mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions.  This provides a small optimization, since `Split()` only has to output a single `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
 
@@ -1680,6 +1682,15 @@ An application built on Noise must consider several issues:
 
 This section collects various security considerations:
 
+ * **Authentication**:  A Noise protocol with static public keys checks that
+   the corresponding private keys are possessed by the participant(s), but it's
+   up to the application to authenticate that the public keys are correct.
+   Methods for doing so include certificates which sign the public key (and
+   which may be passed in handshake payloads), preconfigured lists of public
+   keys, or "pinning" / "key-continuity" approaches where parties remember
+   public keys they encounter and check whether the same party presents the
+   same public key in the future.
+
  * **Session termination**:  Preventing attackers from truncating a stream of
    transport messages is an application responsibility.  See previous section.
 
@@ -1716,10 +1727,10 @@ This section collects various security considerations:
  * **Fresh ephemerals**:  Every party in a Noise protocol must send a fresh
    ephemeral public key prior to sending any encrypted data.  Ephemeral keys
    must never be reused.  Violating these rules is likely to cause catastrophic
-   key reuse. This is one rationale behind the patterns in [Section
-   7](#handshake-patterns), and the validity rules in [Section
-   7.1](#pattern-validity).  It's also the reason why one-way handshakes only
-   allow transport messages from the sender, not the recipient.
+   key reuse. This is one rationale behind the patterns in [Section   7](#handshake-patterns), 
+   and the validity rules in [Section 7.1](#pattern-validity).  It's also the 
+   reason why one-way handshakes only allow transport messages from the sender, 
+   not the recipient.
 
  * **Protocol names**:  The protocol name used with `Initialize()` must
    uniquely identify the combination of handshake pattern and crypto functions
