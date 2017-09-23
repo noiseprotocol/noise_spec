@@ -374,7 +374,7 @@ calls will signal an error to the caller.
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
   * **`SetNonce(nonce)`**: Sets `n = nonce`.  This function is only used for
-    handling out-of-order nonces, as described in [Section 11.4](#out-of-order-nonces).  
+    handling out-of-order transport messages, as described in [Section 11.4](#out-of-order-transport-messages).  
 
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
     `ENCRYPT(k, n++, ad, plaintext)`.  Otherwise returns `plaintext`.
@@ -1530,7 +1530,7 @@ Applications must make these decisions on their own; there are no modifiers whic
 
 Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
-11.4. Out-of-order nonces
+11.4. Out-of-order transport messages
 --------------------------
 
 In some use cases, Noise transport messages might be lost or arrive

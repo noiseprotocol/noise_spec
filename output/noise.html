@@ -65,7 +65,7 @@
 <li><a href="#dummy-keys">11.1. Dummy keys</a></li>
 <li><a href="#channel-binding">11.2. Channel binding</a></li>
 <li><a href="#rekey">11.3. Rekey</a></li>
-<li><a href="#out-of-order-nonces">11.4. Out-of-order nonces</a></li>
+<li><a href="#out-of-order-transport-messages">11.4. Out-of-order transport messages</a></li>
 <li><a href="#half-duplex-protocols">11.5. Half-duplex protocols</a></li>
 </ul></li>
 <li><a href="#dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</a><ul>
@@ -218,7 +218,7 @@
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
-<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order nonces, as described in <a href="#out-of-order-nonces">Section 11.4</a>.</p></li>
+<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order transport messages, as described in <a href="#out-of-order-transport-messages">Section 11.4</a>.</p></li>
 <li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If <code>k</code> is non-empty returns <code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If <code>k</code> is non-empty returns <code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns <code>ciphertext</code>. If an authentication failure occurs in <code>DECRYPT()</code> then <code>n</code> is not incremented and an error is signaled to the caller.</p></li>
 <li><p><strong><code>Rekey()</code></strong>: Sets <code>k = REKEY(k)</code>.</p></li>
@@ -1067,7 +1067,7 @@ Noise_IK(s, rs):
 </ul>
 <p>Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.</p>
 <p>Note that rekey only updates the cipherstate's <code>k</code> value, it doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
-<h2 id="out-of-order-nonces">11.4. Out-of-order nonces</h2>
+<h2 id="out-of-order-transport-messages">11.4. Out-of-order transport messages</h2>
 <p>In some use cases, Noise transport messages might be lost or arrive out-of-order (e.g. when messages are sent over UDP). To handle this, an application protocol can send the <code>n</code> value used for encrypting each transport message alongside that message. On receiving such a message the recipient would call the <code>SetNonce()</code> function on the receiving <code>CipherState</code> using the received <code>n</code> value.</p>
 <p>Recipients doing this must track the received <code>n</code> values for which decryption was successful and reject any message which repeats such a value, to prevent replay attacks.</p>
 <h2 id="half-duplex-protocols">11.5. Half-duplex protocols</h2>
