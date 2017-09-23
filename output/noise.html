@@ -251,6 +251,7 @@
 <li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to 32 bytes.</li>
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
+<li><p><strong><code>GetHandshakeHash()</code></strong>: Returns <code>h</code>. This function should only be called at the end of a handshake, i.e. after the <code>Split()</code> function has been called. This function is used for channel binding, as described in <a href="#channel-binding">Section 11.2</a></p></li>
 <li><p><strong><code>EncryptAndHash(plaintext)</code></strong>: Sets <code>ciphertext = EncryptWithAd(h, plaintext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>ciphertext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>EncryptWithAd()</code> call will set <code>ciphertext</code> equal to <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets <code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls <code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>. Note that if <code>k</code> is <code>empty</code>, the <code>DecryptWithAd()</code> call will set <code>plaintext</code> equal to <code>ciphertext</code>.</p></li>
 <li><strong><code>Split()</code></strong>: Returns a pair of <code>CipherState</code> objects for encrypting transport messages. Executes the following steps, where <code>zerolen</code> is a zero-length byte sequence:
@@ -1054,7 +1055,7 @@ Noise_IK(s, rs):
 <p>Similarly, <strong>dummy PSKs</strong> (e.g. a PSK of all zeros) would allow a protocol to optionally support PSKs.</p>
 <h2 id="channel-binding">11.2. Channel binding</h2>
 <p>Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
-<p>To support this, Noise libraries should expose the final value of h to the application as a <strong>handshake hash</strong> which uniquely identifies the Noise session.</p>
+<p>To support this, Noise libraries may call <code>GetHandshakeHash()</code> after the handshake is complete and expose the returned value to the application as a <strong>handshake hash</strong> which uniquely identifies the Noise session.</p>
 <p>Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a &quot;channel binding&quot; property: the token can't be used by the receiving party with a different sesssion.</p>
 <h2 id="rekey">11.3. Rekey</h2>
 <p>Parties might wish to periodically update their cipherstate keys using a one-way function, so that a compromise of cipherstate keys will not decrypt older messages. Periodic rekey might also be used to reduce the volume of data encrypted under a single cipher key (this is usually not important with good ciphers, though note the discussion on <code>AESGCM</code> data volumes in <a href="#security-considerations">Section 14</a>).</p>

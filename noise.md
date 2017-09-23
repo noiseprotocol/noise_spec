@@ -423,6 +423,11 @@ A `SymmetricState` responds to the following functions:
       * If `HASHLEN` is 64, then truncates `temp_k` to 32 bytes.
       * Calls `InitializeKey(temp_k)`.
 
+  * **`GetHandshakeHash()`**:  Returns `h`.  This function should only be
+    called at the end of a handshake, i.e. after the `Split()` function has
+    been called.  This function is used for channel binding, as described in
+    [Section 11.2](#channel-binding) 
+
   * **`EncryptAndHash(plaintext)`**: Sets `ciphertext = EncryptWithAd(h,
     plaintext)`, calls `MixHash(ciphertext)`, and returns `ciphertext`.  Note that if 
     `k` is `empty`, the `EncryptWithAd()` call will set `ciphertext` equal to  `plaintext`.
@@ -1506,11 +1511,17 @@ optionally support PSKs.
 
 11.2. Channel binding
 ---------------------
-Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.
 
-To support this, Noise libraries should expose the final value of h to the application as a **handshake hash** which uniquely identifies the Noise session.
+Parties might wish to execute a Noise protocol, then perform authentication at
+the application layer using signatures, passwords, or something else.
 
-Parties can then sign the handshake hash, or hash it along with their password, to get an authentication token which has a "channel binding" property: the token can't be used by the receiving party with a different sesssion.
+To support this, Noise libraries may call `GetHandshakeHash()` after the
+handshake is complete and expose the returned value to the application as a
+**handshake hash** which uniquely identifies the Noise session.
+
+Parties can then sign the handshake hash, or hash it along with their password,
+to get an authentication token which has a "channel binding" property: the
+token can't be used by the receiving party with a different sesssion.
 
 11.3. Rekey
 -----------
