@@ -218,7 +218,7 @@
 <ul>
 <li><p><strong><code>InitializeKey(key)</code></strong>: Sets <code>k = key</code>. Sets <code>n = 0</code>.</p></li>
 <li><p><strong><code>HasKey()</code></strong>: Returns true if <code>k</code> is non-empty, false otherwise.</p></li>
-<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is only used for handling out-of-order transport messages, as described in <a href="#out-of-order-transport-messages">Section 11.4</a>.</p></li>
+<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets <code>n = nonce</code>. This function is used for handling out-of-order transport messages, as described in <a href="#out-of-order-transport-messages">Section 11.4</a>.</p></li>
 <li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If <code>k</code> is non-empty returns <code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns <code>plaintext</code>.</p></li>
 <li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If <code>k</code> is non-empty returns <code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns <code>ciphertext</code>. If an authentication failure occurs in <code>DECRYPT()</code> then <code>n</code> is not incremented and an error is signaled to the caller.</p></li>
 <li><p><strong><code>Rekey()</code></strong>: Sets <code>k = REKEY(k)</code>.</p></li>
@@ -244,7 +244,7 @@
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
 <li><p><strong><code>MixHash(data)</code></strong>: Sets <code>h = HASH(h || data)</code>.</p></li>
-<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>: Executes the following steps:</p>
+<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>: This function is used for handling pre-shared symmetric keys, as described in <a href="#pre-shared-symmetric-keys">Section 9</a>. Executes the following steps:</p>
 <ul>
 <li>Sets <code>ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)</code>.</li>
 <li>Calls <code>MixHash(temp_h)</code>.</li>

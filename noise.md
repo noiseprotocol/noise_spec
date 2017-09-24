@@ -373,7 +373,7 @@ calls will signal an error to the caller.
 
   * **`HasKey()`**: Returns true if `k` is non-empty, false otherwise.
 
-  * **`SetNonce(nonce)`**: Sets `n = nonce`.  This function is only used for
+  * **`SetNonce(nonce)`**: Sets `n = nonce`.  This function is used for
     handling out-of-order transport messages, as described in [Section 11.4](#out-of-order-transport-messages).  
 
   * **`EncryptWithAd(ad, plaintext)`**:  If `k` is non-empty returns
@@ -416,7 +416,9 @@ A `SymmetricState` responds to the following functions:
 
   * **`MixHash(data)`**:  Sets `h = HASH(h || data)`.
 
-  * **`MixKeyAndHash(input_key_material)`**:  Executes the following steps:
+  * **`MixKeyAndHash(input_key_material)`**:  This function is used for
+    handling pre-shared symmetric keys, as described in [Section
+    9](#pre-shared-symmetric-keys). Executes the following steps:
   
       * Sets `ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)`.
       * Calls `MixHash(temp_h)`.
