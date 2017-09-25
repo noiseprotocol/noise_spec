@@ -1562,7 +1562,7 @@ are outside the scope of this document.
 
 11.5. Half-duplex protocols
 ----------------------------
-In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a "half-duplex" mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions.  This provides a small optimization, since `Split()` only has to output a single `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
+In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a "half-duplex" mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions, and the second `CipherState` returned by `Split()` is unused.  This allows some small optimizations, since `Split()` only has to calculate a single output `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
 
 This feature must be used with extreme caution.  In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same `CipherState` and nonce value.
 
