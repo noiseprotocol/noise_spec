@@ -673,9 +673,9 @@ Handshake patterns must be **valid** in the following senses:
     messages sent by any party).
 
  3. After performing a DH between a remote public key and any local private key
-    that is not an ephemeral private key, the local party must not send any
-    encrypted data (i.e. must not call `ENCRYPT()`) unless it has also
-    performed a DH between an ephemeral private key and the remote public key.  
+    that is not the ephemeral private key, the local party must not call
+    `ENCRYPT()` unless it has also performed a DH between the ephemeral
+    private key and the remote public key.  
 
 Patterns failing the first check are obviously nonsense.
 
