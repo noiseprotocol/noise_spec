@@ -799,18 +799,18 @@ The second character refers to the responder's static key:
 
 \newpage
 
-The `XX` pattern is the most generically useful, since it is efficient
-and supports mutual authentication and transmission of static public keys.
+The `XX` pattern is the most generically useful, since it supports mutual
+authentication and transmission of static public keys.
 
 All interactive patterns allow some encryption of handshake payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
-   public key (i.e. patterns ending in `"K"`) allow **zero-RTT** encryption,
+   public key (i.e. patterns ending in `K`) allow **zero-RTT** encryption,
    meaning the initiator can encrypt the first handshake payload.  
 
  * All interactive patterns allow **half-RTT** encryption of the first response
    payload, but the encryption only targets an initiator static public key in
-   patterns starting with "K" or "I".
+   patterns starting with `K` or `I`.
 
 The security properties for handshake payloads are usually weaker than the
 final security properties achieved by transport payloads, so these early
@@ -819,7 +819,7 @@ encryptions must be used with caution.
 
 
 In some patterns the security properties of transport payloads can also vary.
-In particular: patterns starting with "K" or "I" have the caveat that the
+In particular: patterns starting with `K` or `I` have the caveat that the
 responder is only guaranteed "weak" forward secrecy for the transport messages
 it sends until it receives a transport message from the initiator.  After
 receiving a transport message from the initiator, the responder becomes assured
@@ -1092,11 +1092,13 @@ The properties for the relevant public key are:
 |     IX             0              6      |
 +------------------------------------------+
 
+\newpage
+
 8. Protocol names and modifiers
 ===================
 
 To produce a **Noise protocol name** for `Initialize()` you concatenate the
-ASCII string `Noise_` with four underscore-separated name sections which
+ASCII string `"Noise_"` with four underscore-separated name sections which
 sequentially name the handshake pattern, the DH functions, the cipher
 functions, and then the hash functions.  The resulting name must be 255 bytes
 or less.  Examples:
@@ -1106,8 +1108,8 @@ or less.  Examples:
  * `Noise_IK_448_ChaChaPoly_BLAKE2b`
 
 Each name section must consist only of alphanumeric characters (i.e. characters
-in one of the ranges `A`...`Z`, `a`...`z`, and `0`...`9`), and the two special
-characters `+` and `/`.
+in one of the ranges `"A"`...`"Z"`, `"a"`...`"z"`, and `"0"`...`"9"`), and the two special
+characters `"+"` and `"/"`.
 
 Additional rules apply to each name section, as specified below.
 
@@ -1118,14 +1120,14 @@ A handshake pattern name section contains a handshake pattern name plus a
 sequence of zero or more **pattern modifiers**.
 
 The handshake pattern name must be an uppercase ASCII string containing only
-alphabetic characters (e.g. `XX` or `IK`).
+alphabetic characters (e.g. `"XX"` or `"IK"`).
 
 Pattern modifiers specify arbitrary extensions or modifications to the behavior
 specified by the handshake pattern.  For example, a modifier could be applied
 to a handshake pattern which transforms it into a different pattern according
 to some rule.  
 
-As examples of such a modifier, the `psk0` and `fallback` modifiers 
+As examples of such a modifier, the `"psk0"` and `"fallback"` modifiers 
 described later in this document modify the base pattern to either
 incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.
 
@@ -1133,10 +1135,10 @@ A pattern modifier is named with a lowercase alphanumeric ASCII string which
 is appended to the base pattern as described below:
 
 The first modifier added onto a base pattern is simply appended.  Thus
-the `fallback` modifier, when added to the `XX` pattern, produces `XXfallback`.
-Additional modifiers are separated with a plus sign.  Thus, adding the `psk0`
-modifier would result in the name section `XXfallback+psk0`, or a
-full protocol name such as `Noise_XXfallback+psk0_25519_AESGCM_SHA256`.
+the `"fallback"` modifier, when added to the `"XX"` pattern, produces `"XXfallback"`.
+Additional modifiers are separated with a plus sign.  Thus, adding the `"psk0"`
+modifier would result in the name section `"XXfallback+psk0"`, or a
+full protocol name such as `"Noise_XXfallback+psk0_25519_AESGCM_SHA256"`.
 
 In some cases the sequential ordering of modifiers will specify different
 protocols.  However, if the order of some modifiers does not matter, then they are
@@ -1150,16 +1152,16 @@ The rules for the DH, cipher, and hash name sections are identical.  Each name
 section must contain one or more algorithm names separated by plus signs.  
 
 Each algorithm name must consist solely of alphanumeric characters and the
-forward-slash (`/`) character.  Algorithm names are recommended to be short,
-and to use the `/` character only when necessary to avoid ambiguity (e.g.
-`SHA3/256` is preferable to `SHA3256`).
+forward-slash character (`"/"`).  Algorithm names are recommended to be short,
+and to use the `"/"` character only when necessary to avoid ambiguity (e.g.
+`"SHA3/256"` is preferable to `"SHA3256"`).
 
 In most cases there will be a single algorithm name in each name section (i.e.
 no plus signs).  Multiple algorithms are only used when called for by the 
 pattern or a modifier.  
 
 None of the patterns or modifiers in this document require multiple
-cryptographic algorithms in any name section.  However, this functionality
+algorithms in any name section.  However, this functionality
 might be useful in future extensions, e.g. using multiple algorithms in the DH
 section to provide "hybrid" post-quantum forward secrecy, or using different hash
 algorithms for different purposes.

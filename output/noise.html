@@ -491,14 +491,14 @@
 </tbody>
 </table>
 
-<p>The <code>XX</code> pattern is the most generically useful, since it is efficient and supports mutual authentication and transmission of static public keys.</p>
+<p>The <code>XX</code> pattern is the most generically useful, since it supports mutual authentication and transmission of static public keys.</p>
 <p>All interactive patterns allow some encryption of handshake payloads:</p>
 <ul>
-<li><p>Patterns where the initiator has pre-knowledge of the responder's static public key (i.e. patterns ending in <code>&quot;K&quot;</code>) allow <strong>zero-RTT</strong> encryption, meaning the initiator can encrypt the first handshake payload.</p></li>
-<li><p>All interactive patterns allow <strong>half-RTT</strong> encryption of the first response payload, but the encryption only targets an initiator static public key in patterns starting with &quot;K&quot; or &quot;I&quot;.</p></li>
+<li><p>Patterns where the initiator has pre-knowledge of the responder's static public key (i.e. patterns ending in <code>K</code>) allow <strong>zero-RTT</strong> encryption, meaning the initiator can encrypt the first handshake payload.</p></li>
+<li><p>All interactive patterns allow <strong>half-RTT</strong> encryption of the first response payload, but the encryption only targets an initiator static public key in patterns starting with <code>K</code> or <code>I</code>.</p></li>
 </ul>
 <p>The security properties for handshake payloads are usually weaker than the final security properties achieved by transport payloads, so these early encryptions must be used with caution.</p>
-<p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with &quot;K&quot; or &quot;I&quot; have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
+<p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with <code>K</code> or <code>I</code> have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
 <p>The next section provides more analysis of these payload security properties.</p>
 <h2 id="payload-security-properties">7.4. Payload security properties</h2>
 <p>The following table lists the security properties for Noise handshake and transport payloads for all the named patterns in <a href="#one-way-patterns">Section 7.2</a> and <a href="#interactive-patterns">Section 7.3</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
@@ -703,28 +703,29 @@
 </tr>
 </tbody>
 </table>
+
 <h1 id="protocol-names-and-modifiers">8. Protocol names and modifiers</h1>
-<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII string <code>Noise_</code> with four underscore-separated name sections which sequentially name the handshake pattern, the DH functions, the cipher functions, and then the hash functions. The resulting name must be 255 bytes or less. Examples:</p>
+<p>To produce a <strong>Noise protocol name</strong> for <code>Initialize()</code> you concatenate the ASCII string <code>&quot;Noise_&quot;</code> with four underscore-separated name sections which sequentially name the handshake pattern, the DH functions, the cipher functions, and then the hash functions. The resulting name must be 255 bytes or less. Examples:</p>
 <ul>
 <li><code>Noise_XX_25519_AESGCM_SHA256</code></li>
 <li><code>Noise_N_25519_ChaChaPoly_BLAKE2s</code></li>
 <li><code>Noise_IK_448_ChaChaPoly_BLAKE2b</code></li>
 </ul>
-<p>Each name section must consist only of alphanumeric characters (i.e. characters in one of the ranges <code>A</code>...<code>Z</code>, <code>a</code>...<code>z</code>, and <code>0</code>...<code>9</code>), and the two special characters <code>+</code> and <code>/</code>.</p>
+<p>Each name section must consist only of alphanumeric characters (i.e. characters in one of the ranges <code>&quot;A&quot;</code>...<code>&quot;Z&quot;</code>, <code>&quot;a&quot;</code>...<code>&quot;z&quot;</code>, and <code>&quot;0&quot;</code>...<code>&quot;9&quot;</code>), and the two special characters <code>&quot;+&quot;</code> and <code>&quot;/&quot;</code>.</p>
 <p>Additional rules apply to each name section, as specified below.</p>
 <h2 id="handshake-pattern-name-section">8.1. Handshake pattern name section</h2>
 <p>A handshake pattern name section contains a handshake pattern name plus a sequence of zero or more <strong>pattern modifiers</strong>.</p>
-<p>The handshake pattern name must be an uppercase ASCII string containing only alphabetic characters (e.g. <code>XX</code> or <code>IK</code>).</p>
+<p>The handshake pattern name must be an uppercase ASCII string containing only alphabetic characters (e.g. <code>&quot;XX&quot;</code> or <code>&quot;IK&quot;</code>).</p>
 <p>Pattern modifiers specify arbitrary extensions or modifications to the behavior specified by the handshake pattern. For example, a modifier could be applied to a handshake pattern which transforms it into a different pattern according to some rule.</p>
-<p>As examples of such a modifier, the <code>psk0</code> and <code>fallback</code> modifiers described later in this document modify the base pattern to either incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.</p>
+<p>As examples of such a modifier, the <code>&quot;psk0&quot;</code> and <code>&quot;fallback&quot;</code> modifiers described later in this document modify the base pattern to either incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.</p>
 <p>A pattern modifier is named with a lowercase alphanumeric ASCII string which is appended to the base pattern as described below:</p>
-<p>The first modifier added onto a base pattern is simply appended. Thus the <code>fallback</code> modifier, when added to the <code>XX</code> pattern, produces <code>XXfallback</code>. Additional modifiers are separated with a plus sign. Thus, adding the <code>psk0</code> modifier would result in the name section <code>XXfallback+psk0</code>, or a full protocol name such as <code>Noise_XXfallback+psk0_25519_AESGCM_SHA256</code>.</p>
+<p>The first modifier added onto a base pattern is simply appended. Thus the <code>&quot;fallback&quot;</code> modifier, when added to the <code>&quot;XX&quot;</code> pattern, produces <code>&quot;XXfallback&quot;</code>. Additional modifiers are separated with a plus sign. Thus, adding the <code>&quot;psk0&quot;</code> modifier would result in the name section <code>&quot;XXfallback+psk0&quot;</code>, or a full protocol name such as <code>&quot;Noise_XXfallback+psk0_25519_AESGCM_SHA256&quot;</code>.</p>
 <p>In some cases the sequential ordering of modifiers will specify different protocols. However, if the order of some modifiers does not matter, then they are required to be sorted alphabetically (this is an arbitrary convention to ensure interoperability).</p>
 <h2 id="cryptographic-algorithm-name-sections">8.2. Cryptographic algorithm name sections</h2>
 <p>The rules for the DH, cipher, and hash name sections are identical. Each name section must contain one or more algorithm names separated by plus signs.</p>
-<p>Each algorithm name must consist solely of alphanumeric characters and the forward-slash (<code>/</code>) character. Algorithm names are recommended to be short, and to use the <code>/</code> character only when necessary to avoid ambiguity (e.g. <code>SHA3/256</code> is preferable to <code>SHA3256</code>).</p>
+<p>Each algorithm name must consist solely of alphanumeric characters and the forward-slash character (<code>&quot;/&quot;</code>). Algorithm names are recommended to be short, and to use the <code>&quot;/&quot;</code> character only when necessary to avoid ambiguity (e.g. <code>&quot;SHA3/256&quot;</code> is preferable to <code>&quot;SHA3256&quot;</code>).</p>
 <p>In most cases there will be a single algorithm name in each name section (i.e. no plus signs). Multiple algorithms are only used when called for by the pattern or a modifier.</p>
-<p>None of the patterns or modifiers in this document require multiple cryptographic algorithms in any name section. However, this functionality might be useful in future extensions, e.g. using multiple algorithms in the DH section to provide &quot;hybrid&quot; post-quantum forward secrecy, or using different hash algorithms for different purposes.</p>
+<p>None of the patterns or modifiers in this document require multiple algorithms in any name section. However, this functionality might be useful in future extensions, e.g. using multiple algorithms in the DH section to provide &quot;hybrid&quot; post-quantum forward secrecy, or using different hash algorithms for different purposes.</p>
 <h1 id="pre-shared-symmetric-keys">9. Pre-shared symmetric keys</h1>
 <p>Noise provides a <strong>pre-shared symmetric key</strong> or <strong>PSK</strong> mode to support protocols where both parties have a 32-byte shared secret key.</p>
 <h2 id="cryptographic-functions">9.1. Cryptographic functions</h2>
