@@ -335,7 +335,7 @@
 <ul>
 <li><p>A pre-message pattern for the initiator, representing information about the initiator's public keys that is known to the responder.</p></li>
 <li><p>A pre-message pattern for the responder, representing information about the responder's public keys that is known to the initiator.</p></li>
-<li><p>A sequence of message patterns for the actual handshake messages</p></li>
+<li><p>A sequence of message patterns for the actual handshake messages.</p></li>
 </ul>
 <p>The pre-messages represent an exchange of public keys that was somehow performed prior to the handshake, so these public keys must be inputs to <code>Initialize()</code> for the &quot;recipient&quot; of the pre-message.</p>
 <p>The first actual handshake message is sent from the initiator to the responder (with one exception - see next paragraph). The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
@@ -346,7 +346,7 @@
   &lt;- e, ee</code></pre>
 <p>The handshake pattern name is <code>NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code>, <code>&quot;e&quot;</code>, or <code>&quot;e, s&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code>, <code>&quot;re&quot;</code>, or <code>&quot;re, rs&quot;</code> would indicate the same thing for the responder.</p>
 <p>Right-pointing arrows show messages sent by the initiator. Left-pointing arrows show messages sent by the responder.</p>
-<p>Non-empty pre-messages are shown as patterns prior to the delimiter <code>&quot;...&quot;</code>, with a right-pointing arrow for the initiator's pre-message, and a left-pointing arrow for the responder's pre-message. If both parties have a pre-message, the initiator's is listed first (and hashed first). During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
+<p>Non-empty pre-messages are shown as patterns prior to the delimiter <code>&quot;...&quot;</code>, with a right-pointing arrow for the initiator's pre-message, and a left-pointing arrow for the responder's pre-message. If both parties have a pre-message, the initiator's is listed first, and hashed first. During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
 <p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key, and performs a DH with the responder's static public key as well as the responder's ephemeral public key. This pre-knowledge allows an encrypted payload to be sent in the first message (&quot;zero-RTT encryption&quot;), although full forward secrecy and replay protection is only achieved with the second message.</p>
 <pre><code>NK(rs):
   &lt;- s

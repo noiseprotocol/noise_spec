@@ -643,7 +643,7 @@ arrows show messages sent by the responder.
 Non-empty pre-messages are shown as patterns prior to the delimiter `"..."`, with a
 right-pointing arrow for the initiator's pre-message, and a left-pointing arrow
 for the responder's pre-message.  If both parties have a pre-message, the
-initiator's is listed first (and hashed first).  During `Initialize()`,
+initiator's is listed first, and hashed first.  During `Initialize()`,
 `MixHash()` is called on any pre-message public keys, as described in [Section
 5.3](#the-handshakestate-object).
 
