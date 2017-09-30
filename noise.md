@@ -514,8 +514,8 @@ A `HandshakeState` responds to the following functions:
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
 
-          * For `"e"`:  Sets `e = GENERATE_KEYPAIR()`.  Appends `e.public_key`
-            to the buffer.  Calls `MixHash(e.public_key)`.
+          * For `"e"`:  Sets `e` (which must be empty) to `GENERATE_KEYPAIR()`.
+            Appends `e.public_key` to the buffer.  Calls `MixHash(e.public_key)`.
 
           * For `"s"`:  Appends `EncryptAndHash(s.public_key)` to the buffer.  
 
@@ -540,12 +540,12 @@ A `HandshakeState` responds to the following functions:
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
 
-          * For `"e"`: Sets `re` to the next `DHLEN` bytes from the message.
-            Calls `MixHash(re.public_key)`. 
+          * For `"e"`: Sets `re` (which must be empty) to the next `DHLEN`
+            bytes from the message.  Calls `MixHash(re.public_key)`. 
 
           * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
-            `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs`
-            to `DecryptAndHash(temp)`.  
+            `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` (which must be empty)
+            to `DecryptAndHash(temp)`.
 
           * For `"ee"`: Calls `MixKey(DH(e, re))`.
 
@@ -671,9 +671,9 @@ Handshake patterns must be **valid** in the following senses:
    static key pair, and can only perform DH between private keys and public
    keys they possess.
 
- 2. Parties must not send their static public key, or an ephemeral public key,
-    more than once per handshake (i.e. including the pre-messages, there must be
-    no more than one occurrence of `"e"`, and one occurrence of `"s"`, in the
+ 2. Parties must not send their static public key or ephemeral public key more
+    than once per handshake (i.e. including the pre-messages, there must be no
+    more than one occurrence of `"e"`, and one occurrence of `"s"`, in the
     messages sent by any party).
 
  3. After performing a DH between a remote public key and any local private key
