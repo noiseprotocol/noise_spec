@@ -366,7 +366,7 @@
 <p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
 <h2 id="one-way-patterns">7.2. One-way patterns</h2>
-<p>The following example handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
+<p>The following handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
 <p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#pattern-validity">Section 7.1</a>).</p>
 <p>One-way patterns are named with a single character, which indicates the status of the sender's static key:</p>
 <ul>
@@ -402,7 +402,7 @@
 </table>
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
 <h2 id="interactive-patterns">7.3. Interactive patterns</h2>
-<p>The following example handshake patterns represent interactive protocols.</p>
+<p>The following handshake patterns represent interactive protocols.</p>
 <p>Interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
 <ul>
@@ -448,9 +448,9 @@
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> NX(rs):
-   -&gt; e
-   &lt;- e, ee, s, es</code></pre></td>
+<td><pre><code>NX(rs):
+  -&gt; e
+  &lt;- e, ee, s, es</code></pre></td>
 <td><pre><code>    KX(s, rs):
       -&gt; s
       ...
@@ -458,21 +458,21 @@
       &lt;- e, ee, se, s, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> XN(s):
-   -&gt; e
-   &lt;- e, ee
-   -&gt; s, se</code></pre></td>
+<td><pre><code>XN(s):
+  -&gt; e
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
 <td><pre><code>    IN(s):
       -&gt; e, s
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code> XK(s, rs):
-   &lt;- s
-   ...
-   -&gt; e, es
-   &lt;- e, ee
-   -&gt; s, se</code></pre></td>
+<td><pre><code>XK(s, rs):
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
 <td><pre><code>    IK(s, rs):
       &lt;- s
       ...
@@ -480,10 +480,10 @@
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code> XX(s, rs):
-   -&gt; e
-   &lt;- e, ee, s, es
-   -&gt; s, se</code></pre></td>
+<td><pre><code>XX(s, rs):
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre></td>
 <td><pre><code>    IX(s, rs):
       -&gt; e, s
       &lt;- e, ee, se, s, es</code></pre></td>

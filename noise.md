@@ -697,10 +697,9 @@ patterns that have been vetted by experts to satisfy the above checks.
 7.2. One-way patterns 
 ----------------------
 
-The following example handshake patterns represent "one-way" handshakes
-supporting a one-way stream of data from a sender to a recipient.  These
-patterns could be used to encrypt files, database records, or other
-non-interactive data streams.
+The following handshake patterns represent "one-way" handshakes supporting a
+one-way stream of data from a sender to a recipient.  These patterns could be
+used to encrypt files, database records, or other non-interactive data streams.
 
 Following a one-way handshake the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
@@ -739,7 +738,7 @@ recipient beforehand (`K`) or transmitted under encryption (`X`).
 7.3. Interactive patterns 
 --------------------------
 
-The following example handshake patterns represent interactive protocols.
+The following handshake patterns represent interactive protocols.
 
 Interactive patterns are named with two characters, which indicate the 
 status of the initator and responder's static keys:
@@ -774,28 +773,28 @@ The second character refers to the responder's static key:
 |       <- e, ee            |          -> e, es, ss          |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
-|      NX(rs):              |         KX(s, rs):             |
-|        -> e               |           -> s                 |
-|        <- e, ee, s, es    |           ...                  |
+|     NX(rs):               |         KX(s, rs):             |
+|       -> e                |           -> s                 |
+|       <- e, ee, s, es     |           ...                  |
 |                           |           -> e                 |
 |                           |           <- e, ee, se, s, es  |
 +---------------------------+--------------------------------+
-|      XN(s):               |         IN(s):                 |
-|        -> e               |           -> e, s              |
-|        <- e, ee           |           <- e, ee, se         |
-|        -> s, se           |                                |
+|     XN(s):                |         IN(s):                 |
+|       -> e                |           -> e, s              |
+|       <- e, ee            |           <- e, ee, se         |
+|       -> s, se            |                                |
 +---------------------------+--------------------------------+
-|      XK(s, rs):           |         IK(s, rs):             |
-|        <- s               |           <- s                 |      
-|        ...                |           ...                  |
-|        -> e, es           |           -> e, es, s, ss      |
-|        <- e, ee           |           <- e, ee, se         |
-|        -> s, se           |                                |
+|     XK(s, rs):            |         IK(s, rs):             |
+|       <- s                |           <- s                 |      
+|       ...                 |           ...                  |
+|       -> e, es            |           -> e, es, s, ss      |
+|       <- e, ee            |           <- e, ee, se         |
+|       -> s, se            |                                |
 +---------------------------+--------------------------------+
-|      XX(s, rs):           |         IX(s, rs):             |
-|        -> e               |           -> e, s              |
-|        <- e, ee, s, es    |           <- e, ee, se, s, es  |
-|        -> s, se           |                                |
+|     XX(s, rs):            |         IX(s, rs):             |
+|       -> e                |           -> e, s              |
+|       <- e, ee, s, es     |           <- e, ee, se, s, es  |
+|       -> s, se            |                                |
 +---------------------------+--------------------------------+
 
 \newpage
