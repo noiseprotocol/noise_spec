@@ -1250,8 +1250,6 @@ useful here than `psk0`.
 
 Following similar logic, we can define the most likely interactive PSK patterns:
 
-\newpage
-
 +--------------------------------+--------------------------------------+       
 |     NN():                      |     NNpsk0():                        |
 |       -> e                     |       -> psk, e                      |
@@ -1372,18 +1370,17 @@ this document.
 
 10.1. Fallback patterns
 ------------------------
-So far we've discussed Noise protocols which execute a single handshake
-chosen by the initiator.
 
-These include zero-RTT protocols where the initiator encrypts the initial
-message based on some stored information about the responder (such as the
-responder's static public key).
+So far we've discussed Noise protocols which execute a single handshake chosen
+by the initiator.  These include "zero-RTT" protocols where the initiator encrypts
+the initial message based on some stored information about the responder (such
+as the responder's static public key).
 
-If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this case, the responder might choose to execute a different Noise handshake (a **fallback handshake**).
+If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this, the responder might choose to execute a different Noise handshake, known as a **fallback handshake**.
 
-To support this case Noise allows **fallback patterns**.  Fallback patterns differ from other handshake patterns in a couple ways:
+To support this case Noise allows **fallback patterns**.  Fallback patterns differ from other handshake patterns in two ways:
 
- * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the responder sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
+ * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the *responder* sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
 
  * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  The initiator's pre-message must always include an ephemeral public key.  An ephemeral public key is not otherwise included in the initiator's pre-message (initiators typically transmit an ephemeral public key in their first message).  Thus, the presence of an ephemeral public key in the initiator's pre-message indicates a fallback pattern.
 
@@ -1401,11 +1398,11 @@ A typical fallback scenario for zero-RTT encryption involves three different Noi
 
  * A **fallback handshake** is triggered by the responder if it can't decrypt the initiator's first zero-RTT handshake message.
 
-There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message.  If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the second message.
+There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message.  If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the response.
 
 For example, each handshake message could be preceded by a `type` byte (see
 [Section 13](#application-responsibilities)).  This byte is not part of the
-Noise message proper, but simply signals which handshake is being used:
+Noise message proper, but signals which handshake is being used:
 
  * If `type == 0` in the initiator's first message then the initiator is
    performing a full handshake.
@@ -1413,15 +1410,13 @@ Noise message proper, but simply signals which handshake is being used:
  * If `type == 1` in the initiator's first message then the initiator is
    performing a zero-RTT handshake.
 
- * If `type == 0` in the responder's first response then the
-   responder accepted the zero-RTT message.
+ * If `type == 0` in the response then the zero-RTT message was accepted.
 
- * If `type == 1` in the responder's first response then the
-   responder failed to decrypt the initiator's zero-RTT message and is
-   performing a fallback handshake.
+ * If `type == 1` in the response then the responder failed to decrypt the
+   initiator's zero-RTT message and is performing a fallback handshake.
 
 Note that the `type` byte doesn't need to be explicitly authenticated (either as
-prologue, or as additional AEAD data), since it's implicitly authenticated if the
+prologue, or as "associated data" in the AEAD encryption), since it's implicitly authenticated if the
 message is processed succesfully.
 
 10.3. Noise Pipes
@@ -1454,8 +1449,8 @@ public key.
 The `IK` pattern is used for a **zero-RTT handshake**.  
 
 The `XXfallback` pattern is used if the responder fails to decrypt the
-first `IK` message (perhaps due to changing a static key).  In this case
-the responder will switch to a **fallback handshake** using `XXfallback`,
+first `IK` message (perhaps due to having changed their static key).  In this case
+the responder will switch to a fallback handshake using `XXfallback`,
 which is identical to `XX` except the ephemeral public key from the first
 `IK` message is used as the initiator's pre-message.
 
