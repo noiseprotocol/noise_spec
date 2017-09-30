@@ -508,9 +508,9 @@ A `HandshakeState` responds to the following functions:
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
-   which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps, aborting
-   if any `EncryptAndHash()` call returns an error:
-  
+   which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps, aborting if any `EncryptAndHash()` call returns an error:
+\newpage
+
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
 
@@ -638,7 +638,7 @@ initiator is initialized with static and/or ephemeral key pairs.  The tokens
 Right-pointing arrows show messages sent by the initiator.  Left-pointing
 arrows show messages sent by the responder.
 
-Non-empty pre-messages are shown as patterns prior to the delimiter "...", with a
+Non-empty pre-messages are shown as patterns prior to the delimiter `"..."`, with a
 right-pointing arrow for the initiator's pre-message, and a left-pointing arrow
 for the responder's pre-message.  If both parties have a pre-message, the
 initiator's is listed first (and hashed first).  During `Initialize()`,
@@ -669,7 +669,7 @@ Handshake patterns must be **valid** in the following senses:
 
  2. Parties must not send their static public key, or an ephemeral public key,
     more than once per handshake (i.e. including the pre-messages, there must be
-    no more than one occurrence of "e", and one occurrence of "s", in the
+    no more than one occurrence of `"e"`, and one occurrence of `"s"`, in the
     messages sent by any party).
 
  3. After performing a DH between a remote public key and any local private key
