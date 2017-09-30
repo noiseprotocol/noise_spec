@@ -1042,7 +1042,7 @@ XXfallback(e, s, rs):
 <p>This is fairly easy:</p>
 <ul>
 <li><p>The first three messages can have their payloads padded with random bytes to a constant size, regardless of which handshake is executed.</p></li>
-<li><p>The responder will attempt to decrypt the first message as a <code>NoiseIK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
+<li><p>The responder will attempt to decrypt the first message as an <code>IK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
 <li><p>An initiator who sends a <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
 <li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish a <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
 </ul>

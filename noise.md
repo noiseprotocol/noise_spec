@@ -1468,7 +1468,7 @@ This is fairly easy:
  * The first three messages can have their payloads padded with random bytes to
    a constant size, regardless of which handshake is executed.
 
- * The responder will attempt to decrypt the first message as a `NoiseIK` message,
+ * The responder will attempt to decrypt the first message as an `IK` message,
    and will fallback to `XXfallback` if decryption fails.
 
  * An initiator who sends a `IK` initial message can use trial decryption
