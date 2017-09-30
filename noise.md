@@ -1471,13 +1471,13 @@ This is fairly easy:
  * The responder will attempt to decrypt the first message as an `IK` message,
    and will fallback to `XXfallback` if decryption fails.
 
- * An initiator who sends a `IK` initial message can use trial decryption
+ * An initiator who sends an `IK` initial message can use trial decryption
    to differentiate between a response using `IK` or `XXfallback`. 
 
  * An initiator attempting a full handshake will send an ephemeral public key, then
  random padding, and will use `XXfallback` to handle the response.
  Note that `XX` isn't used, because the server can't
- distinguish a `XX` message from a failed `IK` attempt by using trial decryption.
+ distinguish an `XX` message from a failed `IK` attempt by using trial decryption.
 
 This leaves the Noise ephemeral public keys in the clear.  Ephemeral public
 keys are randomly chosen DH public values, but they will typically have enough
@@ -1485,6 +1485,8 @@ structure that an eavesdropper might suspect the parties are using Noise, even
 if the eavesdropper can't distinguish the different handshakes.  To make the
 ephemerals indistinguishable from random byte sequences, techniques like
 Elligator [@elligator] could be used.
+
+\newpage
 
 11. Advanced features
 =====================
@@ -1504,7 +1506,7 @@ value of the dummy public key doesn't matter.
 
 This technique is simple, since it allows use of a single handshake pattern.
 It also doesn't reveal which option was chosen from message sizes or
-computation time.  It could be extended to allow a `XX` pattern to
+computation time.  It could be extended to allow an `XX` pattern to
 support any permutation of authentications (initiator only, responder only,
 both, or none).  
 
@@ -1533,13 +1535,13 @@ To enable this, Noise supports a `Rekey()` function which may be called on a `Ci
 
 It is up to to the application if and when to perform rekey.  For example: 
 
- * Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received.  This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.
+ * Applications might perform **continuous rekey**, where they rekey the relevant cipherstate after every transport message sent or received.  This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.
 
  * Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.
 
  * Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.
 
-Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.
+Applications must make these decisions on their own; there are no pattern modifiers which specify rekey behavior.
 
 Note that rekey only updates the cipherstate's `k` value, it doesn't reset the cipherstate's `n` value, so applications performing rekey must still perform a new handshake if sending 2^64^ or more transport messages.
 
@@ -1563,7 +1565,7 @@ are outside the scope of this document.
 
 11.5. Half-duplex protocols
 ----------------------------
-In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a "half-duplex" mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions, and the second `CipherState` returned by `Split()` is unused.  This allows some small optimizations, since `Split()` only has to calculate a single output `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
+In some application protocols the parties strictly alternate sending messages.  In this case Noise can be used in a **half-duplex** mode [@blinker] where the first `CipherState` returned by `Split()` is used for encrypting messages in both directions, and the second `CipherState` returned by `Split()` is unused.  This allows some small optimizations, since `Split()` only has to calculate a single output `CipherState`, and both parties only need to store a single `CipherState` during the transport phase.
 
 This feature must be used with extreme caution.  In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same `CipherState` and nonce value.
 
@@ -1650,6 +1652,8 @@ This feature must be used with extreme caution.  In particular, it would be a ca
  * **`HASH(input)`**: `BLAKE2b` from [@rfc7693] with digest length 64.
  * **`HASHLEN`** = 64
  * **`BLOCKLEN`** = 128
+
+\newpage
 
 13. Application responsibilities
 ================================

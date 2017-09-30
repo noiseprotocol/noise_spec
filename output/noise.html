@@ -1043,15 +1043,16 @@ XXfallback(e, s, rs):
 <ul>
 <li><p>The first three messages can have their payloads padded with random bytes to a constant size, regardless of which handshake is executed.</p></li>
 <li><p>The responder will attempt to decrypt the first message as an <code>IK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
-<li><p>An initiator who sends a <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
-<li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish a <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
+<li><p>An initiator who sends an <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
+<li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish an <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
 </ul>
 <p>This leaves the Noise ephemeral public keys in the clear. Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if the eavesdropper can't distinguish the different handshakes. To make the ephemerals indistinguishable from random byte sequences, techniques like Elligator <span class="citation">[<a href="#ref-elligator">5</a>]</span> could be used.</p>
+
 <h1 id="advanced-features">11. Advanced features</h1>
 <h2 id="dummy-keys">11.1. Dummy keys</h2>
 <p>Consider a protocol where an initiator will authenticate herself if the responder requests it. This could be viewed as the initiator choosing between patterns like <code>NX</code> and <code>XX</code> based on some value inside the responder's first handshake payload.</p>
 <p>Noise doesn't directly support this. Instead, this could be simulated by always executing <code>XX</code>. The initiator can simulate the <code>NX</code> case by sending a <strong>dummy static public key</strong> if authentication is not requested. The value of the dummy public key doesn't matter.</p>
-<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes or computation time. It could be extended to allow a <code>XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
+<p>This technique is simple, since it allows use of a single handshake pattern. It also doesn't reveal which option was chosen from message sizes or computation time. It could be extended to allow an <code>XX</code> pattern to support any permutation of authentications (initiator only, responder only, both, or none).</p>
 <p>Similarly, <strong>dummy PSKs</strong> (e.g. a PSK of all zeros) would allow a protocol to optionally support PSKs.</p>
 <h2 id="channel-binding">11.2. Channel binding</h2>
 <p>Parties might wish to execute a Noise protocol, then perform authentication at the application layer using signatures, passwords, or something else.</p>
@@ -1062,18 +1063,18 @@ XXfallback(e, s, rs):
 <p>To enable this, Noise supports a <code>Rekey()</code> function which may be called on a <code>CipherState</code>.</p>
 <p>It is up to to the application if and when to perform rekey. For example:</p>
 <ul>
-<li><p>Applications might perform continuous rekey, where they rekey the relevant cipherstate after every transport message sent or received. This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.</p></li>
+<li><p>Applications might perform <strong>continuous rekey</strong>, where they rekey the relevant cipherstate after every transport message sent or received. This is simple and gives good protection to older ciphertexts, but might be difficult for implementations where changing keys is expensive.</p></li>
 <li><p>Applications might rekey a cipherstate automatically after it has has been used to send or receive some number of messages.</p></li>
 <li><p>Applications might choose to rekey based on arbitrary criteria, in which case they signal this to the other party by sending a message.</p></li>
 </ul>
-<p>Applications must make these decisions on their own; there are no modifiers which specify rekey behavior.</p>
+<p>Applications must make these decisions on their own; there are no pattern modifiers which specify rekey behavior.</p>
 <p>Note that rekey only updates the cipherstate's <code>k</code> value, it doesn't reset the cipherstate's <code>n</code> value, so applications performing rekey must still perform a new handshake if sending 2<sup>64</sup> or more transport messages.</p>
 <h2 id="out-of-order-transport-messages">11.4. Out-of-order transport messages</h2>
 <p>In some use cases, Noise transport messages might be lost or arrive out-of-order (e.g. when messages are sent over UDP). To handle this, an application protocol can send the <code>n</code> value used for encrypting each transport message alongside that message. On receiving such a message the recipient would call the <code>SetNonce()</code> function on the receiving <code>CipherState</code> using the received <code>n</code> value.</p>
 <p>Recipients doing this must track the received <code>n</code> values for which decryption was successful and reject any message which repeats such a value, to prevent replay attacks.</p>
 <p>Note that lossy and out-of-order message delivery introduces many other concerns (including out-of-order handshake messages and denial of service risks) which are outside the scope of this document.</p>
 <h2 id="half-duplex-protocols">11.5. Half-duplex protocols</h2>
-<p>In some application protocols the parties strictly alternate sending messages. In this case Noise can be used in a &quot;half-duplex&quot; mode <span class="citation">[<a href="#ref-blinker">6</a>]</span> where the first <code>CipherState</code> returned by <code>Split()</code> is used for encrypting messages in both directions, and the second <code>CipherState</code> returned by <code>Split()</code> is unused. This allows some small optimizations, since <code>Split()</code> only has to calculate a single output <code>CipherState</code>, and both parties only need to store a single <code>CipherState</code> during the transport phase.</p>
+<p>In some application protocols the parties strictly alternate sending messages. In this case Noise can be used in a <strong>half-duplex</strong> mode <span class="citation">[<a href="#ref-blinker">6</a>]</span> where the first <code>CipherState</code> returned by <code>Split()</code> is used for encrypting messages in both directions, and the second <code>CipherState</code> returned by <code>Split()</code> is unused. This allows some small optimizations, since <code>Split()</code> only has to calculate a single output <code>CipherState</code>, and both parties only need to store a single <code>CipherState</code> during the transport phase.</p>
 <p>This feature must be used with extreme caution. In particular, it would be a catastrophic security failure if the protocol is not strictly alternating and both parties encrypt different messages using the same <code>CipherState</code> and nonce value.</p>
 <h1 id="dh-functions-cipher-functions-and-hash-functions">12. DH functions, cipher functions, and hash functions</h1>
 <h2 id="the-25519-dh-functions">12.1. The <code>25519</code> DH functions</h2>
@@ -1122,6 +1123,7 @@ XXfallback(e, s, rs):
 <li><strong><code>HASHLEN</code></strong> = 64</li>
 <li><strong><code>BLOCKLEN</code></strong> = 128</li>
 </ul>
+
 <h1 id="application-responsibilities">13. Application responsibilities</h1>
 <p>An application built on Noise must consider several issues:</p>
 <ul>
