@@ -353,6 +353,7 @@
   ...
   -&gt; e, es 
   &lt;- e, ee</code></pre>
+
 <h2 id="pattern-validity">7.1. Pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
@@ -362,7 +363,7 @@
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>
-<p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
+<p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
 <h2 id="one-way-patterns">7.2. One-way patterns</h2>
 <p>The following example handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>

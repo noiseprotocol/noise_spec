@@ -660,6 +660,8 @@ only achieved with the second message.
       -> e, es 
       <- e, ee
 
+\newpage
+
 7.1. Pattern validity 
 ----------------------
 
@@ -684,9 +686,10 @@ Patterns failing the first check are obviously nonsense.
 The second check outlaws redundant transmission of values to simplify
 implementation and testing.
 
-The third check is necessary because Noise uses DH outputs
-involving ephemeral keys to randomize the shared secret keys.  Patterns failing
-this check could result in subtle but catastrophic security flaws.  
+The third check is necessary because Noise uses DH outputs involving ephemeral
+keys to randomize the shared secret keys, and to provide forward secrecy.
+Patterns failing this check could result in subtle but catastrophic security
+flaws.
 
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
