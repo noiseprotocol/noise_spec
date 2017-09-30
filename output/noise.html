@@ -323,7 +323,7 @@
 <p>For example, suppose Bob communicates to Alice a list of Noise protocols that he is willing to support. Alice will then choose and execute a single protocol. To ensure that a &quot;man-in-the-middle&quot; did not edit Bob's list to remove options, Alice and Bob could include the list as prologue data.</p>
 <p>Note that while the parties confirm their prologues are identical, they don't mix prologue data into encryption keys. If an input contains secret data that’s intended to strengthen the encryption, a PSK handshake should be used instead (see <a href="pre-shared-symmetric-keys">Section 9</a>).</p>
 <h1 id="handshake-patterns">7. Handshake patterns</h1>
-<p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;, &quot;psk&quot;)</code>. (The <code>&quot;psk&quot;</code> token is described in <a href="pre-shared-symmetric-keys">Section 9</a>; future specifications might introduce other tokens).</p>
+<p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;, &quot;psk&quot;)</code>. The handling of these tokens within <code>WriteMessage()</code> and <code>ReadMessage()</code> has been described previously, except for the <code>&quot;psk&quot;</code> token, which will be described in <a href="pre-shared-symmetric-keys">Section 9</a>. Future specifications might introduce other tokens.</p>
 <p>A <strong>pre-message pattern</strong> is one of the following sequences of tokens:</p>
 <ul>
 <li><code>&quot;e&quot;</code></li>
@@ -358,7 +358,7 @@
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key, or an ephemeral public key, more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of <code>&quot;e&quot;</code>, and one occurrence of <code>&quot;s&quot;</code>, in the messages sent by any party).</p></li>
-<li><p>After performing a DH between a remote public key and any local private key that is not an ephemeral private key, the local party must not send any encrypted data (i.e. must not call <code>ENCRYPT()</code>) unless it has also performed a DH between an ephemeral private key and the remote public key.</p></li>
+<li><p>After performing a DH between a remote public key and any local private key that is not the ephemeral private key, the local party must not call <code>ENCRYPT()</code> unless it has also performed a DH between the ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>

@@ -585,9 +585,11 @@ instead (see [Section 9](pre-shared-symmetric-keys)).
 ======================
 
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
-"es", "se", "ss", "psk")`.  (The `"psk"` token is described in [Section
-9](pre-shared-symmetric-keys); future specifications might introduce other
-tokens).
+"es", "se", "ss", "psk")`.  The handling of these tokens within
+`WriteMessage()` and `ReadMessage()` has been described previously, except for
+the `"psk"` token, which will be described in [Section
+9](pre-shared-symmetric-keys).  Future specifications might introduce other
+tokens.
 
 A **pre-message pattern** is one of the following sequences of tokens:
 
@@ -605,7 +607,7 @@ A **handshake pattern** consists of:
   * A pre-message pattern for the responder, representing information about the
   responder's public keys that is known to the initiator.
 
-  * A sequence of message patterns for the actual handshake messages
+  * A sequence of message patterns for the actual handshake messages.
 
 The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
