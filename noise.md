@@ -40,7 +40,7 @@ when sending or receiving that message.  A **handshake pattern** specifies the
 sequential exchange of messages that comprise a handshake.
 
 A handshake pattern can be instantiated by **DH functions**, **cipher
-functions**, and a **hash function** to give a concrete **Noise protocol**.
+functions**, and **hash functions** to give a concrete **Noise protocol**.
 
 2.2. Overview of handshake state machine
 -----------------------------------------
@@ -209,7 +209,7 @@ Assuming each payload contains a zero-length plaintext, and DH public keys are
 =====================
 
 A Noise protocol is instantiated with a concrete set of **DH functions**,
-**cipher functions**, and a **hash function**.  The signature for these
+**cipher functions**, and **hash functions**.  The signature for these
 functions is defined below.  Some concrete functions are defined in [Section
 12](#dh-functions-cipher-functions-and-hash-functions).
 
@@ -418,7 +418,7 @@ A `SymmetricState` responds to the following functions:
 
   * **`MixKeyAndHash(input_key_material)`**:  This function is used for
     handling pre-shared symmetric keys, as described in [Section
-    9](#pre-shared-symmetric-keys). Executes the following steps:
+    9](#pre-shared-symmetric-keys). It executes the following steps:
   
       * Sets `ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)`.
       * Calls `MixHash(temp_h)`.

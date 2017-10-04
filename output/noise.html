@@ -97,7 +97,7 @@
 <p>A Noise protocol begins with two parties exchanging <strong>handshake messages</strong>. During this <strong>handshake phase</strong> the parties exchange DH public keys and perform a sequence of DH operations, hashing the DH results into a shared secret key. After the handshake phase each party can use this shared key to send encrypted <strong>transport messages</strong>.</p>
 <p>The Noise framework supports handshakes where each party has a long-term <strong>static key pair</strong> and/or an <strong>ephemeral key pair</strong>. A Noise handshake is described by a simple language. This language consists of <strong>tokens</strong> which are arranged into <strong>message patterns</strong>. Message patterns are arranged into <strong>handshake patterns</strong>.</p>
 <p>A <strong>message pattern</strong> is a sequence of tokens that specifies the DH public keys that comprise a handshake message, and the DH operations that are performed when sending or receiving that message. A <strong>handshake pattern</strong> specifies the sequential exchange of messages that comprise a handshake.</p>
-<p>A handshake pattern can be instantiated by <strong>DH functions</strong>, <strong>cipher functions</strong>, and a <strong>hash function</strong> to give a concrete <strong>Noise protocol</strong>.</p>
+<p>A handshake pattern can be instantiated by <strong>DH functions</strong>, <strong>cipher functions</strong>, and <strong>hash functions</strong> to give a concrete <strong>Noise protocol</strong>.</p>
 <h2 id="overview-of-handshake-state-machine">2.2. Overview of handshake state machine</h2>
 <p>The core of Noise is a set of variables maintained by each party during a handshake, and rules for sending and receiving handshake messages by sequentially processing the tokens from a message pattern.</p>
 <p>Each party maintains the following variables:</p>
@@ -155,7 +155,7 @@
 </ol>
 <p> </p>
 <h1 id="crypto-functions">4. Crypto functions</h1>
-<p>A Noise protocol is instantiated with a concrete set of <strong>DH functions</strong>, <strong>cipher functions</strong>, and a <strong>hash function</strong>. The signature for these functions is defined below. Some concrete functions are defined in <a href="#dh-functions-cipher-functions-and-hash-functions">Section 12</a>.</p>
+<p>A Noise protocol is instantiated with a concrete set of <strong>DH functions</strong>, <strong>cipher functions</strong>, and <strong>hash functions</strong>. The signature for these functions is defined below. Some concrete functions are defined in <a href="#dh-functions-cipher-functions-and-hash-functions">Section 12</a>.</p>
 <p>The following notation will be used in algorithm pseudocode:</p>
 <ul>
 <li>The <code>||</code> operator concatenates byte sequences.</li>
@@ -244,7 +244,7 @@
 <li>Calls <code>InitializeKey(temp_k)</code>.</li>
 </ul></li>
 <li><p><strong><code>MixHash(data)</code></strong>: Sets <code>h = HASH(h || data)</code>.</p></li>
-<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>: This function is used for handling pre-shared symmetric keys, as described in <a href="#pre-shared-symmetric-keys">Section 9</a>. Executes the following steps:</p>
+<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>: This function is used for handling pre-shared symmetric keys, as described in <a href="#pre-shared-symmetric-keys">Section 9</a>. It executes the following steps:</p>
 <ul>
 <li>Sets <code>ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)</code>.</li>
 <li>Calls <code>MixHash(temp_h)</code>.</li>
