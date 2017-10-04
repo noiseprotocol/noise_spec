@@ -1378,11 +1378,11 @@ as the responder's static public key).
 
 If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this, the responder might choose to execute a different Noise handshake, known as a **fallback handshake**.
 
-To support this case Noise allows **fallback patterns**.  Fallback patterns differ from other handshake patterns in two ways:
+To support this case Noise allows **fallback patterns**.  Fallback patterns make use of the `fallback` pattern modifier (see [Section 8](#protocol-names-and-modifiers)).  This modifier deletes the initiator's initial message, and adds any public keys sent in the clear in that message into the initiator's pre-message.  Fallback patterns thus differ from regular patterns in two ways:
 
- * The initiator and responder roles from the pre-fallback handshake are preserved in the fallback handshake.  Thus, the *responder* sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
+ * The *responder* sends the first message in a fallback handshake.  In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).
 
- * Any public keys sent in the clear in the initiator's first message are included in the initiator's pre-message in the fallback pattern.  The initiator's pre-message must always include an ephemeral public key.  An ephemeral public key is not otherwise included in the initiator's pre-message (initiators typically transmit an ephemeral public key in their first message).  Thus, the presence of an ephemeral public key in the initiator's pre-message indicates a fallback pattern.
+ * The initiator's pre-message must always include an ephemeral public key.  An ephemeral public key is not otherwise included in the initiator's pre-message (initiators typically transmit an ephemeral public key in their first message).
 
 Another caveat for fallback handshakes:  If the initial handshake message has a prologue or payload that the responder makes any decisions based on, then the `h` value after processing that handshake message should be included in the prologue for the fallback handshake.
 
