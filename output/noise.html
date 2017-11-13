@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2017-10-04" />
+  <meta name="date" content="2017-11-12" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -14,8 +14,8 @@
 <div id="header">
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
-<b>Revision:</b> 33<br/>
-<b>Date:</b> 2017-10-04<br/>
+<b>Revision:</b> 34<br/>
+<b>Date:</b> 2017-11-12<br/>
 <b>Status:</b> official/stable<br/>
 <b>PDF:</b> <a href="noise.pdf">noise.pdf</a><br/>
 </div>
@@ -42,7 +42,8 @@
 <li><a href="#handshake-patterns">7. Handshake patterns</a><ul>
 <li><a href="#pattern-validity">7.1. Pattern validity</a></li>
 <li><a href="#one-way-patterns">7.2. One-way patterns</a></li>
-<li><a href="#interactive-patterns">7.3. Interactive patterns</a></li>
+</ul></li>
+<li><a href="#interactive-patterns">7.3. Interactive patterns</a><ul>
 <li><a href="#payload-security-properties">7.4. Payload security properties</a></li>
 <li><a href="#identity-hiding">7.5. Identity hiding</a></li>
 </ul></li>
@@ -58,7 +59,8 @@
 </ul></li>
 <li><a href="#fallback-protocols">10. Fallback protocols</a><ul>
 <li><a href="#fallback-patterns">10.1. Fallback patterns</a></li>
-<li><a href="#indicating-fallback">10.2. Indicating fallback</a></li>
+</ul></li>
+<li><a href="#indicating-fallback">10.2. Indicating fallback</a><ul>
 <li><a href="#noise-pipes">10.3. Noise Pipes</a></li>
 <li><a href="#handshake-indistinguishability">10.4. Handshake indistinguishability</a></li>
 </ul></li>
@@ -402,7 +404,7 @@
 </tbody>
 </table>
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
-<h2 id="interactive-patterns">7.3. Interactive patterns</h2>
+<h1 id="interactive-patterns">7.3. Interactive patterns</h1>
 <p>The following handshake patterns represent interactive protocols.</p>
 <p>Interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
@@ -1001,7 +1003,7 @@
 <li><p>The initiator's pre-message must always include an ephemeral public key. An ephemeral public key is not otherwise included in the initiator's pre-message (initiators typically transmit an ephemeral public key in their first message).</p></li>
 </ul>
 <p>Another caveat for fallback handshakes: If the initial handshake message has a prologue or payload that the responder makes any decisions based on, then the <code>h</code> value after processing that handshake message should be included in the prologue for the fallback handshake.</p>
-<h2 id="indicating-fallback">10.2. Indicating fallback</h2>
+<h1 id="indicating-fallback">10.2. Indicating fallback</h1>
 <p>A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:</p>
 <ul>
 <li><p>A <strong>full handshake</strong> is used if the initiator doesn't possess stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.</p></li>
