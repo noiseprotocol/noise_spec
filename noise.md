@@ -669,7 +669,8 @@ Handshake patterns must be **valid** in the following senses:
 
  1. Parties can only send a static public key if they were initialized with a
    static key pair, and can only perform DH between private keys and public
-   keys they possess.
+   keys they possess. Parties can only send a key in a pre-message if they were
+   initialised with that key.
 
  2. Parties must not send their static public key or ephemeral public key more
     than once per handshake (i.e. including the pre-messages, there must be no
