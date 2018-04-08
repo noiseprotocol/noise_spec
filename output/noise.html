@@ -40,6 +40,7 @@
 </ul></li>
 <li><a href="#prologue">6. Prologue</a></li>
 <li><a href="#handshake-patterns">7. Handshake patterns</a><ul>
+<li><a href="#alice-and-bob">7.2. Alice and Bob</a></li>
 <li><a href="#pattern-validity">7.1. Pattern validity</a></li>
 <li><a href="#one-way-patterns">7.2. One-way patterns</a></li>
 </ul></li>
@@ -341,22 +342,46 @@
 <li><p>A sequence of message patterns for the actual handshake messages.</p></li>
 </ul>
 <p>The pre-messages represent an exchange of public keys that was somehow performed prior to the handshake, so these public keys must be inputs to <code>Initialize()</code> for the &quot;recipient&quot; of the pre-message.</p>
-<p>The first actual handshake message is sent from the initiator to the responder (with one exception - see next paragraph). The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
-<p>(Exceptional case: Noise allows special <strong>fallback patterns</strong> where the responder switches to a different pattern than the initator started with (see <a href="#fallback-patterns">Section 10.1</a>). If the initiator's pre-message contains an <code>&quot;e&quot;</code> token, then this handshake pattern is a fallback pattern. In the case of a fallback pattern the first handshake message is sent by the <em>responder</em>, the next by the <em>initiator</em>, and so on.)</p>
+<p>The first actual handshake message is sent from the initiator to the responder. The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
 <p>The following handshake pattern describes an unauthenticated DH handshake:</p>
-<pre><code>NN():
+<pre><code>NN:
   -&gt; e
   &lt;- e, ee</code></pre>
-<p>The handshake pattern name is <code>NN</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>. The empty parentheses indicate that neither party is initialized with any key pairs. The tokens <code>&quot;s&quot;</code>, <code>&quot;e&quot;</code>, or <code>&quot;e, s&quot;</code> inside the parentheses would indicate that the initiator is initialized with static and/or ephemeral key pairs. The tokens <code>&quot;rs&quot;</code>, <code>&quot;re&quot;</code>, or <code>&quot;re, rs&quot;</code> would indicate the same thing for the responder.</p>
-<p>Right-pointing arrows show messages sent by the initiator. Left-pointing arrows show messages sent by the responder.</p>
-<p>Non-empty pre-messages are shown as patterns prior to the delimiter <code>&quot;...&quot;</code>, with a right-pointing arrow for the initiator's pre-message, and a left-pointing arrow for the responder's pre-message. If both parties have a pre-message, the initiator's is listed first, and hashed first. During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
-<p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key, and performs a DH with the responder's static public key as well as the responder's ephemeral public key. This pre-knowledge allows an encrypted payload to be sent in the first message (&quot;zero-RTT encryption&quot;), although full forward secrecy and replay protection is only achieved with the second message.</p>
-<pre><code>NK(rs):
+<p>In the following handshake pattern both the initiator and responder possess static key pairs:</p>
+<pre><code>XX:
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre>
+<p>The handshake pattern names are <code>NN</code> and <code>XX</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>.</p>
+<p>Non-empty pre-messages are shown as pre-message patterns prior to the delimiter <code>&quot;...&quot;</code>. If both parties have a pre-message, the initiator's is listed first, and hashed first. During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
+<p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key and uses it for &quot;zero-RTT&quot; encryption.</p>
+<pre><code>NK:
   &lt;- s
   ...
   -&gt; e, es 
   &lt;- e, ee</code></pre>
 
+<h2 id="alice-and-bob">7.2. Alice and Bob</h2>
+<p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right (sending with left-pointing arrows).</p>
+<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol.</p>
+<p>To aid notation in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
+<p>Handshake patterns written in <strong>canonical form</strong> (i.e. <strong>Alice-initiated form</strong>) assume the initiator is Alice (the left-most party). All processing rules and discussion so far have assumed canonical-form handshake patterns.</p>
+<p>However, handshake messages can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). Below are the handshake patterns from the previous section written in Bob-initiated form:</p>
+<pre><code>NN:
+  &lt;- e
+  -&gt; e, ee
+
+XX:
+  &lt;- e
+  -&gt; e, ee, s, se
+  &lt;- s, es
+
+NK:
+  -&gt; s
+  ...
+  &lt;- e, se
+  -&gt; e, ee</code></pre>
+<p>For an example of Bob-initiated notation, see the discussion on fallback patterns in <a href="#fallback-patterns">Section 10.1</a>.</p>
 <h2 id="pattern-validity">7.1. Pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
@@ -383,20 +408,20 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>N(rs):
+<td><pre><code>N:
   &lt;- s
   ...
   -&gt; e, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>K(s, rs):
+<td><pre><code>K:
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>X(s, rs):
+<td><pre><code>X:
   &lt;- s
   ...
   -&gt; e, es, s, ss</code></pre></td>
@@ -428,22 +453,22 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>NN():
+<td><pre><code>NN:
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>   KN(s):
+<td><pre><code>   KN:
      -&gt; s
      ...
      -&gt; e
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>NK(rs):
+<td><pre><code>NK:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>   KK(s, rs):
+<td><pre><code>   KK:
      -&gt; s
      &lt;- s
      ...
@@ -451,43 +476,43 @@
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>NX(rs):
+<td><pre><code>NX:
   -&gt; e
   &lt;- e, ee, s, es</code></pre></td>
-<td><pre><code>    KX(s, rs):
+<td><pre><code>    KX:
       -&gt; s
       ...
       -&gt; e
       &lt;- e, ee, se, s, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>XN(s):
+<td><pre><code>XN:
   -&gt; e
   &lt;- e, ee
   -&gt; s, se</code></pre></td>
-<td><pre><code>    IN(s):
+<td><pre><code>    IN:
       -&gt; e, s
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>XK(s, rs):
+<td><pre><code>XK:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee
   -&gt; s, se</code></pre></td>
-<td><pre><code>    IK(s, rs):
+<td><pre><code>    IK:
       &lt;- s
       ...
       -&gt; e, es, s, ss
       &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>XX(s, rs):
+<td><pre><code>XX:
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre></td>
-<td><pre><code>    IX(s, rs):
+<td><pre><code>    IX:
       -&gt; e, s
       &lt;- e, ee, se, s, es</code></pre></td>
 </tr>
@@ -754,33 +779,33 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>N(rs):
+<td><pre><code>N:
   &lt;- s
   ...
   -&gt; e, es</code></pre></td>
-<td><pre><code>   Npsk0(rs):
+<td><pre><code>   Npsk0:
      &lt;- s
      ...
      -&gt; psk, e, es</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>K(s, rs):
+<td><pre><code>K:
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss</code></pre></td>
-<td><pre><code>   Kpsk0(s, rs):
+<td><pre><code>   Kpsk0:
      -&gt; s
      &lt;- s
      ...
      -&gt; psk, e, es, ss</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>X(s, rs):
+<td><pre><code>X:
   &lt;- s
   ...
   -&gt; e, es, s, ss</code></pre></td>
-<td><pre><code>   Xpsk1(s, rs):
+<td><pre><code>   Xpsk1:
      &lt;- s
      ...
      -&gt; e, es, s, ss, psk</code></pre></td>
@@ -796,71 +821,71 @@
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>NN():
+<td><pre><code>NN:
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>NNpsk0():
+<td><pre><code>NNpsk0:
   -&gt; psk, e
   &lt;- e, ee</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>NN():
+<td><pre><code>NN:
   -&gt; e
   &lt;- e, ee</code></pre></td>
-<td><pre><code>NNpsk2():
+<td><pre><code>NNpsk2:
   -&gt; e
   &lt;- e, ee, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>NK(rs):
+<td><pre><code>NK:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>NKpsk0(rs):
+<td><pre><code>NKpsk0:
   &lt;- s
   ...
   -&gt; psk, e, es
   &lt;- e, ee</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>NK(rs):
+<td><pre><code>NK:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee</code></pre></td>
-<td><pre><code>NKpsk2(rs):
+<td><pre><code>NKpsk2:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>NX(rs):
+<td><pre><code>NX:
   -&gt; e
   &lt;- e, ee, s, es</code></pre></td>
-<td><pre><code> NXpsk2(rs):
+<td><pre><code> NXpsk2:
    -&gt; e
    &lt;- e, ee, s, es, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>XN(s):
+<td><pre><code>XN:
   -&gt; e
   &lt;- e, ee
   -&gt; s, se</code></pre></td>
-<td><pre><code> XNpsk3(s):
+<td><pre><code> XNpsk3:
    -&gt; e
    &lt;- e, ee
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>XK(s, rs):
+<td><pre><code>XK:
   &lt;- s
   ...
   -&gt; e, es
   &lt;- e, ee
   -&gt; s, se</code></pre></td>
-<td><pre><code> XKpsk3(s, rs):
+<td><pre><code> XKpsk3:
    &lt;- s
    ...
    -&gt; e, es
@@ -868,47 +893,47 @@
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>XX(s, rs):
+<td><pre><code>XX:
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre></td>
-<td><pre><code> XXpsk3(s, rs):
+<td><pre><code> XXpsk3:
    -&gt; e
    &lt;- e, ee, s, es
    -&gt; s, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>KN(s):
+<td><pre><code>KN:
   -&gt; s
   ...
   -&gt; e
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  KNpsk0(s):
+<td><pre><code>  KNpsk0:
     -&gt; s
     ...
     -&gt; psk, e
     &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>KN(s):
+<td><pre><code>KN:
   -&gt; s
   ...
   -&gt; e
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  KNpsk2(s):
+<td><pre><code>  KNpsk2:
     -&gt; s
     ...
     -&gt; e
     &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>KK(s, rs):
+<td><pre><code>KK:
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  KKpsk0(s, rs):
+<td><pre><code>  KKpsk0:
     -&gt; s
     &lt;- s
     ...
@@ -916,13 +941,13 @@
     &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>KK(s, rs):
+<td><pre><code>KK:
   -&gt; s
   &lt;- s
   ...
   -&gt; e, es, ss
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>  KKpsk2(s, rs):
+<td><pre><code>  KKpsk2:
     -&gt; s
     &lt;- s
     ...
@@ -930,62 +955,62 @@
     &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>KX(s, rs):
+<td><pre><code>KX:
   -&gt; s
   ...
   -&gt; e
   &lt;- e, ee, se, s, es</code></pre></td>
-<td><pre><code>   KXpsk2(s, rs):
+<td><pre><code>   KXpsk2:
      -&gt; s
      ...
      -&gt; e
      &lt;- e, ee, se, s, es, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>IN(s):
+<td><pre><code>IN:
   -&gt; e, s
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   INpsk1(s):
+<td><pre><code>   INpsk1:
      -&gt; e, s, psk
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>IN(s):
+<td><pre><code>IN:
   -&gt; e, s
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   INpsk2(s):
+<td><pre><code>   INpsk2:
      -&gt; e, s
      &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>IK(s, rs):
+<td><pre><code>IK:
   &lt;- s
   ...
   -&gt; e, es, s, ss
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   IKpsk1(s, rs):
+<td><pre><code>   IKpsk1:
      &lt;- s
      ...
      -&gt; e, es, s, ss, psk
      &lt;- e, ee, se</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>IK(s, rs):
+<td><pre><code>IK:
   &lt;- s
   ...
   -&gt; e, es, s, ss
   &lt;- e, ee, se</code></pre></td>
-<td><pre><code>   IKpsk2(s, rs):
+<td><pre><code>   IKpsk2:
      &lt;- s
      ...
      -&gt; e, es, s, ss
      &lt;- e, ee, se, psk</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>IX(s, rs):
+<td><pre><code>IX:
   -&gt; e, s
   &lt;- e, ee, se, s, es</code></pre></td>
-<td><pre><code>   IXpsk2(s, rs):
+<td><pre><code>   IXpsk2:
      -&gt; e, s
      &lt;- e, ee, se, s, es, psk</code></pre></td>
 </tr>
@@ -996,7 +1021,7 @@
 <h1 id="fallback-protocols">10. Fallback protocols</h1>
 <h2 id="fallback-patterns">10.1. Fallback patterns</h2>
 <p>So far we've discussed Noise protocols which execute a single handshake chosen by the initiator. These include &quot;zero-RTT&quot; protocols where the initiator encrypts the initial message based on some stored information about the responder (such as the responder's static public key).</p>
-<p>If the initiator's information is out-of-date the responder won't be able to decrypt the message. To handle this, the responder might choose to execute a different Noise handshake, known as a <strong>fallback handshake</strong>.</p>
+<p>If the initiator's information is out-of-date the responder won't be able to decrypt the message. To handle this, the responder might choose to switch to a different Noise protocol.</p>
 <p>To support this case Noise allows <strong>fallback patterns</strong>. Fallback patterns make use of the <code>fallback</code> pattern modifier (see <a href="#protocol-names-and-modifiers">Section 8</a>). This modifier deletes the initiator's initial message, and adds any public keys sent in the clear in that message into the initiator's pre-message. Fallback patterns thus differ from regular patterns in two ways:</p>
 <ul>
 <li><p>The <em>responder</em> sends the first message in a fallback handshake. In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).</p></li>
@@ -1021,18 +1046,18 @@
 <p>Note that the <code>type</code> byte doesn't need to be explicitly authenticated (either as prologue, or as &quot;associated data&quot; in the AEAD encryption), since it's implicitly authenticated if the message is processed succesfully.</p>
 <h2 id="noise-pipes">10.3. Noise Pipes</h2>
 <p>This section defines the <strong>Noise Pipe</strong> protocol. This protocol uses three handshake patterns - two defined previously, and a new one. These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:</p>
-<pre><code>XX(s, rs):  
+<pre><code>XX:  
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se
 
-IK(s, rs):                   
+IK:                   
   &lt;- s                         
   ...
   -&gt; e, es, s, ss          
   &lt;- e, ee, se
 
-XXfallback(e, s, rs):                   
+XXfallback:                   
   -&gt; e
   ...
   &lt;- e, ee, s, es

@@ -601,54 +601,85 @@ The pre-messages represent an exchange of public keys that was somehow
 performed prior to the handshake, so these public keys must be inputs to
 `Initialize()` for the "recipient" of the pre-message.  
 
-The first actual handshake message is sent from the initiator to the responder
-(with one exception - see next paragraph).  The next message is sent by the
-responder, the next from the initiator, and so on in alternating fashion.
+The first actual handshake message is sent from the initiator to the responder.
+The next message is sent by the responder, the next from the initiator, and so
+on in alternating fashion.
 
-(Exceptional case: Noise allows special **fallback patterns** where the
-responder switches to a different pattern than the initator started with (see
-[Section 10.1](#fallback-patterns)).  If the initiator's pre-message contains an
-`"e"` token, then this handshake pattern is a fallback pattern.  In the case of
-a fallback pattern the first handshake message is sent by the *responder*,
-the next by the *initiator*, and so on.)
 
 The following handshake pattern describes an unauthenticated DH handshake:
 
-    NN():
+    NN:
       -> e
       <- e, ee
 
-The handshake pattern name is `NN`.  This naming convention will be
-explained in [Section 7.3](#interactive-patterns).  The empty parentheses
-indicate that neither party is initialized with any key pairs.  The tokens
-`"s"`, `"e"`, or `"e, s"` inside the parentheses would indicate that the
-initiator is initialized with static and/or ephemeral key pairs.  The tokens
-`"rs"`, `"re"`, or `"re, rs"` would indicate the same thing for the responder.
+In the following handshake pattern both the initiator and responder possess
+static key pairs:
 
-Right-pointing arrows show messages sent by the initiator.  Left-pointing
-arrows show messages sent by the responder.
+    XX:
+      -> e
+      <- e, ee, s, es
+      -> s, se
 
-Non-empty pre-messages are shown as patterns prior to the delimiter `"..."`, with a
-right-pointing arrow for the initiator's pre-message, and a left-pointing arrow
-for the responder's pre-message.  If both parties have a pre-message, the
-initiator's is listed first, and hashed first.  During `Initialize()`,
-`MixHash()` is called on any pre-message public keys, as described in [Section
+The handshake pattern names are `NN` and `XX`.  This naming convention will be
+explained in [Section 7.3](#interactive-patterns).
+
+Non-empty pre-messages are shown as pre-message patterns prior to the delimiter
+`"..."`.  If both parties have a pre-message, the initiator's is listed first,
+and hashed first.  During `Initialize()`, `MixHash()` is called on any
+pre-message public keys, as described in [Section
 5.3](#the-handshakestate-object).
 
 The following pattern describes a handshake where the initiator has
-pre-knowledge of the responder's static public key, and performs a DH with the
-responder's static public key as well as the responder's ephemeral public key.
-This pre-knowledge allows an encrypted payload to be sent in the first message
-("zero-RTT encryption"), although full forward secrecy and replay protection is
-only achieved with the second message.
+pre-knowledge of the responder's static public key and uses it for "zero-RTT" encryption.
 
-    NK(rs):
+    NK:
       <- s
       ...
       -> e, es 
       <- e, ee
 
 \newpage
+
+## 7.2. Alice and Bob
+
+In all handshake patterns shown previously, the initiator is the party on the
+left (sending with right-pointing arrows) and the responder is the party on the
+right (sending with left-pointing arrows).
+
+However, multiple Noise protocols might be used within a **compound protocol** where
+the responder in one Noise protocol becomes the initiator for a later Noise protocol.
+
+To aid notation in this case, we introduce the notion of **Alice** and **Bob**
+roles which are different from the initiator and responder roles.  Alice will
+be viewed as the party on the left (sending messages with right arrows), and
+Bob will be the party on the right.
+
+Handshake patterns written in **canonical form** (i.e. **Alice-initiated
+form**) assume the initiator is Alice (the left-most party).  All processing
+rules and discussion so far have assumed canonical-form handshake patterns.
+
+However, handshake messages can be written in **Bob-initiated form** by
+reversing the arrows and the DH tokens (e.g. replacing `"es"` with `"se"`, and
+vice versa).  Below are the handshake patterns from the previous section written
+in Bob-initiated form:
+
+    NN:
+      <- e
+      -> e, ee
+
+    XX:
+      <- e
+      -> e, ee, s, se
+      <- s, es
+
+    NK:
+      -> s
+      ...
+      <- e, se
+      -> e, ee
+
+For an example of Bob-initiated notation, see the discussion on fallback
+patterns in [Section 10.1](#fallback-patterns).
 
 ## 7.1. Pattern validity 
 
@@ -700,18 +731,18 @@ status of the sender's static key:
  * **`X`** = Static key for sender **`X`**mitted ("transmitted") to recipient
 
 +-------------------------+
-|     N(rs):              |
+|     N:                  |
 |       <- s              |
 |       ...               |
 |       -> e, es          |
 +-------------------------+
-|     K(s, rs):           |
+|     K:                  |
 |       -> s              |
 |       <- s              |
 |       ...               |
 |       -> e, es, ss      |
 +-------------------------+
-|     X(s, rs):           |
+|     X:                  |
 |       <- s              |
 |       ...               |
 |       -> e, es, s, ss   |
@@ -745,38 +776,38 @@ The second character refers to the responder's static key:
 \newpage
 
 +---------------------------+--------------------------------+
-|     NN():                 |        KN(s):                  |
+|     NN:                   |        KN:                     |
 |       -> e                |          -> s                  |
 |       <- e, ee            |          ...                   |
 |                           |          -> e                  |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
-|     NK(rs):               |        KK(s, rs):              |
+|     NK:                   |        KK:                     |
 |       <- s                |          -> s                  |
 |       ...                 |          <- s                  |
 |       -> e, es            |          ...                   |
 |       <- e, ee            |          -> e, es, ss          |
 |                           |          <- e, ee, se          |
 +---------------------------+--------------------------------+
-|     NX(rs):               |         KX(s, rs):             |
+|     NX:                   |         KX:                    |
 |       -> e                |           -> s                 |
 |       <- e, ee, s, es     |           ...                  |
 |                           |           -> e                 |
 |                           |           <- e, ee, se, s, es  |
 +---------------------------+--------------------------------+
-|     XN(s):                |         IN(s):                 |
+|     XN:                   |         IN:                    |
 |       -> e                |           -> e, s              |
 |       <- e, ee            |           <- e, ee, se         |
 |       -> s, se            |                                |
 +---------------------------+--------------------------------+
-|     XK(s, rs):            |         IK(s, rs):             |
+|     XK:                   |         IK:                    |
 |       <- s                |           <- s                 |      
 |       ...                 |           ...                  |
 |       -> e, es            |           -> e, es, s, ss      |
 |       <- e, ee            |           <- e, ee, se         |
 |       -> s, se            |                                |
 +---------------------------+--------------------------------+
-|     XX(s, rs):            |         IX(s, rs):             |
+|     XX:                   |         IX:                    |
 |       -> e                |           -> e, s              |
 |       <- e, ee, s, es     |           <- e, ee, se, s, es  |
 |       -> s, se            |                                |
@@ -1197,20 +1228,20 @@ PSK pattern on the right:
 
 
 +--------------------------------+--------------------------------------+ 
-|     N(rs):                     |        Npsk0(rs):                    | 
+|     N:                         |        Npsk0:                        | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es                 |          -> psk, e, es               | 
 |                                |                                      | 
 +--------------------------------+--------------------------------------+ 
-|     K(s, rs):                  |        Kpsk0(s, rs):                 | 
+|     K:                         |        Kpsk0:                        | 
 |       -> s                     |          -> s                        | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es, ss             |          -> psk, e, es, ss           | 
 |                                |                                      | 
 +--------------------------------+--------------------------------------+ 
-|     X(s, rs):                  |        Xpsk1(s, rs):                 | 
+|     X:                         |        Xpsk1:                        | 
 |       <- s                     |          <- s                        | 
 |       ...                      |          ...                         | 
 |       -> e, es, s, ss          |          -> e, es, s, ss, psk        | 
@@ -1226,104 +1257,104 @@ useful here than `psk0`.
 Following similar logic, we can define the most likely interactive PSK patterns:
 
 +--------------------------------+--------------------------------------+       
-|     NN():                      |     NNpsk0():                        |
+|     NN:                        |     NNpsk0:                          |
 |       -> e                     |       -> psk, e                      |
 |       <- e, ee                 |       <- e, ee                       |
 +--------------------------------+--------------------------------------+
-|     NN():                      |     NNpsk2():                        |
+|     NN:                        |     NNpsk2:                          |
 |       -> e                     |       -> e                           |
 |       <- e, ee                 |       <- e, ee, psk                  |
 +--------------------------------+--------------------------------------+
-|     NK(rs):                    |     NKpsk0(rs):                      |
+|     NK:                        |     NKpsk0:                          |
 |       <- s                     |       <- s                           |
 |       ...                      |       ...                            |
 |       -> e, es                 |       -> psk, e, es                  |
 |       <- e, ee                 |       <- e, ee                       |
 +--------------------------------+--------------------------------------+
-|     NK(rs):                    |     NKpsk2(rs):                      |
+|     NK:                        |     NKpsk2:                          |
 |       <- s                     |       <- s                           |
 |       ...                      |       ...                            |
 |       -> e, es                 |       -> e, es                       |
 |       <- e, ee                 |       <- e, ee, psk                  |
 +--------------------------------+--------------------------------------+
-|     NX(rs):                    |      NXpsk2(rs):                     |
+|     NX:                        |      NXpsk2:                         |
 |       -> e                     |        -> e                          |
 |       <- e, ee, s, es          |        <- e, ee, s, es, psk          |
 +--------------------------------+--------------------------------------+
-|     XN(s):                     |      XNpsk3(s):                      |
+|     XN:                        |      XNpsk3:                         |
 |       -> e                     |        -> e                          |
 |       <- e, ee                 |        <- e, ee                      |
 |       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+
-|     XK(s, rs):                 |      XKpsk3(s, rs):                  |
+|     XK:                        |      XKpsk3:                         |
 |       <- s                     |        <- s                          |
 |       ...                      |        ...                           |
 |       -> e, es                 |        -> e, es                      |
 |       <- e, ee                 |        <- e, ee                      |
 |       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+
-|     XX(s, rs):                 |      XXpsk3(s, rs):                  |
+|     XX:                        |      XXpsk3:                         |
 |       -> e                     |        -> e                          |
 |       <- e, ee, s, es          |        <- e, ee, s, es               |
 |       -> s, se                 |        -> s, se, psk                 |
 +--------------------------------+--------------------------------------+   
-|     KN(s):                     |       KNpsk0(s):                     |
+|     KN:                        |       KNpsk0:                        |
 |       -> s                     |         -> s                         |
 |       ...                      |         ...                          |
 |       -> e                     |         -> psk, e                    |
 |       <- e, ee, se             |         <- e, ee, se                 |
 +--------------------------------+--------------------------------------+   
-|     KN(s):                     |       KNpsk2(s):                     |
+|     KN:                        |       KNpsk2:                        |
 |       -> s                     |         -> s                         |
 |       ...                      |         ...                          |
 |       -> e                     |         -> e                         |
 |       <- e, ee, se             |         <- e, ee, se, psk            |
 +--------------------------------+--------------------------------------+
-|     KK(s, rs):                 |       KKpsk0(s, rs):                 |
+|     KK:                        |       KKpsk0:                        |
 |       -> s                     |         -> s                         |
 |       <- s                     |         <- s                         |
 |       ...                      |         ...                          |
 |       -> e, es, ss             |         -> psk, e, es, ss            |
 |       <- e, ee, se             |         <- e, ee, se                 |
 +--------------------------------+--------------------------------------+
-|     KK(s, rs):                 |       KKpsk2(s, rs):                 |
+|     KK:                        |       KKpsk2:                        |
 |       -> s                     |         -> s                         |
 |       <- s                     |         <- s                         |
 |       ...                      |         ...                          |
 |       -> e, es, ss             |         -> e, es, ss                 |
 |       <- e, ee, se             |         <- e, ee, se, psk            |
 +--------------------------------+--------------------------------------+
-|     KX(s, rs):                 |        KXpsk2(s, rs):                |
+|     KX:                        |        KXpsk2:                       |
 |       -> s                     |          -> s                        |
 |       ...                      |          ...                         |
 |       -> e                     |          -> e                        |
 |       <- e, ee, se, s, es      |          <- e, ee, se, s, es, psk    |
 +--------------------------------+--------------------------------------+
-|     IN(s):                     |        INpsk1(s):                    |
+|     IN:                        |        INpsk1:                       |
 |       -> e, s                  |          -> e, s, psk                |
 |       <- e, ee, se             |          <- e, ee, se                |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|     IN(s):                     |        INpsk2(s):                    |
+|     IN:                        |        INpsk2:                       |
 |       -> e, s                  |          -> e, s                     |
 |       <- e, ee, se             |          <- e, ee, se, psk           |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|     IK(s, rs):                 |        IKpsk1(s, rs):                |
+|     IK:                        |        IKpsk1:                       |
 |       <- s                     |          <- s                        |
 |       ...                      |          ...                         |
 |       -> e, es, s, ss          |          -> e, es, s, ss, psk        |
 |       <- e, ee, se             |          <- e, ee, se                |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|     IK(s, rs):                 |        IKpsk2(s, rs):                |
+|     IK:                        |        IKpsk2:                       |
 |       <- s                     |          <- s                        |
 |       ...                      |          ...                         |
 |       -> e, es, s, ss          |          -> e, es, s, ss             |
 |       <- e, ee, se             |          <- e, ee, se, psk           |
 |                                |                                      |
 +--------------------------------+--------------------------------------+
-|     IX(s, rs):                 |        IXpsk2(s, rs):                |
+|     IX:                        |        IXpsk2:                       |
 |       -> e, s                  |          -> e, s                     |
 |       <- e, ee, se, s, es      |          <- e, ee, se, s, es, psk    |
 |                                |                                      |
@@ -1349,7 +1380,9 @@ by the initiator.  These include "zero-RTT" protocols where the initiator encryp
 the initial message based on some stored information about the responder (such
 as the responder's static public key).
 
-If the initiator's information is out-of-date the responder won't be able to decrypt the message.  To handle this, the responder might choose to execute a different Noise handshake, known as a **fallback handshake**.
+If the initiator's information is out-of-date the responder won't be able to
+decrypt the message.  To handle this, the responder might choose to switch to a
+different Noise protocol.
 
 To support this case Noise allows **fallback patterns**.  Fallback patterns make use of the `fallback` pattern modifier (see [Section 8](#protocol-names-and-modifiers)).  This modifier deletes the initiator's initial message, and adds any public keys sent in the clear in that message into the initiator's pre-message.  Fallback patterns thus differ from regular patterns in two ways:
 
@@ -1396,18 +1429,18 @@ message is processed succesfully.
 This section defines the **Noise Pipe** protocol.  This protocol uses
 three handshake patterns - two defined previously, and a new one.  These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:
 
-    XX(s, rs):  
+    XX:  
       -> e
       <- e, ee, s, es
       -> s, se
 
-    IK(s, rs):                   
+    IK:                   
       <- s                         
       ...
       -> e, es, s, ss          
       <- e, ee, se
 
-    XXfallback(e, s, rs):                   
+    XXfallback:                   
       -> e
       ...
       <- e, ee, s, es
