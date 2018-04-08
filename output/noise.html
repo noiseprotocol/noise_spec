@@ -175,7 +175,7 @@
 <h2 id="cipher-functions">4.2. Cipher functions</h2>
 <p>Noise depends on the following <strong>cipher functions</strong>:</p>
 <ul>
-<li><p><strong><code>ENCRYPT(k, n, ad, plaintext)</code></strong>: Encrypts <code>plaintext</code> using the cipher key <code>k</code> of 32 bytes and an 8-byte unsigned integer nonce <code>n</code> which must be unique for the key <code>k</code>. Returns the ciphertext. Encryption must be done with an &quot;AEAD&quot; encryption mode with the associated data <code>ad</code> (using the terminology from <span class="citation">[<a href="#ref-Rogaway:2002">1</a>]</span>) and returns a ciphertext that is the same size as the plaintext plus 16 bytes for authentication data. The entire ciphertext must be indistinguishable from random if the key is secret.</p></li>
+<li><p><strong><code>ENCRYPT(k, n, ad, plaintext)</code></strong>: Encrypts <code>plaintext</code> using the cipher key <code>k</code> of 32 bytes and an 8-byte unsigned integer nonce <code>n</code> which must be unique for the key <code>k</code>. Returns the ciphertext. Encryption must be done with an &quot;AEAD&quot; encryption mode with the associated data <code>ad</code> (using the terminology from <span class="citation">[<a href="#ref-Rogaway:2002">1</a>]</span>) and returns a ciphertext that is the same size as the plaintext plus 16 bytes for authentication data. The entire ciphertext must be indistinguishable from random if the key is secret (note that this is an additional requirement that isn't necessarily met by all AEAD schemes).</p></li>
 <li><p><strong><code>DECRYPT(k, n, ad, ciphertext)</code></strong>: Decrypts <code>ciphertext</code> using a cipher key <code>k</code> of 32 bytes, an 8-byte unsigned integer nonce <code>n</code>, and associated data <code>ad</code>. Returns the plaintext, unless authentication fails, in which case an error is signaled to the caller.</p></li>
 <li><p><strong><code>REKEY(k)</code></strong>: Returns a new 32-byte cipher key as a pseudorandom function of <code>k</code>. If this function is not specifically defined for some set of cipher functions, then it defaults to returning the first 32 bytes from <code>ENCRYPT(k,    maxnonce, zerolen, zeros)</code>, where <code>maxnonce</code> equals 2<sup>64</sup>-1, <code>zerolen</code> is a zero-length byte sequence, and <code>zeros</code> is a sequence of 32 bytes filled with zeros.</p></li>
 </ul>
@@ -1174,6 +1174,10 @@ XXfallback(e, s, rs):
 <li><p>Some algorithms (e.g. GCM) lose more security than an ideal MAC when truncated.</p></li>
 <li><p>Noise may be used in a wide variety of contexts, including where attackers can receive rapid feedback on whether guesses for authentication data are correct.</p></li>
 <li><p>A single fixed length is simpler than supporting variable-length tags.</p></li>
+</ul>
+<p>Ciphertexts are required to be indistinguishable from random because:</p>
+<ul>
+<li>This makes Noise protocols easier to use with random padding (for length-hiding), or for censorship-resistant &quot;unfingerprintable&quot; protocols, or with steganography. However note that ephemeral keys are likely to be distinguishable from random unless a technique such as Elligator <span class="citation">[<a href="#ref-elligator">5</a>]</span> is used.</li>
 </ul>
 <p>Rekey defaults to using encryption with the nonce 2<sup>64</sup>-1 because:</p>
 <ul>

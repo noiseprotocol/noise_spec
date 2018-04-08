@@ -244,10 +244,12 @@ Noise depends on the following **cipher functions**:
  * **`ENCRYPT(k, n, ad, plaintext)`**: Encrypts `plaintext` using the cipher
    key `k` of 32 bytes and an 8-byte unsigned integer nonce `n` which must be
    unique for the key `k`.  Returns the ciphertext.  Encryption must be done
-   with an "AEAD" encryption mode with the associated data `ad` (using the terminology from [@Rogaway:2002]) and returns a
-   ciphertext that is the same size as the plaintext plus 16 bytes for 
-   authentication data.  The entire ciphertext must be indistinguishable from
-   random if the key is secret. 
+   with an "AEAD" encryption mode with the associated data `ad` (using the
+   terminology from [@Rogaway:2002]) and returns a ciphertext that is the same
+   size as the plaintext plus 16 bytes for authentication data.  The entire
+   ciphertext must be indistinguishable from random if the key is secret (note
+   that this is an additional requirement that isn't necessarily met by all
+   AEAD schemes).
 
  * **`DECRYPT(k, n, ad, ciphertext)`**: Decrypts `ciphertext` using a cipher
    key `k` of 32 bytes, an 8-byte unsigned integer nonce `n`, and associated
@@ -1772,6 +1774,13 @@ The authentication data in a ciphertext (i.e. the authentication tag or syntheti
     can receive rapid feedback on whether guesses for authentication data are correct.
 
   * A single fixed length is simpler than supporting variable-length tags.
+
+Ciphertexts are required to be indistinguishable from random because:
+
+  * This makes Noise protocols easier to use with random padding (for length-hiding), or
+  for censorship-resistant "unfingerprintable" protocols, or with steganography.  However note
+  that ephemeral keys are likely to be distinguishable from random unless a technique such
+  as Elligator [@elligator] is used.
 
 Rekey defaults to using encryption with the nonce 2^64^-1 because:
 
