@@ -572,6 +572,8 @@ instead (see [Section 9](pre-shared-symmetric-keys)).
 
 # 7. Handshake patterns 
 
+## 7.1. Handshake pattern basics
+
 A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
 "es", "se", "ss", "psk")`.  The handling of these tokens within
 `WriteMessage()` and `ReadMessage()` has been described previously, except for
@@ -602,18 +604,18 @@ performed prior to the handshake, so these public keys must be inputs to
 `Initialize()` for the "recipient" of the pre-message.  
 
 The first actual handshake message is sent from the initiator to the responder.
-The next message is sent by the responder, the next from the initiator, and so
+The next message is sent from the responder, the next from the initiator, and so
 on in alternating fashion.
 
 
-The following handshake pattern describes an unauthenticated DH handshake:
+The following handshake pattern describes an unauthenticated DH handshake consisting of two message patterns:
 
     NN:
       -> e
       <- e, ee
 
 In the following handshake pattern both the initiator and responder possess
-static key pairs:
+static key pairs, and the handshake pattern comprises three message patterns:
 
     XX:
       -> e
@@ -621,7 +623,7 @@ static key pairs:
       -> s, se
 
 The handshake pattern names are `NN` and `XX`.  This naming convention will be
-explained in [Section 7.3](#interactive-patterns).
+explained in [Section 7.4](#interactive-handshake-patterns).
 
 Non-empty pre-messages are shown as pre-message patterns prior to the delimiter
 `"..."`.  If both parties have a pre-message, the initiator's is listed first,
@@ -629,8 +631,9 @@ and hashed first.  During `Initialize()`, `MixHash()` is called on any
 pre-message public keys, as described in [Section
 5.3](#the-handshakestate-object).
 
-The following pattern describes a handshake where the initiator has
-pre-knowledge of the responder's static public key and uses it for "zero-RTT" encryption.
+The following handshake pattern describes a handshake where the initiator has
+pre-knowledge of the responder's static public key and uses it for "zero-RTT"
+encryption:
 
     NK:
       <- s
@@ -638,30 +641,42 @@ pre-knowledge of the responder's static public key and uses it for "zero-RTT" en
       -> e, es 
       <- e, ee
 
+In the following handshake pattern both parties have pre-knowledge of the
+other's static public key.  The initiator's pre-message is listed first:
+
+    KK:
+      -> s
+      <- s
+      ...
+      -> e, es, ss
+      <- e, ee, se
+
 \newpage
 
 ## 7.2. Alice and Bob
 
 In all handshake patterns shown previously, the initiator is the party on the
 left (sending with right-pointing arrows) and the responder is the party on the
-right (sending with left-pointing arrows).
+right.
 
-However, multiple Noise protocols might be used within a **compound protocol** where
-the responder in one Noise protocol becomes the initiator for a later Noise protocol.
-
-To aid notation in this case, we introduce the notion of **Alice** and **Bob**
-roles which are different from the initiator and responder roles.  Alice will
-be viewed as the party on the left (sending messages with right arrows), and
-Bob will be the party on the right.
+However, multiple Noise protocols might be used within a **compound protocol**
+where the responder in one Noise protocol becomes the initiator for a later
+Noise protocol.  As a visual convenience in this case, we introduce the notion
+of **Alice** and **Bob** roles which are different from the initiator and
+responder roles.  Alice will be viewed as the party on the left (sending
+messages with right arrows), and Bob will be the party on the right.
 
 Handshake patterns written in **canonical form** (i.e. **Alice-initiated
 form**) assume the initiator is Alice (the left-most party).  All processing
 rules and discussion so far have assumed canonical-form handshake patterns.
 
-However, handshake messages can be written in **Bob-initiated form** by
+However, handshake patterns can be written in **Bob-initiated form** by
 reversing the arrows and the DH tokens (e.g. replacing `"es"` with `"se"`, and
-vice versa).  Below are the handshake patterns from the previous section written
-in Bob-initiated form:
+vice versa).  This doesn't change the handshake pattern, it simply makes it easier
+to read Alice-initated and Bob-initiated patterns side-by-side.
+
+Below are the handshake patterns from the previous section in Bob-initiated
+form:
 
     NN:
       <- e
@@ -678,10 +693,17 @@ in Bob-initiated form:
       <- e, se
       -> e, ee
 
+    KK:
+      <- s
+      -> s
+      ...
+      <- e, es, ss
+      -> e, ee, es
+
 For an example of Bob-initiated notation, see the discussion on fallback
 patterns in [Section 10.1](#fallback-patterns).
 
-## 7.1. Pattern validity 
+## 7.3. Handshape pattern validity 
 
 Handshake patterns must be **valid** in the following senses:
 
@@ -712,7 +734,7 @@ flaws.
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
 
-## 7.2. One-way patterns 
+## 7.3. One-way handshake patterns 
 
 The following handshake patterns represent "one-way" handshakes supporting a
 one-way stream of data from a sender to a recipient.  These patterns could be
@@ -721,10 +743,12 @@ used to encrypt files, database records, or other non-interactive data streams.
 Following a one-way handshake the sender can send a stream of transport
 messages, encrypting them using the first `CipherState` returned by `Split()`.
 The second `CipherState` from `Split()` is discarded - the recipient must not
-send any messages using it (as this would violate the rules in [Section 7.1](#pattern-validity)).
+send any messages using it (as this would violate the rules in [Section 7.3](#handshake-pattern-validity)).
 
 One-way patterns are named with a single character, which indicates the 
 status of the sender's static key:
+
+\newpage
 
  * **`N`** = **`N`**o static key for sender
  * **`K`** = Static key for sender **`K`**nown to recipient
@@ -752,7 +776,9 @@ status of the sender's static key:
 add sender authentication, where the sender's public key is either known to the
 recipient beforehand (`K`) or transmitted under encryption (`X`).
 
-# 7.3. Interactive patterns 
+\newpage
+
+## 7.4. Interactive handshake patterns 
 
 The following handshake patterns represent interactive protocols.
 
@@ -843,11 +869,11 @@ of "strong" forward secrecy.
 
 The next section provides more analysis of these payload security properties.
 
-## 7.4. Payload security properties
+## 7.5. Payload security properties
 
 The following table lists the security properties for Noise handshake and
-transport payloads for all the named patterns in [Section 7.2](#one-way-patterns) and
-[Section 7.3](#interactive-patterns).  Each payload is assigned an "authentication"
+transport payloads for all the named patterns in [Section 7.4](#one-way-handshake-patterns) and
+[Section 7.5](#interactive-handshake-patterns).  Each payload is assigned an "authentication"
 property regarding the degree of authentication of the sender provided to the
 recipient, and a "confidentiality" property regarding the degree of
 confidentiality provided to the sender.
@@ -1023,10 +1049,10 @@ received.
 +--------------------------------------------------------------+
 
 
-## 7.5. Identity hiding
+## 7.6. Identity hiding
 
 The following table lists the identity hiding properties for all the named
-patterns in [Section 7.2](#one-way-patterns) and [Section 7.3](#interactive-patterns).  Each
+patterns in [Section 7.4](#one-way-handshake-patterns) and [Section 7.5](#interactive-handshake-patterns).  Each
 pattern is assigned properties describing the confidentiality supplied to the
 initiator's static public key, and to the responder's static public key.  The
 underlying assumptions are that ephemeral private keys are secure, and that
@@ -1739,7 +1765,7 @@ This section collects various security considerations:
    ephemeral public key prior to sending any encrypted data.  Ephemeral keys
    must never be reused.  Violating these rules is likely to cause catastrophic
    key reuse. This is one rationale behind the patterns in [Section   7](#handshake-patterns), 
-   and the validity rules in [Section 7.1](#pattern-validity).  It's also the 
+   and the validity rules in [Section 7.3](#handshake-pattern-validity).  It's also the 
    reason why one-way handshakes only allow transport messages from the sender, 
    not the recipient.
 

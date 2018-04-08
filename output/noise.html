@@ -40,13 +40,13 @@
 </ul></li>
 <li><a href="#prologue">6. Prologue</a></li>
 <li><a href="#handshake-patterns">7. Handshake patterns</a><ul>
+<li><a href="#handshake-pattern-basics">7.1. Handshake pattern basics</a></li>
 <li><a href="#alice-and-bob">7.2. Alice and Bob</a></li>
-<li><a href="#pattern-validity">7.1. Pattern validity</a></li>
-<li><a href="#one-way-patterns">7.2. One-way patterns</a></li>
-</ul></li>
-<li><a href="#interactive-patterns">7.3. Interactive patterns</a><ul>
-<li><a href="#payload-security-properties">7.4. Payload security properties</a></li>
-<li><a href="#identity-hiding">7.5. Identity hiding</a></li>
+<li><a href="#handshape-pattern-validity">7.3. Handshape pattern validity</a></li>
+<li><a href="#one-way-handshake-patterns">7.3. One-way handshake patterns</a></li>
+<li><a href="#interactive-handshake-patterns">7.4. Interactive handshake patterns</a></li>
+<li><a href="#payload-security-properties">7.5. Payload security properties</a></li>
+<li><a href="#identity-hiding">7.6. Identity hiding</a></li>
 </ul></li>
 <li><a href="#protocol-names-and-modifiers">8. Protocol names and modifiers</a><ul>
 <li><a href="#handshake-pattern-name-section">8.1. Handshake pattern name section</a></li>
@@ -327,6 +327,7 @@
 <p>For example, suppose Bob communicates to Alice a list of Noise protocols that he is willing to support. Alice will then choose and execute a single protocol. To ensure that a &quot;man-in-the-middle&quot; did not edit Bob's list to remove options, Alice and Bob could include the list as prologue data.</p>
 <p>Note that while the parties confirm their prologues are identical, they don't mix prologue data into encryption keys. If an input contains secret data that’s intended to strengthen the encryption, a PSK handshake should be used instead (see <a href="pre-shared-symmetric-keys">Section 9</a>).</p>
 <h1 id="handshake-patterns">7. Handshake patterns</h1>
+<h2 id="handshake-pattern-basics">7.1. Handshake pattern basics</h2>
 <p>A <strong>message pattern</strong> is some sequence of tokens from the set <code>(&quot;e&quot;, &quot;s&quot;, &quot;ee&quot;, &quot;es&quot;, &quot;se&quot;, &quot;ss&quot;, &quot;psk&quot;)</code>. The handling of these tokens within <code>WriteMessage()</code> and <code>ReadMessage()</code> has been described previously, except for the <code>&quot;psk&quot;</code> token, which will be described in <a href="pre-shared-symmetric-keys">Section 9</a>. Future specifications might introduce other tokens.</p>
 <p>A <strong>pre-message pattern</strong> is one of the following sequences of tokens:</p>
 <ul>
@@ -342,31 +343,38 @@
 <li><p>A sequence of message patterns for the actual handshake messages.</p></li>
 </ul>
 <p>The pre-messages represent an exchange of public keys that was somehow performed prior to the handshake, so these public keys must be inputs to <code>Initialize()</code> for the &quot;recipient&quot; of the pre-message.</p>
-<p>The first actual handshake message is sent from the initiator to the responder. The next message is sent by the responder, the next from the initiator, and so on in alternating fashion.</p>
-<p>The following handshake pattern describes an unauthenticated DH handshake:</p>
+<p>The first actual handshake message is sent from the initiator to the responder. The next message is sent from the responder, the next from the initiator, and so on in alternating fashion.</p>
+<p>The following handshake pattern describes an unauthenticated DH handshake consisting of two message patterns:</p>
 <pre><code>NN:
   -&gt; e
   &lt;- e, ee</code></pre>
-<p>In the following handshake pattern both the initiator and responder possess static key pairs:</p>
+<p>In the following handshake pattern both the initiator and responder possess static key pairs, and the handshake pattern comprises three message patterns:</p>
 <pre><code>XX:
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre>
-<p>The handshake pattern names are <code>NN</code> and <code>XX</code>. This naming convention will be explained in <a href="#interactive-patterns">Section 7.3</a>.</p>
+<p>The handshake pattern names are <code>NN</code> and <code>XX</code>. This naming convention will be explained in <a href="#interactive-handshake-patterns">Section 7.4</a>.</p>
 <p>Non-empty pre-messages are shown as pre-message patterns prior to the delimiter <code>&quot;...&quot;</code>. If both parties have a pre-message, the initiator's is listed first, and hashed first. During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
-<p>The following pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key and uses it for &quot;zero-RTT&quot; encryption.</p>
+<p>The following handshake pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key and uses it for &quot;zero-RTT&quot; encryption:</p>
 <pre><code>NK:
   &lt;- s
   ...
   -&gt; e, es 
   &lt;- e, ee</code></pre>
+<p>In the following handshake pattern both parties have pre-knowledge of the other's static public key. The initiator's pre-message is listed first:</p>
+<pre><code>KK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es, ss
+  &lt;- e, ee, se</code></pre>
 
 <h2 id="alice-and-bob">7.2. Alice and Bob</h2>
-<p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right (sending with left-pointing arrows).</p>
-<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol.</p>
-<p>To aid notation in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
+<p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right.</p>
+<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a visual convenience in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
 <p>Handshake patterns written in <strong>canonical form</strong> (i.e. <strong>Alice-initiated form</strong>) assume the initiator is Alice (the left-most party). All processing rules and discussion so far have assumed canonical-form handshake patterns.</p>
-<p>However, handshake messages can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). Below are the handshake patterns from the previous section written in Bob-initiated form:</p>
+<p>However, handshake patterns can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). This doesn't change the handshake pattern, it simply makes it easier to read Alice-initated and Bob-initiated patterns side-by-side.</p>
+<p>Below are the handshake patterns from the previous section in Bob-initiated form:</p>
 <pre><code>NN:
   &lt;- e
   -&gt; e, ee
@@ -380,9 +388,16 @@ NK:
   -&gt; s
   ...
   &lt;- e, se
-  -&gt; e, ee</code></pre>
+  -&gt; e, ee
+
+KK:
+  &lt;- s
+  -&gt; s
+  ...
+  &lt;- e, es, ss
+  -&gt; e, ee, es</code></pre>
 <p>For an example of Bob-initiated notation, see the discussion on fallback patterns in <a href="#fallback-patterns">Section 10.1</a>.</p>
-<h2 id="pattern-validity">7.1. Pattern validity</h2>
+<h2 id="handshape-pattern-validity">7.3. Handshape pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
 <li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
@@ -393,10 +408,11 @@ NK:
 <p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>
 <p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
-<h2 id="one-way-patterns">7.2. One-way patterns</h2>
+<h2 id="one-way-handshake-patterns">7.3. One-way handshake patterns</h2>
 <p>The following handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
-<p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#pattern-validity">Section 7.1</a>).</p>
+<p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#handshake-pattern-validity">Section 7.3</a>).</p>
 <p>One-way patterns are named with a single character, which indicates the status of the sender's static key:</p>
+
 <ul>
 <li><strong><code>N</code></strong> = <strong><code>N</code></strong>o static key for sender</li>
 <li><strong><code>K</code></strong> = Static key for sender <strong><code>K</code></strong>nown to recipient</li>
@@ -429,7 +445,8 @@ NK:
 </tbody>
 </table>
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
-<h1 id="interactive-patterns">7.3. Interactive patterns</h1>
+
+<h2 id="interactive-handshake-patterns">7.4. Interactive handshake patterns</h2>
 <p>The following handshake patterns represent interactive protocols.</p>
 <p>Interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
@@ -528,8 +545,8 @@ NK:
 <p>The security properties for handshake payloads are usually weaker than the final security properties achieved by transport payloads, so these early encryptions must be used with caution.</p>
 <p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with <code>K</code> or <code>I</code> have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
 <p>The next section provides more analysis of these payload security properties.</p>
-<h2 id="payload-security-properties">7.4. Payload security properties</h2>
-<p>The following table lists the security properties for Noise handshake and transport payloads for all the named patterns in <a href="#one-way-patterns">Section 7.2</a> and <a href="#interactive-patterns">Section 7.3</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
+<h2 id="payload-security-properties">7.5. Payload security properties</h2>
+<p>The following table lists the security properties for Noise handshake and transport payloads for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
 <p>The authentication properties are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p><strong>No authentication.</strong> This payload may have been sent by any party, including an active attacker.</p></li>
@@ -660,8 +677,8 @@ NK:
 </tr>
 </tbody>
 </table>
-<h2 id="identity-hiding">7.5. Identity hiding</h2>
-<p>The following table lists the identity hiding properties for all the named patterns in <a href="#one-way-patterns">Section 7.2</a> and <a href="#interactive-patterns">Section 7.3</a>. Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
+<h2 id="identity-hiding">7.6. Identity hiding</h2>
+<p>The following table lists the identity hiding properties for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
 <p>This section only considers identity leakage through static public key fields in handshakes. Of course, the identities of Noise participants might be exposed through other means, including payload fields, traffic analysis, or metadata such as IP addresses.</p>
 <p>The properties for the relevant public key are:</p>
 <ol start="0" style="list-style-type: decimal">
@@ -1172,7 +1189,7 @@ XXfallback:
 <li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK.</p></li>
 <li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 11.2</a>.</p></li>
 <li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
-<li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol must send a fresh ephemeral public key prior to sending any encrypted data. Ephemeral keys must never be reused. Violating these rules is likely to cause catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#pattern-validity">Section 7.1</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
+<li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol must send a fresh ephemeral public key prior to sending any encrypted data. Ephemeral keys must never be reused. Violating these rules is likely to cause catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#handshake-pattern-validity">Section 7.3</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair, static key pair, or PSK). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
 <li><p><strong>Pre-shared symmetric keys</strong>: Pre-shared symmetric keys must be secret values with 256 bits of entropy.</p></li>
 <li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility then different cipher functions should be chosen.</p></li>
