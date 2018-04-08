@@ -489,9 +489,11 @@ A `HandshakeState` responds to the following functions:
 
       * Calls `MixHash()` once for each public key listed in the pre-messages
         from `handshake_pattern`, with the specified public key as input (see
-        [Section 7](#handshake-patterns) for an explanation of pre-messages).  If both
-        initiator and responder have pre-messages, the initiator's public keys
-        are hashed first.
+        [Section 7](#handshake-patterns) for an explanation of pre-messages).
+        If both initiator and responder have pre-messages, the initiator's
+        public keys are hashed first.  If multiple public keys are listed in
+        either party's pre-message, the public keys are hashed in the order
+        that they are listed.
 
       * Sets `message_patterns` to the message patterns from `handshake_pattern`.
 
@@ -1938,7 +1940,7 @@ Ermishkin, and Olaoluwa Osuntokun.
 
 Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
 Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar
-Mokrynskyi, and Keziah Elis Biermann.
+Mokrynskyi, Keziah Elis Biermann, and Justin Cormack.
 
 Helpful input and feedback on the key derivation design came from: Moxie
 Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson,
