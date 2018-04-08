@@ -373,7 +373,7 @@
 <p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right.</p>
 <p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a visual convenience in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
 <p>Handshake patterns written in <strong>canonical form</strong> (i.e. <strong>Alice-initiated form</strong>) assume the initiator is Alice (the left-most party). All processing rules and discussion so far have assumed canonical-form handshake patterns.</p>
-<p>However, handshake patterns can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). This doesn't change the handshake pattern, it simply makes it easier to read Alice-initated and Bob-initiated patterns side-by-side.</p>
+<p>However, handshake patterns can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). This doesn't change the handshake pattern, it simply makes it easier to view Alice-initiated and Bob-initiated handshakes side-by-side.</p>
 <p>Below are the handshake patterns from the previous section in Bob-initiated form:</p>
 <pre><code>NN:
   &lt;- e
@@ -400,7 +400,7 @@ KK:
 <h2 id="handshape-pattern-validity">7.3. Handshape pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
-<li><p>Parties can only send a static public key if they were initialized with a static key pair, and can only perform DH between private keys and public keys they possess.</p></li>
+<li><p>Parties can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key or ephemeral public key more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of <code>&quot;e&quot;</code>, and one occurrence of <code>&quot;s&quot;</code>, in the messages sent by any party).</p></li>
 <li><p>After performing a DH between a remote public key and any local private key that is not the ephemeral private key, the local party must not call <code>ENCRYPT()</code> unless it has also performed a DH between the ephemeral private key and the remote public key.</p></li>
 </ol>
@@ -1312,7 +1312,7 @@ XXfallback:
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
 <p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
-<p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, and Justin Cormack.</p>
+<p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, and Katriel Cohn-Gordon.</p>
 <p>Helpful input and feedback on the key derivation design came from: Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
 <p>The rekey design benefited from discussions with Rhys Weatherley, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>

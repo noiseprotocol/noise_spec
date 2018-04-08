@@ -672,8 +672,8 @@ rules and discussion so far have assumed canonical-form handshake patterns.
 
 However, handshake patterns can be written in **Bob-initiated form** by
 reversing the arrows and the DH tokens (e.g. replacing `"es"` with `"se"`, and
-vice versa).  This doesn't change the handshake pattern, it simply makes it easier
-to read Alice-initated and Bob-initiated patterns side-by-side.
+vice versa).  This doesn't change the handshake pattern, it simply makes it
+easier to view Alice-initiated and Bob-initiated handshakes side-by-side.
 
 Below are the handshake patterns from the previous section in Bob-initiated
 form:
@@ -707,8 +707,7 @@ patterns in [Section 10.1](#fallback-patterns).
 
 Handshake patterns must be **valid** in the following senses:
 
- 1. Parties can only send a static public key if they were initialized with a
-   static key pair, and can only perform DH between private keys and public
+ 1. Parties can only perform DH between private keys and public
    keys they possess.
 
  2. Parties must not send their static public key or ephemeral public key more
@@ -1999,7 +1998,7 @@ Ermishkin, and Olaoluwa Osuntokun.
 
 Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
 Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar
-Mokrynskyi, Keziah Elis Biermann, and Justin Cormack.
+Mokrynskyi, Keziah Elis Biermann, Justin Cormack, and Katriel Cohn-Gordon.
 
 Helpful input and feedback on the key derivation design came from: Moxie
 Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson,
