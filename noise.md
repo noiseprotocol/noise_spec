@@ -1936,13 +1936,13 @@ Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany
 Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
 Ermishkin, and Olaoluwa Osuntokun.
 
-Thanks to Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan
-Burkert, Jake McGinty, Yin Guanhao, and Nazar Mokrynskyi for editorial
-feedback.
+Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
+Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar
+Mokrynskyi, and Keziah Elis Biermann.
 
-Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P.
-Aumasson, and Jason Donenfeld provided helpful input and feedback on the key
-derivation design.
+Helpful input and feedback on the key derivation design came from: Moxie
+Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson,
+and Jason Donenfeld.
 
 The PSK approach was largely motivated and designed by Jason Donenfeld, based
 on his experience with PSKs in WireGuard.
