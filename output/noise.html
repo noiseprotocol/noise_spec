@@ -58,8 +58,9 @@
 <li><a href="#validity-rule">9.3. Validity rule</a></li>
 <li><a href="#pattern-modifiers">9.4. Pattern modifiers</a></li>
 </ul></li>
-<li><a href="#fallback-protocols">10. Fallback protocols</a><ul>
-<li><a href="#fallback-patterns">10.1. Fallback patterns</a></li>
+<li><a href="#compound-protocols">10. Compound protocols</a></li>
+<li><a href="#rationale-for-compound-protocols">10.1 Rationale for compound protocols</a><ul>
+<li><a href="#the-fallback-modifier">10.1. The <code>fallback</code> modifier</a></li>
 </ul></li>
 <li><a href="#indicating-fallback">10.2. Indicating fallback</a><ul>
 <li><a href="#noise-pipes">10.3. Noise Pipes</a></li>
@@ -1035,34 +1036,50 @@ KK:
 </table>
 <p>The above list does not exhaust all possible patterns that can be formed with these modifiers. In particular, any of these PSK modifiers can be safely applied to any previously named pattern, resulting in patterns like <code>IKpsk0</code>, <code>KKpsk1</code>, or even <code>XXpsk0+psk3</code>, which aren't listed above.</p>
 <p>This still doesn't exhaust all the ways that <code>&quot;psk&quot;</code> tokens could be used outside of these modifiers (e.g. placement of <code>&quot;psk&quot;</code> tokens in the middle of a message pattern). Defining additional PSK modifiers is outside the scope of this document.</p>
-<h1 id="fallback-protocols">10. Fallback protocols</h1>
-<h2 id="fallback-patterns">10.1. Fallback patterns</h2>
-<p>So far we've discussed Noise protocols which execute a single handshake chosen by the initiator. These include &quot;zero-RTT&quot; protocols where the initiator encrypts the initial message based on some stored information about the responder (such as the responder's static public key).</p>
-<p>If the initiator's information is out-of-date the responder won't be able to decrypt the message. To handle this, the responder might choose to switch to a different Noise protocol.</p>
-<p>To support this case Noise allows <strong>fallback patterns</strong>. Fallback patterns make use of the <code>fallback</code> pattern modifier (see <a href="#protocol-names-and-modifiers">Section 8</a>). This modifier deletes the initiator's initial message, and adds any public keys sent in the clear in that message into the initiator's pre-message. Fallback patterns thus differ from regular patterns in two ways:</p>
-<ul>
-<li><p>The <em>responder</em> sends the first message in a fallback handshake. In other words, the first handshake message in a fallback pattern is shown with a left-pointing arrow (from the responder) instead of a right-pointing arrow (from the initiator).</p></li>
-<li><p>The initiator's pre-message must always include an ephemeral public key. An ephemeral public key is not otherwise included in the initiator's pre-message (initiators typically transmit an ephemeral public key in their first message).</p></li>
-</ul>
-<p>Another caveat for fallback handshakes: If the initial handshake message has a prologue or payload that the responder makes any decisions based on, then the <code>h</code> value after processing that handshake message should be included in the prologue for the fallback handshake.</p>
+<h1 id="compound-protocols">10. Compound protocols</h1>
+<h1 id="rationale-for-compound-protocols">10.1 Rationale for compound protocols</h1>
+<p>So far we've assumed Alice and Bob wish to execute a single Noise protocol chosen by the initiator (Alice). However, there are a number of reasons why Bob might wish to switch to a different Noise protocol after receiving Alice's first message. For example:</p>
+<ol style="list-style-type: lower-alpha">
+<li><p>Alice might have chosen cryptographic functions or sent an ephemeral public key that Bob doesn't support.</p></li>
+<li><p>Alice might have sent a &quot;zero-RTT&quot; encrypted initial message based on an out-of-date responder static public key or PSK.</p></li>
+</ol>
+<p>Handling these scenarios requires a <strong>compound protocol</strong> where Bob switches from the initial Noise protocol chosen by Alice to a new Noise protocol. In such a compound protocol the roles of initiator and responder would be reversed - Bob would become the initiator of the new Noise protocol, and Alice the responder.</p>
+<p>Compound protocols introduce significant complexity as Alice needs to advertise the Noise protocol she is beginning with and the Noise protocol(s) she is capable of switching to, and both parties have to negotiate a secure transition.</p>
+<p>These details are largely out of scope for this document. However, to give an example of how compound protocols can be constructed, and to provide some building blocks, the following sections define a <strong><code>fallback</code></strong> modifier and show how it can be used to create a <strong>Noise Pipe</strong> compound protocol.</p>
+<p>Noise Pipes support the <code>XX</code> pattern, but also allow Alice to cache Bob's static public key and attempt an <code>IK</code> handshake with 0-RTT encryption.</p>
+<p>In case Bob can't decrypt Alice's initial <code>IK</code> message, he will switch to the <code>XXfallback</code> pattern, which essentially allows the parties to complete an <code>XX</code> handshake as if Alice had sent an <code>XX</code> initial message instead of an <code>IK</code> initial message.</p>
+<h2 id="the-fallback-modifier">10.1. The <code>fallback</code> modifier</h2>
+<p>The <code>fallback</code> modifier converts an Alice-initiated pattern to a Bob-initiated pattern by converting Alice's initial message to a pre-message that Bob must receive through some other means (e.g. as the initial field in an initial <code>IK</code> message from Alice). After this conversion, the rest of the handshake pattern is interpreted as a Bob-initiated handshake pattern.</p>
+<p>For example, here is the <code>fallback</code> modifier applied to <code>XX</code> to produce <code>XXfallback</code>:</p>
+<pre><code>XX:  
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se
+
+XXfallback:                   
+  -&gt; e
+  ...
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre>
+<p>Note that <code>fallback</code> can only be applied to handshake patterns in Alice-initiated form where Alice's first message is capable of being interpreted as a pre-message (i.e. it must be either <code>&quot;e&quot;</code>, <code>&quot;s&quot;</code>, or <code>&quot;e, s&quot;</code>).</p>
 <h1 id="indicating-fallback">10.2. Indicating fallback</h1>
 <p>A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:</p>
 <ul>
-<li><p>A <strong>full handshake</strong> is used if the initiator doesn't possess stored information about the responder that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.</p></li>
+<li><p>A <strong>full handshake</strong> is used if Alice doesn't possess stored information about Bob that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.</p></li>
 <li><p>A <strong>zero-RTT handshake</strong> allows encryption of data in the initial message.</p></li>
-<li><p>A <strong>fallback handshake</strong> is triggered by the responder if it can't decrypt the initiator's first zero-RTT handshake message.</p></li>
+<li><p>A <strong>fallback handshake</strong> is triggered by Bob if he can't decrypt Alice's first zero-RTT handshake message.</p></li>
 </ul>
-<p>There must be some way for the responder to distinguish full versus zero-RTT handshakes on receiving the first message. If the initiator makes a zero-RTT attempt, there must be some way for the initiator to distinguish zero-RTT from fallback handshakes on receiving the response.</p>
+<p>There must be some way for Bob to distinguish full versus zero-RTT handshakes on receiving the first message. If Alice makes a zero-RTT attempt, there must be some way for her to distinguish zero-RTT from fallback handshakes on receiving the response.</p>
 <p>For example, each handshake message could be preceded by a <code>type</code> byte (see <a href="#application-responsibilities">Section 13</a>). This byte is not part of the Noise message proper, but signals which handshake is being used:</p>
 <ul>
-<li><p>If <code>type == 0</code> in the initiator's first message then the initiator is performing a full handshake.</p></li>
-<li><p>If <code>type == 1</code> in the initiator's first message then the initiator is performing a zero-RTT handshake.</p></li>
+<li><p>If <code>type == 0</code> in Alice's first message then she is performing a full handshake.</p></li>
+<li><p>If <code>type == 1</code> in Alice's first message then she is performing a zero-RTT handshake.</p></li>
 <li><p>If <code>type == 0</code> in the response then the zero-RTT message was accepted.</p></li>
-<li><p>If <code>type == 1</code> in the response then the responder failed to decrypt the initiator's zero-RTT message and is performing a fallback handshake.</p></li>
+<li><p>If <code>type == 1</code> in the response then Bob failed to decrypt Alice's zero-RTT message and is performing a fallback handshake.</p></li>
 </ul>
 <p>Note that the <code>type</code> byte doesn't need to be explicitly authenticated (either as prologue, or as &quot;associated data&quot; in the AEAD encryption), since it's implicitly authenticated if the message is processed succesfully.</p>
 <h2 id="noise-pipes">10.3. Noise Pipes</h2>
-<p>This section defines the <strong>Noise Pipe</strong> protocol. This protocol uses three handshake patterns - two defined previously, and a new one. These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:</p>
+<p>This section defines the <strong>Noise Pipe</strong> compound protocol. These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:</p>
 <pre><code>XX:  
   -&gt; e
   &lt;- e, ee, s, es
@@ -1079,17 +1096,17 @@ XXfallback:
   ...
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre>
-<p>The <code>XX</code> pattern is used for a <strong>full handshake</strong> if the parties haven't communicated before, after which the initiator can cache the responder's static public key.</p>
+<p>The <code>XX</code> pattern is used for a <strong>full handshake</strong> if the parties haven't communicated before, after which Alice can cache Bob's static public key.</p>
 <p>The <code>IK</code> pattern is used for a <strong>zero-RTT handshake</strong>.</p>
-<p>The <code>XXfallback</code> pattern is used if the responder fails to decrypt the first <code>IK</code> message (perhaps due to having changed their static key). In this case the responder will switch to a fallback handshake using <code>XXfallback</code>, which is identical to <code>XX</code> except the ephemeral public key from the first <code>IK</code> message is used as the initiator's pre-message.</p>
+<p>The <code>XXfallback</code> pattern is used if Bob fails to decrypt the first <code>IK</code> message (perhaps due to having changed their static key). In this case Bob will switch to a fallback handshake using <code>XXfallback</code>, which is identical to <code>XX</code> except the ephemeral public key from the first <code>IK</code> message is used as Alice's pre-message.</p>
 <h2 id="handshake-indistinguishability">10.4. Handshake indistinguishability</h2>
 <p>Parties might wish to hide from an eavesdropper which type of handshake they are performing. For example, suppose parties are using Noise Pipes, and want to hide whether they are performing a full handshake, zero-RTT handshake, or fallback handshake.</p>
 <p>This is fairly easy:</p>
 <ul>
 <li><p>The first three messages can have their payloads padded with random bytes to a constant size, regardless of which handshake is executed.</p></li>
-<li><p>The responder will attempt to decrypt the first message as an <code>IK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
-<li><p>An initiator who sends an <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
-<li><p>An initiator attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish an <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
+<li><p>Bob will attempt to decrypt the first message as an <code>IK</code> message, and will fallback to <code>XXfallback</code> if decryption fails.</p></li>
+<li><p>An Alice who sends an <code>IK</code> initial message can use trial decryption to differentiate between a response using <code>IK</code> or <code>XXfallback</code>.</p></li>
+<li><p>An Alice attempting a full handshake will send an ephemeral public key, then random padding, and will use <code>XXfallback</code> to handle the response. Note that <code>XX</code> isn't used, because the server can't distinguish an <code>XX</code> message from a failed <code>IK</code> attempt by using trial decryption.</p></li>
 </ul>
 <p>This leaves the Noise ephemeral public keys in the clear. Ephemeral public keys are randomly chosen DH public values, but they will typically have enough structure that an eavesdropper might suspect the parties are using Noise, even if the eavesdropper can't distinguish the different handshakes. To make the ephemerals indistinguishable from random byte sequences, techniques like Elligator <span class="citation">[<a href="#ref-elligator">5</a>]</span> could be used.</p>
 
