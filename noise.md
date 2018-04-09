@@ -474,7 +474,7 @@ A `HandshakeState` responds to the following functions:
     Public keys are only passed in if the `handshake_pattern` uses pre-messages 
     (see [Section 7](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
     left empty, since they are created and exchanged during the handshake; but there are
-    exceptions (see [Section 10.1](#fallback-patterns)).
+    exceptions (see [Section 10](#compound-patterns)).
 
     Performs the following steps:
 
@@ -661,7 +661,7 @@ right.
 
 However, multiple Noise protocols might be used within a **compound protocol**
 where the responder in one Noise protocol becomes the initiator for a later
-Noise protocol.  As a visual convenience in this case, we introduce the notion
+Noise protocol.  As a notational convenience, we introduce the notion
 of **Alice** and **Bob** roles which are different from the initiator and
 responder roles.  Alice will be viewed as the party on the left (sending
 messages with right arrows), and Bob will be the party on the right.
@@ -700,8 +700,8 @@ form:
       <- e, es, ss
       -> e, ee, es
 
-For an example of Bob-initiated notation, see the discussion on fallback
-patterns in [Section 10.1](#fallback-patterns).
+For an example of Bob-initiated notation, see [Section
+10.2](#the-fallback-modifier).
 
 ## 7.3. Handshape pattern validity 
 
@@ -1398,7 +1398,7 @@ this document.
 
 # 10. Compound protocols
 
-# 10.1 Rationale for compound protocols
+## 10.1. Rationale for compound protocols
 
 So far we've assumed Alice and Bob wish to execute a single Noise protocol
 chosen by the initiator (Alice).  However, there are a number of reasons why
@@ -1432,7 +1432,7 @@ In case Bob can't decrypt Alice's initial `IK` message, he will switch to the
 `XXfallback` pattern, which essentially allows the parties to complete an `XX`
 handshake as if Alice had sent an `XX` initial message instead of an `IK` initial message. 
 
-## 10.1. The `fallback` modifier
+## 10.2. The `fallback` modifier
 
 The `fallback` modifier converts an Alice-initiated pattern to a Bob-initiated
 pattern by converting Alice's initial message to a pre-message that Bob must
@@ -1441,6 +1441,9 @@ receive through some other means (e.g. as the initial field in an initial
 is interpreted as a Bob-initiated handshake pattern.
 
 For example, here is the `fallback` modifier applied to `XX` to produce `XXfallback`:
+
+\newpage
+&nbsp;
 
     XX:  
       -> e
@@ -1455,9 +1458,9 @@ For example, here is the `fallback` modifier applied to `XX` to produce `XXfallb
 
 Note that `fallback` can only be applied to handshake patterns in Alice-initiated form where Alice's first message is capable of being interpreted as a pre-message (i.e. it must be either `"e"`, `"s"`, or `"e, s"`).
 
-# 10.2. Indicating fallback
+## 10.3. Indicating fallback
 
-A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:
+A typical compound protocol for zero-RTT encryption involves three different Noise protocols:
 
  * A **full handshake** is used if Alice doesn't possess stored information about Bob that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
 
@@ -1486,7 +1489,7 @@ Note that the `type` byte doesn't need to be explicitly authenticated (either as
 prologue, or as "associated data" in the AEAD encryption), since it's implicitly authenticated if the
 message is processed succesfully.
 
-## 10.3. Noise Pipes
+## 10.4. Noise Pipes
 
 This section defines the **Noise Pipe** compound protocol.  These handshake patterns
 satisfy the full, zero-RTT, and fallback roles discussed in the previous
@@ -1516,14 +1519,12 @@ public key.
 
 The `IK` pattern is used for a **zero-RTT handshake**.  
 
-The `XXfallback` pattern is used if Bob fails to decrypt the
-first `IK` message (perhaps due to having changed their static key).  In this case
-Bob will switch to a fallback handshake using `XXfallback`,
-which is identical to `XX` except the ephemeral public key from the first
-`IK` message is used as Alice's pre-message.
+The `XXfallback` pattern is used for a **fallback handshake** if Bob fails to
+decrypt the first `IK` message (perhaps due to having changed his static key).
 
+\newpage
 
-## 10.4. Handshake indistinguishability
+## 10.5. Handshake indistinguishability
 
 Parties might wish to hide from an eavesdropper which type of handshake they are
 performing.  For example, suppose parties are using Noise Pipes, and want to

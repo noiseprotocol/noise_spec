@@ -58,13 +58,12 @@
 <li><a href="#validity-rule">9.3. Validity rule</a></li>
 <li><a href="#pattern-modifiers">9.4. Pattern modifiers</a></li>
 </ul></li>
-<li><a href="#compound-protocols">10. Compound protocols</a></li>
-<li><a href="#rationale-for-compound-protocols">10.1 Rationale for compound protocols</a><ul>
-<li><a href="#the-fallback-modifier">10.1. The <code>fallback</code> modifier</a></li>
-</ul></li>
-<li><a href="#indicating-fallback">10.2. Indicating fallback</a><ul>
-<li><a href="#noise-pipes">10.3. Noise Pipes</a></li>
-<li><a href="#handshake-indistinguishability">10.4. Handshake indistinguishability</a></li>
+<li><a href="#compound-protocols">10. Compound protocols</a><ul>
+<li><a href="#rationale-for-compound-protocols">10.1. Rationale for compound protocols</a></li>
+<li><a href="#the-fallback-modifier">10.2. The <code>fallback</code> modifier</a></li>
+<li><a href="#indicating-fallback">10.3. Indicating fallback</a></li>
+<li><a href="#noise-pipes">10.4. Noise Pipes</a></li>
+<li><a href="#handshake-indistinguishability">10.5. Handshake indistinguishability</a></li>
 </ul></li>
 <li><a href="#advanced-features">11. Advanced features</a><ul>
 <li><a href="#dummy-keys">11.1. Dummy keys</a></li>
@@ -285,7 +284,7 @@
 <ul>
 <li><p><strong><code>Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)</code></strong>: Takes a valid <code>handshake_pattern</code> (see <a href="#handshake-patterns">Section 7</a>) and an <code>initiator</code> boolean specifying this party's role as either initiator or responder.</p>
 <p>Takes a <code>prologue</code> byte sequence which may be zero-length, or which may contain context information that both parties want to confirm is identical (see <a href="#prologue">Section 6</a>).</p>
-<p>Takes a set of DH key pairs <code>(s, e)</code> and public keys <code>(rs, re)</code> for initializing local variables, any of which may be empty. Public keys are only passed in if the <code>handshake_pattern</code> uses pre-messages (see <a href="#handshake-patterns">Section 7</a>). The ephemeral values <code>(e, re)</code> are typically left empty, since they are created and exchanged during the handshake; but there are exceptions (see <a href="#fallback-patterns">Section 10.1</a>).</p>
+<p>Takes a set of DH key pairs <code>(s, e)</code> and public keys <code>(rs, re)</code> for initializing local variables, any of which may be empty. Public keys are only passed in if the <code>handshake_pattern</code> uses pre-messages (see <a href="#handshake-patterns">Section 7</a>). The ephemeral values <code>(e, re)</code> are typically left empty, since they are created and exchanged during the handshake; but there are exceptions (see <a href="#compound-patterns">Section 10</a>).</p>
 <p>Performs the following steps:</p>
 <ul>
 <li><p>Derives a <code>protocol_name</code> byte sequence by combining the names for the handshake pattern and crypto functions, as specified in <a href="#protocol-names-and-modifiers">Section 8</a>. Calls <code>InitializeSymmetric(protocol_name)</code>.</p></li>
@@ -372,7 +371,7 @@
 
 <h2 id="alice-and-bob">7.2. Alice and Bob</h2>
 <p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right.</p>
-<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a visual convenience in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
+<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a notational convenience, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
 <p>Handshake patterns written in <strong>canonical form</strong> (i.e. <strong>Alice-initiated form</strong>) assume the initiator is Alice (the left-most party). All processing rules and discussion so far have assumed canonical-form handshake patterns.</p>
 <p>However, handshake patterns can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). This doesn't change the handshake pattern, it simply makes it easier to view Alice-initiated and Bob-initiated handshakes side-by-side.</p>
 <p>Below are the handshake patterns from the previous section in Bob-initiated form:</p>
@@ -397,7 +396,7 @@ KK:
   ...
   &lt;- e, es, ss
   -&gt; e, ee, es</code></pre>
-<p>For an example of Bob-initiated notation, see the discussion on fallback patterns in <a href="#fallback-patterns">Section 10.1</a>.</p>
+<p>For an example of Bob-initiated notation, see <a href="#the-fallback-modifier">Section 10.2</a>.</p>
 <h2 id="handshape-pattern-validity">7.3. Handshape pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
@@ -1037,7 +1036,7 @@ KK:
 <p>The above list does not exhaust all possible patterns that can be formed with these modifiers. In particular, any of these PSK modifiers can be safely applied to any previously named pattern, resulting in patterns like <code>IKpsk0</code>, <code>KKpsk1</code>, or even <code>XXpsk0+psk3</code>, which aren't listed above.</p>
 <p>This still doesn't exhaust all the ways that <code>&quot;psk&quot;</code> tokens could be used outside of these modifiers (e.g. placement of <code>&quot;psk&quot;</code> tokens in the middle of a message pattern). Defining additional PSK modifiers is outside the scope of this document.</p>
 <h1 id="compound-protocols">10. Compound protocols</h1>
-<h1 id="rationale-for-compound-protocols">10.1 Rationale for compound protocols</h1>
+<h2 id="rationale-for-compound-protocols">10.1. Rationale for compound protocols</h2>
 <p>So far we've assumed Alice and Bob wish to execute a single Noise protocol chosen by the initiator (Alice). However, there are a number of reasons why Bob might wish to switch to a different Noise protocol after receiving Alice's first message. For example:</p>
 <ol style="list-style-type: lower-alpha">
 <li><p>Alice might have chosen cryptographic functions or sent an ephemeral public key that Bob doesn't support.</p></li>
@@ -1048,9 +1047,11 @@ KK:
 <p>These details are largely out of scope for this document. However, to give an example of how compound protocols can be constructed, and to provide some building blocks, the following sections define a <strong><code>fallback</code></strong> modifier and show how it can be used to create a <strong>Noise Pipe</strong> compound protocol.</p>
 <p>Noise Pipes support the <code>XX</code> pattern, but also allow Alice to cache Bob's static public key and attempt an <code>IK</code> handshake with 0-RTT encryption.</p>
 <p>In case Bob can't decrypt Alice's initial <code>IK</code> message, he will switch to the <code>XXfallback</code> pattern, which essentially allows the parties to complete an <code>XX</code> handshake as if Alice had sent an <code>XX</code> initial message instead of an <code>IK</code> initial message.</p>
-<h2 id="the-fallback-modifier">10.1. The <code>fallback</code> modifier</h2>
+<h2 id="the-fallback-modifier">10.2. The <code>fallback</code> modifier</h2>
 <p>The <code>fallback</code> modifier converts an Alice-initiated pattern to a Bob-initiated pattern by converting Alice's initial message to a pre-message that Bob must receive through some other means (e.g. as the initial field in an initial <code>IK</code> message from Alice). After this conversion, the rest of the handshake pattern is interpreted as a Bob-initiated handshake pattern.</p>
 <p>For example, here is the <code>fallback</code> modifier applied to <code>XX</code> to produce <code>XXfallback</code>:</p>
+
+<p> </p>
 <pre><code>XX:  
   -&gt; e
   &lt;- e, ee, s, es
@@ -1062,8 +1063,8 @@ XXfallback:
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre>
 <p>Note that <code>fallback</code> can only be applied to handshake patterns in Alice-initiated form where Alice's first message is capable of being interpreted as a pre-message (i.e. it must be either <code>&quot;e&quot;</code>, <code>&quot;s&quot;</code>, or <code>&quot;e, s&quot;</code>).</p>
-<h1 id="indicating-fallback">10.2. Indicating fallback</h1>
-<p>A typical fallback scenario for zero-RTT encryption involves three different Noise handshakes:</p>
+<h2 id="indicating-fallback">10.3. Indicating fallback</h2>
+<p>A typical compound protocol for zero-RTT encryption involves three different Noise protocols:</p>
 <ul>
 <li><p>A <strong>full handshake</strong> is used if Alice doesn't possess stored information about Bob that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.</p></li>
 <li><p>A <strong>zero-RTT handshake</strong> allows encryption of data in the initial message.</p></li>
@@ -1078,7 +1079,7 @@ XXfallback:
 <li><p>If <code>type == 1</code> in the response then Bob failed to decrypt Alice's zero-RTT message and is performing a fallback handshake.</p></li>
 </ul>
 <p>Note that the <code>type</code> byte doesn't need to be explicitly authenticated (either as prologue, or as &quot;associated data&quot; in the AEAD encryption), since it's implicitly authenticated if the message is processed succesfully.</p>
-<h2 id="noise-pipes">10.3. Noise Pipes</h2>
+<h2 id="noise-pipes">10.4. Noise Pipes</h2>
 <p>This section defines the <strong>Noise Pipe</strong> compound protocol. These handshake patterns satisfy the full, zero-RTT, and fallback roles discussed in the previous section, so can be used to provide a full handshake with a simple zero-RTT option:</p>
 <pre><code>XX:  
   -&gt; e
@@ -1098,8 +1099,9 @@ XXfallback:
   -&gt; s, se</code></pre>
 <p>The <code>XX</code> pattern is used for a <strong>full handshake</strong> if the parties haven't communicated before, after which Alice can cache Bob's static public key.</p>
 <p>The <code>IK</code> pattern is used for a <strong>zero-RTT handshake</strong>.</p>
-<p>The <code>XXfallback</code> pattern is used if Bob fails to decrypt the first <code>IK</code> message (perhaps due to having changed their static key). In this case Bob will switch to a fallback handshake using <code>XXfallback</code>, which is identical to <code>XX</code> except the ephemeral public key from the first <code>IK</code> message is used as Alice's pre-message.</p>
-<h2 id="handshake-indistinguishability">10.4. Handshake indistinguishability</h2>
+<p>The <code>XXfallback</code> pattern is used for a <strong>fallback handshake</strong> if Bob fails to decrypt the first <code>IK</code> message (perhaps due to having changed his static key).</p>
+
+<h2 id="handshake-indistinguishability">10.5. Handshake indistinguishability</h2>
 <p>Parties might wish to hide from an eavesdropper which type of handshake they are performing. For example, suppose parties are using Noise Pipes, and want to hide whether they are performing a full handshake, zero-RTT handshake, or fallback handshake.</p>
 <p>This is fairly easy:</p>
 <ul>
