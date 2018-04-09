@@ -918,7 +918,7 @@ Below are two examples showing the fundamental handshake pattern on the left, an
 ## 7.6. Payload security properties
 
 The following table lists the security properties for Noise handshake and
-transport payloads for all the named patterns in [Section 7.4](#one-way-handshake-patterns) and
+transport payloads for all the one-way patterns in [Section 7.4](#one-way-handshake-patterns) and the fundamental patterns in 
 [Section 7.5](#interactive-handshake-patterns).  Each payload is assigned an "authentication"
 property regarding the degree of authentication of the sender provided to the
 recipient, and a "confidentiality" property regarding the degree of
@@ -1097,11 +1097,12 @@ received.
 
 ## 7.7. Identity hiding
 
-The following table lists the identity hiding properties for all the named
-patterns in [Section 7.4](#one-way-handshake-patterns) and [Section 7.5](#interactive-handshake-patterns).  Each
-pattern is assigned properties describing the confidentiality supplied to the
-initiator's static public key, and to the responder's static public key.  The
-underlying assumptions are that ephemeral private keys are secure, and that
+The following table lists the identity-hiding properties for all the one-way
+handshake patterns in [Section 7.4](#one-way-handshake-patterns) and the fundamental handshake patterns in [Section 7.5](#interactive-handshake-patterns).  In addition, we list a few deferred handshake patterns which have different identity-hiding properties than the corresponding fundamental pattern.
+
+Each pattern is assigned properties describing the confidentiality supplied to
+the initiator's static public key, and to the responder's static public key.
+The underlying assumptions are that ephemeral private keys are secure, and that
 parties abort the handshake if they receive a static public key from the other
 party which they don't trust.
 
@@ -1119,8 +1120,11 @@ The properties for the relevant public key are:
 
   2. Encrypted with forward secrecy, but sent to an anonymous responder. 
 
-  3. Not transmitted, but a passive attacker can check candidates for
-     the responder's private key and determine whether the candidate is correct.
+  3. Not transmitted, but a passive attacker can check candidates for the
+     responder's private key and determine whether the candidate is correct.
+     An attacker could also replay a previously-recorded message to a new
+     responder and determine whether the two responders are the "same" (i.e. are
+     using the same static key pair) by whether the recipient accepts the message.
 
   4. Encrypted to responder's static public key, without forward secrecy.
      If an attacker learns the responder's private key they can decrypt the
@@ -1142,6 +1146,9 @@ The properties for the relevant public key are:
 
   8. Encrypted with forward secrecy to an authenticated party.
 
+  9. An active attacker who pretends to be the initiator and records a single
+     protocol run can then check candidates for the responder's public key.
+
 <!-- end of list - necesary to trick Markdown into seeing the following -->
 
 +------------------------------------------+
@@ -1157,11 +1164,15 @@ The properties for the relevant public key are:
 +------------------------------------------+
 |     NK             -              3      |
 +------------------------------------------+
+|     NK1            -              9      |
++------------------------------------------+
 |     NX             -              1      |
 +------------------------------------------+
 |     XN             2              -      |
 +------------------------------------------+
 |     XK             8              3      |
++------------------------------------------+
+|     XK             8              9      |
 +------------------------------------------+
 |     XX             8              1      |
 +------------------------------------------+
@@ -1174,6 +1185,8 @@ The properties for the relevant public key are:
 |     IN             0              -      |
 +------------------------------------------+
 |     IK             4              3      |
++------------------------------------------+
+|     IK1            4              9      |
 +------------------------------------------+
 |     IX             0              6      |
 +------------------------------------------+

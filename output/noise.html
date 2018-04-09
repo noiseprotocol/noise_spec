@@ -601,7 +601,7 @@ KK:
 </tbody>
 </table>
 <h2 id="payload-security-properties">7.6. Payload security properties</h2>
-<p>The following table lists the security properties for Noise handshake and transport payloads for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
+<p>The following table lists the security properties for Noise handshake and transport payloads for all the one-way patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
 <p>The authentication properties are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p><strong>No authentication.</strong> This payload may have been sent by any party, including an active attacker.</p></li>
@@ -733,19 +733,21 @@ KK:
 </tbody>
 </table>
 <h2 id="identity-hiding">7.7. Identity hiding</h2>
-<p>The following table lists the identity hiding properties for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
+<p>The following table lists the identity-hiding properties for all the one-way handshake patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental handshake patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. In addition, we list a few deferred handshake patterns which have different identity-hiding properties than the corresponding fundamental pattern.</p>
+<p>Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
 <p>This section only considers identity leakage through static public key fields in handshakes. Of course, the identities of Noise participants might be exposed through other means, including payload fields, traffic analysis, or metadata such as IP addresses.</p>
 <p>The properties for the relevant public key are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p>Transmitted in clear.</p></li>
 <li><p>Encrypted with forward secrecy, but can be probed by an anonymous initiator.</p></li>
 <li><p>Encrypted with forward secrecy, but sent to an anonymous responder.</p></li>
-<li><p>Not transmitted, but a passive attacker can check candidates for the responder's private key and determine whether the candidate is correct.</p></li>
+<li><p>Not transmitted, but a passive attacker can check candidates for the responder's private key and determine whether the candidate is correct. An attacker could also replay a previously-recorded message to a new responder and determine whether the two responders are the &quot;same&quot; (i.e. are using the same static key pair) by whether the recipient accepts the message.</p></li>
 <li><p>Encrypted to responder's static public key, without forward secrecy. If an attacker learns the responder's private key they can decrypt the initiator's public key.</p></li>
 <li><p>Not transmitted, but a passive attacker can check candidates for the pair of (responder's private key, initiator's public key) and learn whether the candidate pair is correct.</p></li>
 <li><p>Encrypted but with weak forward secrecy. An active attacker who pretends to be the initiator without the initiator's static private key, then later learns the initiator private key, can then decrypt the responder's public key.</p></li>
 <li><p>Not transmitted, but an active attacker who pretends to be the initator without the initiator's static private key, then later learns a candidate for the initiator private key, can then check whether the candidate is correct.</p></li>
 <li><p>Encrypted with forward secrecy to an authenticated party.</p></li>
+<li><p>An active attacker who pretends to be the initiator and records a single protocol run can then check candidates for the responder's public key.</p></li>
 </ol>
 <!-- end of list - necesary to trick Markdown into seeing the following -->
 <table style="width:60%;">
@@ -772,13 +774,19 @@ KK:
 <td><pre><code>NK             -              3</code></pre></td>
 </tr>
 <tr class="odd">
-<td><pre><code>NX             -              1</code></pre></td>
+<td><pre><code>NK1            -              9</code></pre></td>
 </tr>
 <tr class="even">
-<td><pre><code>XN             2              -</code></pre></td>
+<td><pre><code>NX             -              1</code></pre></td>
 </tr>
 <tr class="odd">
+<td><pre><code>XN             2              -</code></pre></td>
+</tr>
+<tr class="even">
 <td><pre><code>XK             8              3</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>XK             8              9</code></pre></td>
 </tr>
 <tr class="even">
 <td><pre><code>XX             8              1</code></pre></td>
@@ -799,6 +807,9 @@ KK:
 <td><pre><code>IK             4              3</code></pre></td>
 </tr>
 <tr class="even">
+<td><pre><code>IK1            4              9</code></pre></td>
+</tr>
+<tr class="odd">
 <td><pre><code>IX             0              6</code></pre></td>
 </tr>
 </tbody>
@@ -1345,7 +1356,6 @@ XXfallback:
 <p><code>MixHash()</code> is used instead of sending all inputs directly through <code>MixKey()</code> because:</p>
 <ul>
 <li><p><code>MixHash()</code> is more efficient than <code>MixKey()</code>.</p></li>
-<li><p><code>MixHash()</code> avoids any IPR concerns regarding mixing identity data into session keys (see KEA+).</p></li>
 <li><p><code>MixHash()</code> produces a non-secret <code>h</code> value that might be useful to higher-level protocols, e.g. for channel-binding.</p></li>
 </ul>
 <p>The <code>h</code> value hashes handshake ciphertext instead of plaintext because:</p>
