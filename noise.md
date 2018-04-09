@@ -3,7 +3,7 @@ title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '34'
 status: official/stable
-date:       '2018-03-04'
+date:       '2018-03-08'
 bibliography: 'my.bib'
 link-citations: 'true'
 ---
@@ -2104,6 +2104,8 @@ and Jason Donenfeld.
 
 The PSK approach was largely motivated and designed by Jason Donenfeld, based
 on his experience with PSKs in WireGuard.
+
+The deferred patterns resulted from discussions with Justin Cormack.
 
 The rekey design benefited from discussions with Rhys Weatherley, Alexey
 Ermishkin, and Olaoluwa Osuntokun.  
