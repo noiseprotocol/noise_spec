@@ -815,10 +815,10 @@ KK:
 <p>Additional rules apply to each name section, as specified below.</p>
 <h2 id="handshake-pattern-name-section">8.1. Handshake pattern name section</h2>
 <p>A handshake pattern name section contains a handshake pattern name plus a sequence of zero or more <strong>pattern modifiers</strong>.</p>
-<p>The handshake pattern name must be an uppercase ASCII string containing only alphabetic characters (e.g. <code>&quot;XX&quot;</code> or <code>&quot;IK&quot;</code>).</p>
+<p>The handshake pattern name must be an uppercase ASCII string containing only alphabetic characters or numerals (e.g. <code>&quot;XX1&quot;</code> or <code>&quot;IK&quot;</code>).</p>
 <p>Pattern modifiers specify arbitrary extensions or modifications to the behavior specified by the handshake pattern. For example, a modifier could be applied to a handshake pattern which transforms it into a different pattern according to some rule.</p>
 <p>As examples of such a modifier, the <code>&quot;psk0&quot;</code> and <code>&quot;fallback&quot;</code> modifiers described later in this document modify the base pattern to either incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.</p>
-<p>A pattern modifier is named with a lowercase alphanumeric ASCII string which is appended to the base pattern as described below:</p>
+<p>A pattern modifier is named with a lowercase alphanumeric ASCII string which must begin with an alphabetic character (not a numeral). The pattern modifier is appended to the base pattern as described below:</p>
 <p>The first modifier added onto a base pattern is simply appended. Thus the <code>&quot;fallback&quot;</code> modifier, when added to the <code>&quot;XX&quot;</code> pattern, produces <code>&quot;XXfallback&quot;</code>. Additional modifiers are separated with a plus sign. Thus, adding the <code>&quot;psk0&quot;</code> modifier would result in the name section <code>&quot;XXfallback+psk0&quot;</code>, or a full protocol name such as <code>&quot;Noise_XXfallback+psk0_25519_AESGCM_SHA256&quot;</code>.</p>
 <p>In some cases the sequential ordering of modifiers will specify different protocols. However, if the order of some modifiers does not matter, then they are required to be sorted alphabetically (this is an arbitrary convention to ensure interoperability).</p>
 <h2 id="cryptographic-algorithm-name-sections">8.2. Cryptographic algorithm name sections</h2>

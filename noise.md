@@ -1204,7 +1204,7 @@ A handshake pattern name section contains a handshake pattern name plus a
 sequence of zero or more **pattern modifiers**.
 
 The handshake pattern name must be an uppercase ASCII string containing only
-alphabetic characters (e.g. `"XX"` or `"IK"`).
+alphabetic characters or numerals (e.g. `"XX1"` or `"IK"`).
 
 Pattern modifiers specify arbitrary extensions or modifications to the behavior
 specified by the handshake pattern.  For example, a modifier could be applied
@@ -1216,6 +1216,7 @@ described later in this document modify the base pattern to either
 incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.
 
 A pattern modifier is named with a lowercase alphanumeric ASCII string which
+must begin with an alphabetic character (not a numeral).  The pattern modifier
 is appended to the base pattern as described below:
 
 The first modifier added onto a base pattern is simply appended.  Thus
