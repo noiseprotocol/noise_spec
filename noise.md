@@ -198,6 +198,7 @@ Assuming each payload contains a zero-length plaintext, and DH public keys are
   3. 88 bytes (one encrypted public key and encrypted payload)
 
 &nbsp;
+\newpage
 
 # 4. Crypto functions
 
@@ -343,7 +344,7 @@ application must delete the `CipherState` and terminate the session.
 
 The below sections describe these objects in detail.
 
-## 5.1 The `CipherState` object
+## 5.1. The `CipherState` object
 
 A `CipherState` can encrypt and decrypt data based on its `k` and `n`
 variables:
@@ -778,12 +779,13 @@ recipient beforehand (`K`) or transmitted under encryption (`X`).
 
 \newpage
 
-## 7.4. Interactive handshake patterns 
+## 7.4. Interactive handshake patterns (fundamental)
 
-The following handshake patterns represent interactive protocols.
+The following handshake patterns represent interactive protocols.  These 
+12 patterns are the **fundamental** interactive handshake patterns.
 
-Interactive patterns are named with two characters, which indicate the 
-status of the initator and responder's static keys:
+The fundamental interactive patterns are named with two characters, which
+indicate the status of the initator and responder's static keys:
 
 The first character refers to the initiator's static key:
 
@@ -858,8 +860,6 @@ The security properties for handshake payloads are usually weaker than the
 final security properties achieved by transport payloads, so these early
 encryptions must be used with caution.
 
-
-
 In some patterns the security properties of transport payloads can also vary.
 In particular: patterns starting with `K` or `I` have the caveat that the
 responder is only guaranteed "weak" forward secrecy for the transport messages
@@ -867,9 +867,55 @@ it sends until it receives a transport message from the initiator.  After
 receiving a transport message from the initiator, the responder becomes assured
 of "strong" forward secrecy.
 
-The next section provides more analysis of these payload security properties.
+More analysis of these payload security properties is in [Section 7.6](#payload-security-properties).
 
-## 7.5. Payload security properties
+## 7.5. Interactive handshake patterns (deferred)
+
+The fundamental handshake patterns in the previous section perform DH operations for authentication (`"es"` and `"se"`) as early as possible.  
+
+An additional set of handshake patterns can be described which defer these authentication DHs to the next message.  To name these **deferred handshake patterns**, the numeral "1" is used after the first and/or second character in a fundamental pattern name to indicate that the initiator and/or responder's authentication DH is deferred to the next message.
+
+Deferred patterns might be useful for several reasons:
+
+ * The initiator might have prior knowledge of the responder's static public key, but not wish to send any 0-RTT encrypted data.
+
+ * In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see [Section 7.7](#identity-hiding)). 
+
+ * Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts).  Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature *or* KEM ciphertext, but the deferred variants make both replacements possible.
+
+Below are two examples showing the fundamental handshake pattern on the left, and deferred variant(s) on the right.  The full set of 22 deferred handshake patterns are in the [Appendix](#deferred-patterns).
+
++---------------------------+--------------------------------+
+|     NK:                   |         NK1:                   |
+|       <- s                |           <- s                 |
+|       ...                 |           ...                  |
+|       -> e, es            |           -> e                 |
+|       <- e, ee            |           <- e, ee, es         |
+|                           |                                |
++---------------------------+--------------------------------+
+|     XX:                   |         X1X:                   |   
+|       -> e                |           -> e                 |
+|       <- e, ee, s, es     |           <- e, ee, s, es      |
+|       -> s, se            |           -> s                 |
+|                           |           <- se                |
+|                           |                                |
+|                           |         XX1:                   |
+|                           |           -> e                 |
+|                           |           <- e, ee, s          |
+|                           |           -> es, s, se         |
+|                           |                                |
+|                           |         X1X1:                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, s          |   
+|                           |           -> es, s             |  
+|                           |           <- se                |
+|                           |                                |
++---------------------------+--------------------------------+
+
+
+
+
+## 7.6. Payload security properties
 
 The following table lists the security properties for Noise handshake and
 transport payloads for all the named patterns in [Section 7.4](#one-way-handshake-patterns) and
@@ -1049,7 +1095,7 @@ received.
 +--------------------------------------------------------------+
 
 
-## 7.6. Identity hiding
+## 7.7. Identity hiding
 
 The following table lists the identity hiding properties for all the named
 patterns in [Section 7.4](#one-way-handshake-patterns) and [Section 7.5](#interactive-handshake-patterns).  Each
@@ -2059,4 +2105,169 @@ versions.
 
 \newpage
 
-# 18.  References
+# 18. Appendices
+
+# 18.1 Deferred patterns
+
+The following table lists all 22 deferred handshake patterns in the right
+column, with their corresponding fundamental handshake pattern in the left
+column.  See [Section 7](#handshake-patterns) for an explanation of 
+fundamental and deferred patterns.
+
++---------------------------+--------------------------------+
+|     NK:                   |         NK1:                   |
+|       <- s                |           <- s                 |
+|       ...                 |           ...                  |
+|       -> e, es            |           -> e                 |
+|       <- e, ee            |           <- e, ee, es         |
+|                           |                                |
++---------------------------+--------------------------------+
+|     NX:                   |         NX1:                   |
+|       -> e                |           -> e                 |
+|       <- e, ee, s, es     |           <- e, ee, s          |
+|                           |           -> es                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     XK:                   |         X1K:                   |
+|       <- s                |           <- s                 |
+|       ...                 |           ...                  |
+|       -> e, es            |           -> e, es             |
+|       <- e, ee            |           <- e, ee             |
+|       -> s, se            |           -> s                 |
+|                           |           <- se                |
+|                           |                                |
+|                           |         XK1:                   |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, es         |
+|                           |           -> s, se             |
+|                           |                                |
+|                           |         X1K1:                  |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, es         |
+|                           |           -> s                 |
+|                           |           <- se                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     XX:                   |         X1X:                   | 
+|       -> e                |           -> e                 |
+|       <- e, ee, s, es     |           <- e, ee, s, es      |
+|       -> s, se            |           -> s                 |
+|                           |           <- se                |
+|                           |                                |
+|                           |         XX1:                   |
+|                           |           -> e                 |
+|                           |           <- e, ee, s          |
+|                           |           -> es, s, se         |
+|                           |                                |
+|                           |         X1X1:                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, s          |
+|                           |           -> es, s             |
+|                           |           <- se                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     KN:                   |         K1N:                   |
+|       -> s                |           -> s                 |
+|       ...                 |           ...                  |
+|       -> e                |           -> e                 |
+|       <- e, ee, se        |           <- e, ee             |
+|                           |           -> se                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     KK:                   |         K1K:                   | 
+|       -> s                |           -> s                 |
+|       <- s                |           <- s                 |
+|       ...                 |           ...                  |
+|       -> e, es, ss        |           -> e, es             |
+|       <- e, ee, se        |           <- e, ee             |
+|                           |           -> se                |
+|                           |                                |
+|                           |         KK1:                   |
+|                           |           -> s                 |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, se, es     |
+|                           |                                |
+|                           |         K1K1:                  |
+|                           |           -> s                 |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, es         |
+|                           |           -> se                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     KX:                   |         K1X:                   |
+|       -> s                |           -> s                 |
+|       ...                 |           ...                  |
+|       -> e                |           -> e                 |
+|       <- e, ee, se, s, es |           <- e, ee, s, es      |
+|                           |           -> se                |
+|                           |                                |
+|                           |         KX1:                   |
+|                           |           -> s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, se, s      |
+|                           |           -> es                |
+|                           |                                |
+|                           |         K1X1:                  |
+|                           |           -> s                 |
+|                           |           ...                  |
+|                           |           -> e                 |
+|                           |           <- e, ee, s          |
+|                           |           -> se, es            |
+|                           |                                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     IN:                   |         I1N:                   |
+|       -> e, s             |           -> e, s              |
+|       <- e, ee, se        |           <- e, ee             |
+|                           |           -> se                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     IK:                   |         I1K:                   |
+|       <- s                |           <- s                 |
+|       ...                 |           ...                  |
+|       -> e, es, s, ss     |           -> e, es, s          |
+|       <- e, ee, se        |           <- e, ee             |
+|                           |           -> se                |
+|                           |                                |
+|                           |         IK1:                   |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e, s              |
+|                           |           <- e, ee, se, es     |
+|                           |                                |
+|                           |         I1K1:                  |
+|                           |           <- s                 |
+|                           |           ...                  |
+|                           |           -> e, s              |  
+|                           |           <- e, ee, es         |
+|                           |           -> se                | 
+|                           |                                |
++---------------------------+--------------------------------+
+|     IX:                   |         I1X:                   | 
+|       -> e, s             |           -> e, s              |
+|       <- e, ee, se, s, es |           <- e, ee, s, es      |
+|                           |           -> se                |
+|                           |                                |
+|                           |         IX1:                   |
+|                           |           -> e, s              |
+|                           |           <- e, ee, se, s      |
+|                           |           -> es                |
+|                           |                                |
+|                           |         I1X1:                  |
+|                           |           -> e, s              |
+|                           |           <- e, ee, s          |
+|                           |           -> se, es            |
+|                           |                                |
++---------------------------+--------------------------------+
+
+
+# 19.  References

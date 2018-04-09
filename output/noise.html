@@ -34,7 +34,7 @@
 <li><a href="#hash-functions">4.3. Hash functions</a></li>
 </ul></li>
 <li><a href="#processing-rules">5. Processing rules</a><ul>
-<li><a href="#the-cipherstate-object">5.1 The <code>CipherState</code> object</a></li>
+<li><a href="#the-cipherstate-object">5.1. The <code>CipherState</code> object</a></li>
 <li><a href="#the-symmetricstate-object">5.2. The <code>SymmetricState</code> object</a></li>
 <li><a href="#the-handshakestate-object">5.3. The <code>HandshakeState</code> object</a></li>
 </ul></li>
@@ -44,9 +44,10 @@
 <li><a href="#alice-and-bob">7.2. Alice and Bob</a></li>
 <li><a href="#handshape-pattern-validity">7.3. Handshape pattern validity</a></li>
 <li><a href="#one-way-handshake-patterns">7.3. One-way handshake patterns</a></li>
-<li><a href="#interactive-handshake-patterns">7.4. Interactive handshake patterns</a></li>
-<li><a href="#payload-security-properties">7.5. Payload security properties</a></li>
-<li><a href="#identity-hiding">7.6. Identity hiding</a></li>
+<li><a href="#interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</a></li>
+<li><a href="#interactive-handshake-patterns-deferred">7.5. Interactive handshake patterns (deferred)</a></li>
+<li><a href="#payload-security-properties">7.6. Payload security properties</a></li>
+<li><a href="#identity-hiding">7.7. Identity hiding</a></li>
 </ul></li>
 <li><a href="#protocol-names-and-modifiers">8. Protocol names and modifiers</a><ul>
 <li><a href="#handshake-pattern-name-section">8.1. Handshake pattern name section</a></li>
@@ -91,7 +92,9 @@
 </ul></li>
 <li><a href="#ipr">16. IPR</a></li>
 <li><a href="#acknowledgements">17. Acknowledgements</a></li>
-<li><a href="#references">18. References</a></li>
+<li><a href="#appendices">18. Appendices</a></li>
+<li><a href="#deferred-patterns">18.1 Deferred patterns</a></li>
+<li><a href="#references">19. References</a></li>
 </ul>
 </div>
 <h1 id="introduction">1. Introduction</h1>
@@ -157,7 +160,7 @@
 <li>144 bytes (two public keys, the second encrypted, and encrypted payload)</li>
 <li>88 bytes (one encrypted public key and encrypted payload)</li>
 </ol>
-<p> </p>
+<p>  </p>
 <h1 id="crypto-functions">4. Crypto functions</h1>
 <p>A Noise protocol is instantiated with a concrete set of <strong>DH functions</strong>, <strong>cipher functions</strong>, and <strong>hash functions</strong>. The signature for these functions is defined below. Some concrete functions are defined in <a href="#dh-functions-cipher-functions-and-hash-functions">Section 12</a>.</p>
 <p>The following notation will be used in algorithm pseudocode:</p>
@@ -212,7 +215,7 @@
 <p>Processing the final handshake message returns two <code>CipherState</code> objects, the first for encrypting transport messages from initiator to responder, and the second for messages in the other direction. At that point the <code>HandshakeState</code> should be deleted except for the hash value <code>h</code>, which may be used for post-handshake channel binding (see <a href="#channel-binding">Section 11.2</a>).</p>
 <p>Transport messages are then encrypted and decrypted by calling <code>EncryptWithAd()</code> and <code>DecryptWithAd()</code> on the relevant <code>CipherState</code> with zero-length associated data. If <code>DecryptWithAd()</code> signals an error due to <code>DECRYPT()</code> failure, then the input message is discarded. The application may choose to delete the <code>CipherState</code> and terminate the session on such an error, or may continue to attempt communications. If <code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> signal an error due to nonce exhaustion, then the application must delete the <code>CipherState</code> and terminate the session.</p>
 <p>The below sections describe these objects in detail.</p>
-<h2 id="the-cipherstate-object">5.1 The <code>CipherState</code> object</h2>
+<h2 id="the-cipherstate-object">5.1. The <code>CipherState</code> object</h2>
 <p>A <code>CipherState</code> can encrypt and decrypt data based on its <code>k</code> and <code>n</code> variables:</p>
 <ul>
 <li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which may be <code>empty</code>). <code>Empty</code> is a special value which indicates <code>k</code> has not yet been initialized.</p></li>
@@ -446,9 +449,9 @@ KK:
 </table>
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
 
-<h2 id="interactive-handshake-patterns">7.4. Interactive handshake patterns</h2>
-<p>The following handshake patterns represent interactive protocols.</p>
-<p>Interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
+<h2 id="interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</h2>
+<p>The following handshake patterns represent interactive protocols. These 12 patterns are the <strong>fundamental</strong> interactive handshake patterns.</p>
+<p>The fundamental interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
 <ul>
 <li><strong><code>N</code></strong> = <strong><code>N</code></strong>o static key for initiator</li>
@@ -544,8 +547,60 @@ KK:
 </ul>
 <p>The security properties for handshake payloads are usually weaker than the final security properties achieved by transport payloads, so these early encryptions must be used with caution.</p>
 <p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with <code>K</code> or <code>I</code> have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
-<p>The next section provides more analysis of these payload security properties.</p>
-<h2 id="payload-security-properties">7.5. Payload security properties</h2>
+<p>More analysis of these payload security properties is in <a href="#payload-security-properties">Section 7.6</a>.</p>
+<h2 id="interactive-handshake-patterns-deferred">7.5. Interactive handshake patterns (deferred)</h2>
+<p>The fundamental handshake patterns in the previous section perform DH operations for authentication (<code>&quot;es&quot;</code> and <code>&quot;se&quot;</code>) as early as possible.</p>
+<p>An additional set of handshake patterns can be described which defer these authentication DHs to the next message. To name these <strong>deferred handshake patterns</strong>, the numeral &quot;1&quot; is used after the first and/or second character in a fundamental pattern name to indicate that the initiator and/or responder's authentication DH is deferred to the next message.</p>
+<p>Deferred patterns might be useful for several reasons:</p>
+<ul>
+<li><p>The initiator might have prior knowledge of the responder's static public key, but not wish to send any 0-RTT encrypted data.</p></li>
+<li><p>In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see <a href="#identity-hiding">Section 7.7</a>).</p></li>
+<li><p>Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts). Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature <em>or</em> KEM ciphertext, but the deferred variants make both replacements possible.</p></li>
+</ul>
+<p>Below are two examples showing the fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 22 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
+<table style="width:85%;">
+<colgroup>
+<col width="38%" />
+<col width="45%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><pre><code>NK:
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee</code></pre></td>
+<td><pre><code>    NK1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>XX:
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1X:
+      -&gt; e
+      &lt;- e, ee, s, es
+      -&gt; s
+      &lt;- se
+
+    XX1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s, se
+
+    X1X1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s
+      &lt;- se</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h2 id="payload-security-properties">7.6. Payload security properties</h2>
 <p>The following table lists the security properties for Noise handshake and transport payloads for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
 <p>The authentication properties are:</p>
 <ol start="0" style="list-style-type: decimal">
@@ -677,7 +732,7 @@ KK:
 </tr>
 </tbody>
 </table>
-<h2 id="identity-hiding">7.6. Identity hiding</h2>
+<h2 id="identity-hiding">7.7. Identity hiding</h2>
 <p>The following table lists the identity hiding properties for all the named patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and <a href="#interactive-handshake-patterns">Section 7.5</a>. Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
 <p>This section only considers identity leakage through static public key fields in handshakes. Of course, the identities of Noise participants might be exposed through other means, including payload fields, traffic analysis, or metadata such as IP addresses.</p>
 <p>The properties for the relevant public key are:</p>
@@ -1338,7 +1393,215 @@ XXfallback:
 <p>The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided helpful discussion on using BLAKE2 with Noise.</p>
 <p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier versions.</p>
 
-<h1 id="references" class="unnumbered">18. References</h1>
+<h1 id="appendices">18. Appendices</h1>
+<h1 id="deferred-patterns">18.1 Deferred patterns</h1>
+<p>The following table lists all 22 deferred handshake patterns in the right column, with their corresponding fundamental handshake pattern in the left column. See <a href="#handshake-patterns">Section 7</a> for an explanation of fundamental and deferred patterns.</p>
+<table style="width:85%;">
+<colgroup>
+<col width="38%" />
+<col width="45%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><pre><code>NK:
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee</code></pre></td>
+<td><pre><code>    NK1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>NX:
+  -&gt; e
+  &lt;- e, ee, s, es</code></pre></td>
+<td><pre><code>    NX1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>XK:
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1K:
+      &lt;- s
+      ...
+      -&gt; e, es
+      &lt;- e, ee
+      -&gt; s
+      &lt;- se
+
+    XK1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; s, se
+
+    X1K1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; s
+      &lt;- se</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>XX:
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1X:
+      -&gt; e
+      &lt;- e, ee, s, es
+      -&gt; s
+      &lt;- se
+
+    XX1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s, se
+
+    X1X1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s
+      &lt;- se</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>KN:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    K1N:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee
+      -&gt; se</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>KK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    K1K:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e, es
+      &lt;- e, ee
+      -&gt; se
+
+    KK1:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, se, es
+
+    K1K1:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; se</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>KX:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>    K1X:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, s, es
+      -&gt; se
+
+    KX1:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, se, s
+      -&gt; es
+
+    K1X1:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; se, es</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>IN:
+  -&gt; e, s
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    I1N:
+      -&gt; e, s
+      &lt;- e, ee
+      -&gt; se</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>IK:
+  &lt;- s
+  ...
+  -&gt; e, es, s, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    I1K:
+      &lt;- s
+      ...
+      -&gt; e, es, s
+      &lt;- e, ee
+      -&gt; se
+
+    IK1:
+      &lt;- s
+      ...
+      -&gt; e, s
+      &lt;- e, ee, se, es
+
+    I1K1:
+      &lt;- s
+      ...
+      -&gt; e, s
+      &lt;- e, ee, es
+      -&gt; se</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>IX:
+  -&gt; e, s
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>    I1X:
+      -&gt; e, s
+      &lt;- e, ee, s, es
+      -&gt; se
+
+    IX1:
+      -&gt; e, s
+      &lt;- e, ee, se, s
+      -&gt; es
+
+    I1X1:
+      -&gt; e, s
+      &lt;- e, ee, s
+      -&gt; se, es</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h1 id="references" class="unnumbered">19. References</h1>
 <div id="refs" class="references">
 <div id="ref-Rogaway:2002">
 <p>[1] P. Rogaway, “Authenticated-encryption with Associated-data,” in Proceedings of the 9th ACM Conference on Computer and Communications Security, 2002. <a href="http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf" class="uri">http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf</a></p>
