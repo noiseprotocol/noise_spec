@@ -2017,9 +2017,6 @@ specialized function (e.g. keyed BLAKE2), because:
 
   * `MixHash()` is more efficient than `MixKey()`.
 
-  * `MixHash()` avoids any IPR concerns regarding mixing identity data into
-     session keys (see KEA+).
-
   * `MixHash()` produces a non-secret `h` value that might be useful to
      higher-level protocols, e.g. for channel-binding.
 
