@@ -371,7 +371,7 @@
 
 <h2 id="alice-and-bob">7.2. Alice and Bob</h2>
 <p>In all handshake patterns shown previously, the initiator is the party on the left (sending with right-pointing arrows) and the responder is the party on the right.</p>
-<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a notational convenience, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from the initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
+<p>However, multiple Noise protocols might be used within a <strong>compound protocol</strong> where the responder in one Noise protocol becomes the initiator for a later Noise protocol. As a convenience for terminology and notation in this case, we introduce the notion of <strong>Alice</strong> and <strong>Bob</strong> roles which are different from initiator and responder roles. Alice will be viewed as the party on the left (sending messages with right arrows), and Bob will be the party on the right.</p>
 <p>Handshake patterns written in <strong>canonical form</strong> (i.e. <strong>Alice-initiated form</strong>) assume the initiator is Alice (the left-most party). All processing rules and discussion so far have assumed canonical-form handshake patterns.</p>
 <p>However, handshake patterns can be written in <strong>Bob-initiated form</strong> by reversing the arrows and the DH tokens (e.g. replacing <code>&quot;es&quot;</code> with <code>&quot;se&quot;</code>, and vice versa). This doesn't change the handshake pattern, it simply makes it easier to view Alice-initiated and Bob-initiated handshakes side-by-side.</p>
 <p>Below are the handshake patterns from the previous section in Bob-initiated form:</p>
@@ -1038,10 +1038,10 @@ KK:
 <h1 id="compound-protocols">10. Compound protocols</h1>
 <h2 id="rationale-for-compound-protocols">10.1. Rationale for compound protocols</h2>
 <p>So far we've assumed Alice and Bob wish to execute a single Noise protocol chosen by the initiator (Alice). However, there are a number of reasons why Bob might wish to switch to a different Noise protocol after receiving Alice's first message. For example:</p>
-<ol style="list-style-type: lower-alpha">
+<ul>
 <li><p>Alice might have chosen cryptographic functions or sent an ephemeral public key that Bob doesn't support.</p></li>
 <li><p>Alice might have sent a &quot;zero-RTT&quot; encrypted initial message based on an out-of-date responder static public key or PSK.</p></li>
-</ol>
+</ul>
 <p>Handling these scenarios requires a <strong>compound protocol</strong> where Bob switches from the initial Noise protocol chosen by Alice to a new Noise protocol. In such a compound protocol the roles of initiator and responder would be reversed - Bob would become the initiator of the new Noise protocol, and Alice the responder.</p>
 <p>Compound protocols introduce significant complexity as Alice needs to advertise the Noise protocol she is beginning with and the Noise protocol(s) she is capable of switching to, and both parties have to negotiate a secure transition.</p>
 <p>These details are largely out of scope for this document. However, to give an example of how compound protocols can be constructed, and to provide some building blocks, the following sections define a <strong><code>fallback</code></strong> modifier and show how it can be used to create a <strong>Noise Pipe</strong> compound protocol.</p>

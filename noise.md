@@ -661,10 +661,11 @@ right.
 
 However, multiple Noise protocols might be used within a **compound protocol**
 where the responder in one Noise protocol becomes the initiator for a later
-Noise protocol.  As a notational convenience, we introduce the notion
-of **Alice** and **Bob** roles which are different from the initiator and
-responder roles.  Alice will be viewed as the party on the left (sending
-messages with right arrows), and Bob will be the party on the right.
+Noise protocol.  As a convenience for terminology and notation in this case, we
+introduce the notion of **Alice** and **Bob** roles which are different from
+initiator and responder roles.  Alice will be viewed as the party on the
+left (sending messages with right arrows), and Bob will be the party on the
+right.
 
 Handshake patterns written in **canonical form** (i.e. **Alice-initiated
 form**) assume the initiator is Alice (the left-most party).  All processing
@@ -1405,10 +1406,10 @@ chosen by the initiator (Alice).  However, there are a number of reasons why
 Bob might wish to switch to a different Noise protocol after receiving 
 Alice's first message.  For example:
 
- (a) Alice might have chosen cryptographic functions or sent an ephemeral
+ * Alice might have chosen cryptographic functions or sent an ephemeral
    public key that Bob doesn't support.
 
- (b) Alice might have sent a "zero-RTT" encrypted initial message based on an out-of-date
+ * Alice might have sent a "zero-RTT" encrypted initial message based on an out-of-date
  responder static public key or PSK.
 
 Handling these scenarios requires a **compound protocol** where Bob switches
