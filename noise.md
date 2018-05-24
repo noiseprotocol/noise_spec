@@ -705,7 +705,7 @@ form:
 For an example of Bob-initiated notation, see [Section
 10.2](#the-fallback-modifier).
 
-## 7.3. Handshape pattern validity 
+## 7.3. Handshake pattern validity 
 
 Handshake patterns must be **valid** in the following senses:
 
