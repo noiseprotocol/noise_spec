@@ -1222,11 +1222,8 @@ alphabetic characters or numerals (e.g. `"XX1"` or `"IK"`).
 Pattern modifiers specify arbitrary extensions or modifications to the behavior
 specified by the handshake pattern.  For example, a modifier could be applied
 to a handshake pattern which transforms it into a different pattern according
-to some rule.  
-
-As examples of such a modifier, the `"psk0"` and `"fallback"` modifiers 
-described later in this document modify the base pattern to either
-incorporate a pre-shared symmetric key, or to be usable as a fallback protocol.
+to some rule.  The `"psk0"` and `"fallback"` modifiers are examples of this, 
+and will be defined later in this document.
 
 A pattern modifier is named with a lowercase alphanumeric ASCII string which
 must begin with an alphabetic character (not a numeral).  The pattern modifier
@@ -1466,8 +1463,8 @@ chosen by the initiator (Alice).  However, there are a number of reasons why
 Bob might wish to switch to a different Noise protocol after receiving 
 Alice's first message.  For example:
 
- * Alice might have chosen a Noise protocol which Bob doesn't support (e.g. she may
- have chosen a cipher, DH function, or handshake pattern which Bob doesn't support).
+ * Alice might have chosen a Noise protocol based on a cipher, DH function, or
+   handshake pattern which Bob doesn't support.
 
  * Alice might have sent a "zero-RTT" encrypted initial message based on an out-of-date
  version of Bob's static public key or PSK.
