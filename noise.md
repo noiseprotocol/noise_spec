@@ -1582,15 +1582,15 @@ This is fairly easy:
    a constant size, regardless of which handshake is executed.
 
  * Bob will attempt to decrypt the first message as an `IK` message,
-   and will fallback to `XXfallback` if decryption fails.
+   and will switch to `XXfallback` if decryption fails.
 
  * An Alice who sends an `IK` initial message can use trial decryption
    to differentiate between a response using `IK` or `XXfallback`. 
 
  * An Alice attempting a full handshake will send an ephemeral public key, then
- random padding, and will use `XXfallback` to handle the response.
- Note that `XX` isn't used, because the server can't
- distinguish an `XX` message from a failed `IK` attempt by using trial decryption.
+   random padding, and will use `XXfallback` to handle the response.  Note that
+   `XX` isn't used, because the server can't distinguish an `XX` message from a
+   failed `IK` attempt by using trial decryption.
 
 This leaves the Noise ephemeral public keys in the clear.  Ephemeral public
 keys are randomly chosen DH public values, but they will typically have enough
@@ -1773,7 +1773,7 @@ An application built on Noise must consider several issues:
  * **Padding**:  Applications are recommended to use a data format for the
    payloads of all encrypted messages that allows padding.  This allows
    implementations to avoid leaking information about message sizes.  Using an
-   extensible data format, per the previous bullet, will typically suffice.
+   extensible data format, per the previous bullet, may be sufficient.
 
  * **Session termination**: Applications must consider that a sequence of Noise
    transport messages could be truncated by an attacker.  Applications should
@@ -1787,13 +1787,15 @@ An application built on Noise must consider several issues:
    applications are recommended to add a 16-bit big-endian length field prior
    to each message.
 
- * **Type fields**:  Applications might wish to include a single-byte type
-   field prior to each Noise handshake message (and prior to the length field,
-   if one is included).  A recommended idiom is for zero to indicate
-   no change from the current protocol, and for applications to reject
-   messages with an unknown value.  This allows future protocol versions to 
-   specify fallback handshakes, different versions, or other different types
-   of messages during a handshake.
+ * **Negotiation data**:  Applications might wish to support the transmission
+   of some **negotiation data** prior to each handshake message.  Negotiation
+   data could contain things like version information, and identifiers for
+   Noise initial protocols and switch protocols.  One approach would be to send
+   a single-byte type field prior to each Noise handshake message, where zero
+   indicates no change from the current Noise protocol, and where unknown type
+   values cause the message to be rejected.  More flexible approaches might
+   include sending extensible structures such as protobufs, but are outside the
+   scope of this document.
 
 \newpage
 
@@ -1815,7 +1817,7 @@ This section collects various security considerations:
 
  * **Rollback**:  If parties decide on a Noise protocol based on some previous
    negotiation that is not included as prologue, then a rollback attack might
-   be possible.  This is a particular risk with fallback handshakes,
+   be possible.  This is a particular risk with compound protocols,
    and requires careful attention if a Noise handshake is preceded by
    communication between the parties.
 
