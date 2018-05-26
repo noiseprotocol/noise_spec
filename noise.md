@@ -1494,9 +1494,9 @@ handshake as if Alice had sent an `XX` initial message instead of an `IK` initia
 
 The `fallback` modifier converts an Alice-initiated pattern to a Bob-initiated
 pattern by converting Alice's initial message to a pre-message that Bob must
-receive through some other means (e.g. as the initial field in an initial
-`IK` message from Alice).  After this conversion, the rest of the handshake pattern
-is interpreted as a Bob-initiated handshake pattern.
+receive through some other means (e.g. via an initial `IK` message from Alice).
+After this conversion, the rest of the handshake pattern is interpreted as a
+Bob-initiated handshake pattern.
 
 For example, here is the `fallback` modifier applied to `XX` to produce `XXfallback`:
 
@@ -1516,43 +1516,32 @@ For example, here is the `fallback` modifier applied to `XX` to produce `XXfallb
 
 Note that `fallback` can only be applied to handshake patterns in Alice-initiated form where Alice's first message is capable of being interpreted as a pre-message (i.e. it must be either `"e"`, `"s"`, or `"e, s"`).
 
-## 10.3. Indicating fallback
+## 10.3. Zero-RTT and Noise protocols
 
 A typical compound protocol for zero-RTT encryption involves three different Noise protocols:
 
- * A **full handshake** is used if Alice doesn't possess stored information about Bob that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
+ * A **full protocol** is used if Alice doesn't possess stored information about Bob that would enable zero-RTT encryption, or doesn't wish to use the zero-RTT handshake.
 
- * A **zero-RTT handshake** allows encryption of data in the initial message.
+ * A **zero-RTT protocol** allows encryption of data in the initial message.
 
- * A **fallback handshake** is triggered by Bob if he can't decrypt Alice's first zero-RTT handshake message.
+ * A **switch protocol** is triggered by Bob if he can't decrypt Alice's first zero-RTT handshake message.
 
-There must be some way for Bob to distinguish full versus zero-RTT handshakes on receiving the first message.  If Alice makes a zero-RTT attempt, there must be some way for her to distinguish zero-RTT from fallback handshakes on receiving the response.
+There must be some way for Bob to distinguish the full versus zero-RTT cases
+on receiving the first message.  If Alice makes a zero-RTT attempt, there must
+be some way for her to distinguish the zero-RTT versus switch cases on receiving
+the response.
 
-For example, each handshake message could be preceded by a `type` byte (see
-[Section 13](#application-responsibilities)).  This byte is not part of the
-Noise message proper, but signals which handshake is being used:
-
- * If `type == 0` in Alice's first message then she is performing a full
-   handshake.
-
- * If `type == 1` in Alice's first message then she is performing a zero-RTT
-   handshake.
-
- * If `type == 0` in the response then the zero-RTT message was accepted.
-
- * If `type == 1` in the response then Bob failed to decrypt
-   Alice's zero-RTT message and is performing a fallback handshake.
-
-Note that the `type` byte doesn't need to be explicitly authenticated (either as
-prologue, or as "associated data" in the AEAD encryption), since it's implicitly authenticated if the
-message is processed succesfully.
+For example, each handshake message could be preceded by some negotiation data,
+such as a `type` byte (see [Section 13](#application-responsibilities)).  This
+data is not part of the Noise message proper, but signals which Noise protocol
+is being used.
 
 ## 10.4. Noise Pipes
 
-This section defines the **Noise Pipe** compound protocol.  These handshake patterns
-satisfy the full, zero-RTT, and fallback roles discussed in the previous
-section, so can be used to provide a full handshake with a simple zero-RTT
-option:
+This section defines the **Noise Pipe** compound protocol.  The following
+handshake patterns satisfy the full, zero-RTT, and switch roles discussed in
+the previous section, so can be used to provide a full handshake with a simple
+zero-RTT option:
 
     XX:  
       -> e
@@ -1577,10 +1566,8 @@ public key.
 
 The `IK` pattern is used for a **zero-RTT handshake**.  
 
-The `XXfallback` pattern is used for a **fallback handshake** if Bob fails to
-decrypt the first `IK` message (perhaps due to having changed his static key).
-
-\newpage
+The `XXfallback` pattern is used for a **switch handshake** if Bob fails to
+decrypt an initial `IK` message (perhaps due to having changed his static key).
 
 ## 10.5. Handshake indistinguishability
 
@@ -1611,8 +1598,6 @@ structure that an eavesdropper might suspect the parties are using Noise, even
 if the eavesdropper can't distinguish the different handshakes.  To make the
 ephemerals indistinguishable from random byte sequences, techniques like
 Elligator [@elligator] could be used.
-
-\newpage
 
 # 11. Advanced features
 
