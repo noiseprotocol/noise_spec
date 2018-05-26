@@ -919,12 +919,12 @@ Below are two examples showing a fundamental handshake pattern on the left, and 
 
 The following table lists the security properties for Noise handshake and
 transport payloads for all the one-way patterns in [Section 7.4](#one-way-handshake-patterns) and the fundamental patterns in 
-[Section 7.5](#interactive-handshake-patterns).  Each payload is assigned an "authentication"
+[Section 7.5](#interactive-handshake-patterns).  Each payload is assigned a "source"
 property regarding the degree of authentication of the sender provided to the
-recipient, and a "confidentiality" property regarding the degree of
+recipient, and a "destination" property regarding the degree of
 confidentiality provided to the sender.
 
-The authentication properties are:
+The source properties are:
 
  0. **No authentication.**  This payload may have been sent by any party,
     including an active attacker.
@@ -942,7 +942,7 @@ The authentication properties are:
     recipient's ephemeral key pair.  Assuming the corresponding private keys 
     are secure, this authentication cannot be forged.
 
-The confidentiality properties are:
+The destination properties are:
 
  0. **No confidentiality.**  This payload is sent in cleartext.
 
@@ -1002,7 +1002,7 @@ are listed, the security properties for the second only apply if the first was
 received.
 
 +--------------------------------------------------------------+
-|                          Authentication   Confidentiality    |
+|                              Source         Destination      |
 +--------------------------------------------------------------+
 |     N                           0                2           | 
 +--------------------------------------------------------------+

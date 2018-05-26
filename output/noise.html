@@ -601,14 +601,14 @@ KK:
 </tbody>
 </table>
 <h2 id="payload-security-properties">7.6. Payload security properties</h2>
-<p>The following table lists the security properties for Noise handshake and transport payloads for all the one-way patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned an &quot;authentication&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;confidentiality&quot; property regarding the degree of confidentiality provided to the sender.</p>
-<p>The authentication properties are:</p>
+<p>The following table lists the security properties for Noise handshake and transport payloads for all the one-way patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned a &quot;source&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;destination&quot; property regarding the degree of confidentiality provided to the sender.</p>
+<p>The source properties are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p><strong>No authentication.</strong> This payload may have been sent by any party, including an active attacker.</p></li>
 <li><p><strong>Sender authentication <em>vulnerable</em> to key-compromise impersonation (KCI)</strong>. The sender authentication is based on a static-static DH (<code>&quot;ss&quot;</code>) involving both parties' static key pairs. If the recipient's long-term private key has been compromised, this authentication can be forged. Note that a future version of Noise might include signatures, which could improve this security property, but brings other trade-offs.</p></li>
 <li><p><strong>Sender authentication <em>resistant</em> to key-compromise impersonation (KCI)</strong>. The sender authentication is based on an ephemeral-static DH (<code>&quot;es&quot;</code> or <code>&quot;se&quot;</code>) between the sender's static key pair and the recipient's ephemeral key pair. Assuming the corresponding private keys are secure, this authentication cannot be forged.</p></li>
 </ol>
-<p>The confidentiality properties are:</p>
+<p>The destination properties are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p><strong>No confidentiality.</strong> This payload is sent in cleartext.</p></li>
 <li><p><strong>Encryption to an ephemeral recipient.</strong> This payload has forward secrecy, since encryption involves an ephemeral-ephemeral DH (<code>&quot;ee&quot;</code>). However, the sender has not authenticated the recipient, so this payload might be sent to any party, including an active attacker.</p></li>
@@ -625,7 +625,7 @@ KK:
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><pre><code>                     Authentication   Confidentiality</code></pre></td>
+<td><pre><code>                         Source         Destination</code></pre></td>
 </tr>
 <tr class="even">
 <td><pre><code>N                           0                2</code></pre></td>
