@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2018-03-08" />
+  <meta name="date" content="2018-05-26" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -14,8 +14,8 @@
 <div id="header">
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
-<b>Revision:</b> 34<br/>
-<b>Date:</b> 2018-03-08<br/>
+<b>Revision:</b> 34draft<br/>
+<b>Date:</b> 2018-05-26<br/>
 <b>Status:</b> official/unstable<br/>
 <b>PDF:</b> <a href="noise.pdf">noise.pdf</a><br/>
 </div>
@@ -835,8 +835,8 @@ KK:
 <h2 id="cryptographic-algorithm-name-sections">8.2. Cryptographic algorithm name sections</h2>
 <p>The rules for the DH, cipher, and hash name sections are identical. Each name section must contain one or more algorithm names separated by plus signs.</p>
 <p>Each algorithm name must consist solely of alphanumeric characters and the forward-slash character (<code>&quot;/&quot;</code>). Algorithm names are recommended to be short, and to use the <code>&quot;/&quot;</code> character only when necessary to avoid ambiguity (e.g. <code>&quot;SHA3/256&quot;</code> is preferable to <code>&quot;SHA3256&quot;</code>).</p>
-<p>In most cases there will be a single algorithm name in each name section (i.e. no plus signs). Multiple algorithms are only used when called for by the pattern or a modifier.</p>
-<p>None of the patterns or modifiers in this document require multiple algorithms in any name section. However, this functionality might be useful in future extensions, e.g. using multiple algorithms in the DH section to provide &quot;hybrid&quot; post-quantum forward secrecy, or using different hash algorithms for different purposes.</p>
+<p>In most cases there will be a single algorithm name in each name section (i.e. no plus signs). Multiple algorithm names are only used when called for by the pattern or a modifier.</p>
+<p>None of the patterns or modifiers in this document require multiple algorithm names in any name section. However, this functionality might be useful in future extensions. For example, multiple algorithm names might be used in the DH section to specify &quot;hybrid&quot; post-quantum forward secrecy; or multiple hash algorithms might be specified for different purposes.</p>
 <h1 id="pre-shared-symmetric-keys">9. Pre-shared symmetric keys</h1>
 <p>Noise provides a <strong>pre-shared symmetric key</strong> or <strong>PSK</strong> mode to support protocols where both parties have a 32-byte shared secret key.</p>
 <h2 id="cryptographic-functions">9.1. Cryptographic functions</h2>

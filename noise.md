@@ -1254,14 +1254,14 @@ and to use the `"/"` character only when necessary to avoid ambiguity (e.g.
 `"SHA3/256"` is preferable to `"SHA3256"`).
 
 In most cases there will be a single algorithm name in each name section (i.e.
-no plus signs).  Multiple algorithms are only used when called for by the 
+no plus signs).  Multiple algorithm names are only used when called for by the
 pattern or a modifier.  
 
-None of the patterns or modifiers in this document require multiple
-algorithms in any name section.  However, this functionality
-might be useful in future extensions, e.g. using multiple algorithms in the DH
-section to provide "hybrid" post-quantum forward secrecy, or using different hash
-algorithms for different purposes.
+None of the patterns or modifiers in this document require multiple algorithm
+names in any name section.  However, this functionality might be useful in
+future extensions.  For example, multiple algorithm names might be used in the
+DH section to specify "hybrid" post-quantum forward secrecy; or multiple hash
+algorithms might be specified for different purposes.
 
 # 9. Pre-shared symmetric keys
 
