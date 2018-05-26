@@ -782,7 +782,7 @@ recipient beforehand (`K`) or transmitted under encryption (`X`).
 ## 7.4. Interactive handshake patterns (fundamental)
 
 The following handshake patterns represent interactive protocols.  These 
-12 patterns are the **fundamental** interactive handshake patterns.
+12 patterns are called the **fundamental** interactive handshake patterns.
 
 The fundamental interactive patterns are named with two characters, which
 indicate the status of the initator and responder's static keys:
@@ -883,7 +883,7 @@ Deferred patterns might be useful for several reasons:
 
  * Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts).  Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature *or* KEM ciphertext, but the deferred variants make both replacements possible.
 
-Below are two examples showing the fundamental handshake pattern on the left, and deferred variant(s) on the right.  The full set of 22 deferred handshake patterns are in the [Appendix](#deferred-patterns).
+Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right.  The full set of 22 deferred handshake patterns are in the [Appendix](#deferred-patterns).
 
 +---------------------------+--------------------------------+
 |     NK:                   |         NK1:                   |
@@ -1466,11 +1466,11 @@ chosen by the initiator (Alice).  However, there are a number of reasons why
 Bob might wish to switch to a different Noise protocol after receiving 
 Alice's first message.  For example:
 
- * Alice might have chosen cryptographic functions or sent an ephemeral
-   public key that Bob doesn't support.
+ * Alice might have chosen a Noise protocol which Bob doesn't support (e.g. she may
+ have chosen a cipher, DH function, or handshake pattern which Bob doesn't support).
 
  * Alice might have sent a "zero-RTT" encrypted initial message based on an out-of-date
- responder static public key or PSK.
+ version of Bob's static public key or PSK.
 
 Handling these scenarios requires a **compound protocol** where Bob switches
 from the initial Noise protocol chosen by Alice to a new Noise protocol.  In such a

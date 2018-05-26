@@ -450,7 +450,7 @@ KK:
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
 
 <h2 id="interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</h2>
-<p>The following handshake patterns represent interactive protocols. These 12 patterns are the <strong>fundamental</strong> interactive handshake patterns.</p>
+<p>The following handshake patterns represent interactive protocols. These 12 patterns are called the <strong>fundamental</strong> interactive handshake patterns.</p>
 <p>The fundamental interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
 <ul>
@@ -557,7 +557,7 @@ KK:
 <li><p>In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see <a href="#identity-hiding">Section 7.7</a>).</p></li>
 <li><p>Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts). Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature <em>or</em> KEM ciphertext, but the deferred variants make both replacements possible.</p></li>
 </ul>
-<p>Below are two examples showing the fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 22 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
+<p>Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 22 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
 <table style="width:85%;">
 <colgroup>
 <col width="38%" />
@@ -1105,8 +1105,8 @@ KK:
 <h2 id="rationale-for-compound-protocols">10.1. Rationale for compound protocols</h2>
 <p>So far we've assumed Alice and Bob wish to execute a single Noise protocol chosen by the initiator (Alice). However, there are a number of reasons why Bob might wish to switch to a different Noise protocol after receiving Alice's first message. For example:</p>
 <ul>
-<li><p>Alice might have chosen cryptographic functions or sent an ephemeral public key that Bob doesn't support.</p></li>
-<li><p>Alice might have sent a &quot;zero-RTT&quot; encrypted initial message based on an out-of-date responder static public key or PSK.</p></li>
+<li><p>Alice might have chosen a Noise protocol which Bob doesn't support (e.g. she may have chosen a cipher, DH function, or handshake pattern which Bob doesn't support).</p></li>
+<li><p>Alice might have sent a &quot;zero-RTT&quot; encrypted initial message based on an out-of-date version of Bob's static public key or PSK.</p></li>
 </ul>
 <p>Handling these scenarios requires a <strong>compound protocol</strong> where Bob switches from the initial Noise protocol chosen by Alice to a new Noise protocol. In such a compound protocol the roles of initiator and responder would be reversed - Bob would become the initiator of the new Noise protocol, and Alice the responder.</p>
 <p>Compound protocols introduce significant complexity as Alice needs to advertise the Noise protocol she is beginning with and the Noise protocol(s) she is capable of switching to, and both parties have to negotiate a secure transition.</p>
