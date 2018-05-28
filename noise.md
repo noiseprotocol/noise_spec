@@ -883,7 +883,7 @@ Deferred patterns might be useful for several reasons:
 
  * Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts).  Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature *or* KEM ciphertext, but the deferred variants make both replacements possible.
 
-Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right.  The full set of 22 deferred handshake patterns are in the [Appendix](#deferred-patterns).
+Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right.  The full set of 23 deferred handshake patterns are in the [Appendix](#deferred-patterns).
 
 +---------------------------+--------------------------------+
 |     NK:                   |         NK1:                   |
@@ -1043,10 +1043,10 @@ received.
 |       <-                        2                5           |               
 +--------------------------------------------------------------+
 |     XX                                                       |                                 
-|      -> e                       0                0           |               
-|      <- e, ee, s, es            2                1           |               
-|      -> s, se                   2                5           |               
-|      <-                         2                5           |               
+|       -> e                      0                0           |               
+|       <- e, ee, s, es           2                1           |               
+|       -> s, se                  2                5           |               
+|       <-                        2                5           |               
 +--------------------------------------------------------------+
 |     KN                                                       |                                 
 |       -> s                                                   |                                 
@@ -2103,9 +2103,9 @@ versions.
 
 # 18. Appendices
 
-# 18.1 Deferred patterns
+## 18.1 Deferred patterns
 
-The following table lists all 22 deferred handshake patterns in the right
+The following table lists all 23 deferred handshake patterns in the right
 column, with their corresponding fundamental handshake pattern in the left
 column.  See [Section 7](#handshake-patterns) for an explanation of 
 fundamental and deferred patterns.
@@ -2122,6 +2122,13 @@ fundamental and deferred patterns.
 |       -> e                |           -> e                 |
 |       <- e, ee, s, es     |           <- e, ee, s          |
 |                           |           -> es                |
+|                           |                                |
++---------------------------+--------------------------------+
+|     XN:                   |         X1N:                   |
+|       -> e                |           -> e                 |
+|       <- e, ee            |           <- e, ee             |
+|       -> s, se            |           -> s                 |
+|                           |           <- se                |
 |                           |                                |
 +---------------------------+--------------------------------+
 |     XK:                   |         X1K:                   |
@@ -2265,5 +2272,199 @@ fundamental and deferred patterns.
 |                           |                                |
 +---------------------------+--------------------------------+
 
+\newpage
+
+## 18.2. Security properties for deferred patterns
+
+The following table lists the the security properties for the Noise handshake
+and transport payloads for all the deferred patterns in the previous section.
+The security properties are labelled using the notation from [Section 7.6](#payload-security-properties).
+
++--------------------------------------------------------------+
+|                              Source         Destination      |
++--------------------------------------------------------------+
+|     NK1                                                      |                                 
+|       <- s                                                   |
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, es              2                1           |               
+|       ->                        0                5           |               
++--------------------------------------------------------------+
+|     NX1                                                      |             
+|       -> e                      0                0           |               
+|       <- e, ee, s               0                1           |               
+|       -> es                     0                3           |               
+|       ->                        2                1           |
+|       <-                        0                5           |
++--------------------------------------------------------------+
+|     X1N                                                      |                                 
+|       -> e                      0                0           |               
+|       <- e, ee                  0                1           |               
+|       -> s                      0                1           |               
+|       <- se                     0                3           |               
+|       ->                        2                1           |
++--------------------------------------------------------------+
+|     X1K                                                      |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e, es                  0                2           |               
+|       <- e, ee                  2                1           |               
+|       -> s                      0                5           |               
+|       <- se                     2                3           |               
+|       ->                        2                5           |
+|       <-                        2                5           |
++--------------------------------------------------------------+
+|     XK1                                                      |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, es              2                1           |               
+|       -> s, se                  2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     X1K1                                                     |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, es              2                1           |               
+|       -> s                      0                5           |               
+|       <- se                     2                3           |               
+|       ->                        2                5           |
+|       <-                        2                5           |
++--------------------------------------------------------------+
+|     X1X                                                      |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, s, es           2                1           |               
+|       -> s                      0                5           |               
+|       <- se                     2                3           |               
+|       ->                        2                5           |
+|       <-                        2                5           |
++--------------------------------------------------------------+
+|     XX1                                                      |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, s               0                1           |               
+|       -> es, s, se              2                3           |               
+|       <-                        2                5           |
+|       ->                        2                5           |
++--------------------------------------------------------------+
+|     X1X1                                                     |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, s               0                1           |               
+|       -> es, s                  0                3           |               
+|       <- se                     2                3           |               
+|       ->                        2                5           |
+|       <-                        2                5           |
++--------------------------------------------------------------+
+|     K1N                                                      |                                 
+|       -> s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee                  0                1           |               
+|       -> se                     2                1           |               
+|       <-                        0                5           |               
++--------------------------------------------------------------+
+|     K1K                                                      |                                 
+|       -> s                                                   |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e, es                  0                2           |               
+|       <- e, ee, se              2                1           |               
+|       -> se                     2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     KK1                                                      |                                 
+|       -> s                                                   |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, se, es          2                3           |               
+|       ->                        2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     K1K1                                                     |                                 
+|       -> s                                                   |                                 
+|       <- s                                                   |                                 
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, es              2                1           |               
+|       -> se                     2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     K1X                                                      |                           
+|       -> s                                                   |                           
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, s, es           2                1           |               
+|       -> se                     2                5           |               
+|       <-                        2                5           |               
++--------------------------------------------------------------+
+|     KX1                                                      |                           
+|       -> s                                                   |                           
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, se, s           0                3           |               
+|       -> es                     2                3           |               
+|       <-                        2                5           |               
+|       ->                        2                5           |
++--------------------------------------------------------------+
+|     K1X1                                                     |                           
+|       -> s                                                   |                           
+|       ...                                                    |                                 
+|       -> e                      0                0           |               
+|       <- e, ee, s               0                1           |               
+|       -> se, es                 2                3           |               
+|       <-                        2                5           |               
+|       ->                        2                5           |
++--------------------------------------------------------------+
+|     I1N                                                      |    
+|       -> e, s                   0                0           |         
+|       <- e, ee                  0                1           |         
+|       -> se                     2                1           |         
+|       <-                        0                5           |         
++--------------------------------------------------------------+
+|     I1K                                                      |                        
+|       <- s                                                   |                        
+|       ...                                                    |                        
+|       -> e, es, s               0                2           |         
+|       <- e, ee                  2                1           |         
+|       -> se                     2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
+|     IK1                                                      |                        
+|       <- s                                                   |                        
+|       ...                                                    |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, se, es          2                3           |         
+|       ->                        2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
+|     I1K1                                                     |                        
+|       <- s                                                   |                        
+|       ...                                                    |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, es              2                1           |         
+|       -> se                     2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
+|     I1X                                                      |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, s, es           2                1           |         
+|       -> se                     2                5           |         
+|       <-                        2                5           |         
++--------------------------------------------------------------+
+|     IX1                                                      |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, se, s           0                3           |         
+|       -> es                     2                3           |         
+|       <-                        2                5           |         
+|       ->                        2                5           |         
++--------------------------------------------------------------+
+|     I1X1                                                     |                        
+|       -> e, s                   0                0           |         
+|       <- e, ee, s               0                1           |         
+|       -> se, es                 2                3           |         
+|       <-                        2                5           |         
+|       ->                        2                5           |         
++--------------------------------------------------------------+
 
 # 19.  References

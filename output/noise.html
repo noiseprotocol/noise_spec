@@ -92,8 +92,10 @@
 </ul></li>
 <li><a href="#ipr">16. IPR</a></li>
 <li><a href="#acknowledgements">17. Acknowledgements</a></li>
-<li><a href="#appendices">18. Appendices</a></li>
+<li><a href="#appendices">18. Appendices</a><ul>
 <li><a href="#deferred-patterns">18.1 Deferred patterns</a></li>
+<li><a href="#security-properties-for-deferred-patterns">18.2. Security properties for deferred patterns</a></li>
+</ul></li>
 <li><a href="#references">19. References</a></li>
 </ul>
 </div>
@@ -557,7 +559,7 @@ KK:
 <li><p>In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see <a href="#identity-hiding">Section 7.7</a>).</p></li>
 <li><p>Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts). Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature <em>or</em> KEM ciphertext, but the deferred variants make both replacements possible.</p></li>
 </ul>
-<p>Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 22 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
+<p>Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 23 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
 <table style="width:85%;">
 <colgroup>
 <col width="38%" />
@@ -674,10 +676,10 @@ KK:
 </tr>
 <tr class="even">
 <td><pre><code>XX
- -&gt; e                       0                0
- &lt;- e, ee, s, es            2                1
- -&gt; s, se                   2                5
- &lt;-                         2                5</code></pre></td>
+  -&gt; e                      0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; s, se                  2                5
+  &lt;-                        2                5</code></pre></td>
 </tr>
 <tr class="odd">
 <td><pre><code>KN
@@ -1395,8 +1397,8 @@ XXfallback:
 <p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier versions.</p>
 
 <h1 id="appendices">18. Appendices</h1>
-<h1 id="deferred-patterns">18.1 Deferred patterns</h1>
-<p>The following table lists all 22 deferred handshake patterns in the right column, with their corresponding fundamental handshake pattern in the left column. See <a href="#handshake-patterns">Section 7</a> for an explanation of fundamental and deferred patterns.</p>
+<h2 id="deferred-patterns">18.1 Deferred patterns</h2>
+<p>The following table lists all 23 deferred handshake patterns in the right column, with their corresponding fundamental handshake pattern in the left column. See <a href="#handshake-patterns">Section 7</a> for an explanation of fundamental and deferred patterns.</p>
 <table style="width:85%;">
 <colgroup>
 <col width="38%" />
@@ -1425,6 +1427,17 @@ XXfallback:
       -&gt; es</code></pre></td>
 </tr>
 <tr class="odd">
+<td><pre><code>XN:
+  -&gt; e
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1N:
+      -&gt; e
+      &lt;- e, ee
+      -&gt; s
+      &lt;- se</code></pre></td>
+</tr>
+<tr class="even">
 <td><pre><code>XK:
   &lt;- s
   ...
@@ -1454,7 +1467,7 @@ XXfallback:
       -&gt; s
       &lt;- se</code></pre></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><pre><code>XX:
   -&gt; e
   &lt;- e, ee, s, es
@@ -1476,7 +1489,7 @@ XXfallback:
       -&gt; es, s
       &lt;- se</code></pre></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><pre><code>KN:
   -&gt; s
   ...
@@ -1489,7 +1502,7 @@ XXfallback:
       &lt;- e, ee
       -&gt; se</code></pre></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><pre><code>KK:
   -&gt; s
   &lt;- s
@@ -1519,7 +1532,7 @@ XXfallback:
       &lt;- e, ee, es
       -&gt; se</code></pre></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><pre><code>KX:
   -&gt; s
   ...
@@ -1546,7 +1559,7 @@ XXfallback:
       &lt;- e, ee, s
       -&gt; se, es</code></pre></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><pre><code>IN:
   -&gt; e, s
   &lt;- e, ee, se</code></pre></td>
@@ -1555,7 +1568,7 @@ XXfallback:
       &lt;- e, ee
       -&gt; se</code></pre></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><pre><code>IK:
   &lt;- s
   ...
@@ -1581,7 +1594,7 @@ XXfallback:
       &lt;- e, ee, es
       -&gt; se</code></pre></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><pre><code>IX:
   -&gt; e, s
   &lt;- e, ee, se, s, es</code></pre></td>
@@ -1599,6 +1612,225 @@ XXfallback:
       -&gt; e, s
       &lt;- e, ee, s
       -&gt; se, es</code></pre></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="security-properties-for-deferred-patterns">18.2. Security properties for deferred patterns</h2>
+<p>The following table lists the the security properties for the Noise handshake and transport payloads for all the deferred patterns in the previous section. The security properties are labelled using the notation from <a href="#payload-security-properties">Section 7.6</a>.</p>
+<table style="width:88%;">
+<colgroup>
+<col width="87%" />
+</colgroup>
+<tbody>
+<tr class="odd">
+<td><pre><code>                         Source         Destination</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>NK1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt;                        0                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>NX1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es                     0                3
+  -&gt;                        2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>X1N
+  -&gt; e                      0                0
+  &lt;- e, ee                  0                1
+  -&gt; s                      0                1
+  &lt;- se                     0                3
+  -&gt;                        2                1</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>X1K
+  &lt;- s
+  ...
+  -&gt; e, es                  0                2
+  &lt;- e, ee                  2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>XK1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; s, se                  2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>X1K1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>X1X
+  -&gt; e                      0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>XX1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es, s, se              2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>X1X1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es, s                  0                3
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>K1N
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee                  0                1
+  -&gt; se                     2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>K1K
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es                  0                2
+  &lt;- e, ee, se              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>KK1
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, se, es          2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>K1K1
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>K1X
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>KX1
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, se, s           0                3
+  -&gt; es                     2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>K1X1
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; se, es                 2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>I1N
+  -&gt; e, s                   0                0
+  &lt;- e, ee                  0                1
+  -&gt; se                     2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>I1K
+  &lt;- s
+  ...
+  -&gt; e, es, s               0                2
+  &lt;- e, ee                  2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>IK1
+  &lt;- s
+  ...
+  -&gt; e, s                   0                0
+  &lt;- e, ee, se, es          2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>I1K1
+  &lt;- s
+  ...
+  -&gt; e, s                   0                0
+  &lt;- e, ee, es              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>I1X
+  -&gt; e, s                   0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr class="odd">
+<td><pre><code>IX1
+  -&gt; e, s                   0                0
+  &lt;- e, ee, se, s           0                3
+  -&gt; es                     2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr class="even">
+<td><pre><code>I1X1
+  -&gt; e, s                   0                0
+  &lt;- e, ee, s               0                1
+  -&gt; se, es                 2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
 </tr>
 </tbody>
 </table>
