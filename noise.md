@@ -1788,14 +1788,13 @@ An application built on Noise must consider several issues:
    to each message.
 
  * **Negotiation data**:  Applications might wish to support the transmission
-   of some **negotiation data** prior to each handshake message.  Negotiation
-   data could contain things like version information, and identifiers for
-   Noise initial protocols and switch protocols.  One approach would be to send
-   a single-byte type field prior to each Noise handshake message, where zero
-   indicates no change from the current Noise protocol, and where unknown type
-   values cause the message to be rejected.  More flexible approaches might
-   include sending extensible structures such as protobufs, but are outside the
-   scope of this document.
+   of some negotiation data prior to the handshake, and/or prior to each
+   handshake message.  Negotiation data could contain things like version
+   information and identifiers for Noise protocols.  For example, a simple
+   approach would be to send a single-byte type field prior to each Noise
+   handshake message.  More flexible approaches might send extensible
+   structures such as protobufs.  Negotiation data introduces significant
+   complexity and security risks such as rollback attacks (see next section).
 
 \newpage
 
