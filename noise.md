@@ -705,7 +705,7 @@ form:
 For an example of Bob-initiated notation, see [Section
 10.2](#the-fallback-modifier).
 
-## 7.3. Handshape pattern validity 
+## 7.3. Handshake pattern validity 
 
 Handshake patterns must be **valid** in the following senses:
 
@@ -2078,8 +2078,8 @@ Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
 Ermishkin, and Olaoluwa Osuntokun.
 
 Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
-Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar
-Mokrynskyi, Keziah Elis Biermann, Justin Cormack, and Katriel Cohn-Gordon.
+Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi,
+Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.
 
 Helpful input and feedback on the key derivation design came from: Moxie
 Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson,
@@ -2089,6 +2089,9 @@ The PSK approach was largely motivated and designed by Jason Donenfeld, based
 on his experience with PSKs in WireGuard.
 
 The deferred patterns resulted from discussions with Justin Cormack.
+
+The security properties table for deferred patterns was derived by the 
+Noise Explorer tool, from Nadim Kobeissi.
 
 The rekey design benefited from discussions with Rhys Weatherley, Alexey
 Ermishkin, and Olaoluwa Osuntokun.  
@@ -2466,5 +2469,36 @@ The security properties are labelled using the notation from [Section 7.6](#payl
 |       <-                        2                5           |         
 |       ->                        2                5           |         
 +--------------------------------------------------------------+
+
+
+# 18.3. Change log
+
+
+**Revision 34:**
+
+ * Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.
+
+ * Removed parenthesized list of keys from pattern notation, as it was redundant. 
+
+ * Added deferred patterns.
+
+ * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
+
+ * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
+
+ * Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
+
+ * Clarified the order of hashing pre-message public keys.
+
+ * Rewrote handshake patterns explanation for clarity.
+
+ * Rewrote section on compound protocols and pipes for clarity, including
+   clearer distinction between "switch protocol" and "fallback patterns".
+
+ * Renamed "Authentication" and "Confidentiality" security properties to "Source" and "Destination" to avoid confusion.
+
+ * De-emphasised "type byte" suggestion, and added a more general discussion of negotiation data.
+
+
 
 # 19.  References

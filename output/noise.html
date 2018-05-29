@@ -42,7 +42,7 @@
 <li><a href="#handshake-patterns">7. Handshake patterns</a><ul>
 <li><a href="#handshake-pattern-basics">7.1. Handshake pattern basics</a></li>
 <li><a href="#alice-and-bob">7.2. Alice and Bob</a></li>
-<li><a href="#handshape-pattern-validity">7.3. Handshape pattern validity</a></li>
+<li><a href="#handshake-pattern-validity">7.3. Handshake pattern validity</a></li>
 <li><a href="#one-way-handshake-patterns">7.3. One-way handshake patterns</a></li>
 <li><a href="#interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</a></li>
 <li><a href="#interactive-handshake-patterns-deferred">7.5. Interactive handshake patterns (deferred)</a></li>
@@ -96,6 +96,7 @@
 <li><a href="#deferred-patterns">18.1 Deferred patterns</a></li>
 <li><a href="#security-properties-for-deferred-patterns">18.2. Security properties for deferred patterns</a></li>
 </ul></li>
+<li><a href="#change-log">18.3. Change log</a></li>
 <li><a href="#references">19. References</a></li>
 </ul>
 </div>
@@ -402,7 +403,7 @@ KK:
   &lt;- e, es, ss
   -&gt; e, ee, es</code></pre>
 <p>For an example of Bob-initiated notation, see <a href="#the-fallback-modifier">Section 10.2</a>.</p>
-<h2 id="handshape-pattern-validity">7.3. Handshape pattern validity</h2>
+<h2 id="handshake-pattern-validity">7.3. Handshake pattern validity</h2>
 <p>Handshake patterns must be <strong>valid</strong> in the following senses:</p>
 <ol style="list-style-type: decimal">
 <li><p>Parties can only perform DH between private keys and public keys they possess.</p></li>
@@ -1388,10 +1389,11 @@ XXfallback:
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
 <p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
-<p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, and Katriel Cohn-Gordon.</p>
+<p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.</p>
 <p>Helpful input and feedback on the key derivation design came from: Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
 <p>The deferred patterns resulted from discussions with Justin Cormack.</p>
+<p>The security properties table for deferred patterns was derived by the Noise Explorer tool, from Nadim Kobeissi.</p>
 <p>The rekey design benefited from discussions with Rhys Weatherley, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided helpful discussion on using BLAKE2 with Noise.</p>
 <p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier versions.</p>
@@ -1834,6 +1836,21 @@ XXfallback:
 </tr>
 </tbody>
 </table>
+<h1 id="change-log">18.3. Change log</h1>
+<p><strong>Revision 34:</strong></p>
+<ul>
+<li><p>Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.</p></li>
+<li><p>Removed parenthesized list of keys from pattern notation, as it was redundant.</p></li>
+<li><p>Added deferred patterns.</p></li>
+<li><p>Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.</p></li>
+<li><p>Replaced &quot;fallback patterns&quot; concept with Bob-initiated pattern notation.</p></li>
+<li><p>Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack.</p></li>
+<li><p>Clarified the order of hashing pre-message public keys.</p></li>
+<li><p>Rewrote handshake patterns explanation for clarity.</p></li>
+<li><p>Rewrote section on compound protocols and pipes for clarity, including clearer distinction between &quot;switch protocol&quot; and &quot;fallback patterns&quot;.</p></li>
+<li><p>Renamed &quot;Authentication&quot; and &quot;Confidentiality&quot; security properties to &quot;Source&quot; and &quot;Destination&quot; to avoid confusion.</p></li>
+<li><p>De-emphasised &quot;type byte&quot; suggestion, and added a more general discussion of negotiation data.</p></li>
+</ul>
 <h1 id="references" class="unnumbered">19. References</h1>
 <div id="refs" class="references">
 <div id="ref-Rogaway:2002">
