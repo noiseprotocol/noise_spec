@@ -3,7 +3,7 @@ title:      'The Noise Protocol Framework'
 author:     'Trevor Perrin (noise@trevp.net)'
 revision:   '34draft'
 status: official/unstable
-date:       '2018-05-26'
+date:       '2018-06-02'
 bibliography: 'my.bib'
 link-citations: 'true'
 ---
@@ -699,7 +699,7 @@ form:
       <- s
       -> s
       ...
-      <- e, es, ss
+      <- e, se, ss
       -> e, ee, es
 
 For an example of Bob-initiated notation, see [Section
