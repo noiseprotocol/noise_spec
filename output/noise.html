@@ -408,11 +408,12 @@ KK:
 <ol style="list-style-type: decimal">
 <li><p>Parties can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key or ephemeral public key more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of <code>&quot;e&quot;</code>, and one occurrence of <code>&quot;s&quot;</code>, in the messages sent by any party).</p></li>
+<li><p>Parties must not perform a DH calculation more than once per handshake (i.e. there must be no more than one occurrence of <code>&quot;ee&quot;</code>, <code>&quot;es&quot;</code>, <code>&quot;se&quot;</code>, or <code>&quot;ss&quot;</code> per handshake).</p></li>
 <li><p>After performing a DH between a remote public key and any local private key that is not the ephemeral private key, the local party must not call <code>ENCRYPT()</code> unless it has also performed a DH between the ephemeral private key and the remote public key.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
-<p>The second check outlaws redundant transmission of values to simplify implementation and testing.</p>
-<p>The third check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
+<p>The second and third checks outlaw redundant transmission of values, and redundant computation, to simplify implementation and testing.</p>
+<p>The fourth check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
 <h2 id="one-way-handshake-patterns">7.3. One-way handshake patterns</h2>
 <p>The following handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
@@ -454,7 +455,7 @@ KK:
 
 <h2 id="interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</h2>
 <p>The following handshake patterns represent interactive protocols. These 12 patterns are called the <strong>fundamental</strong> interactive handshake patterns.</p>
-<p>The fundamental interactive patterns are named with two characters, which indicate the status of the initator and responder's static keys:</p>
+<p>The fundamental interactive patterns are named with two characters, which indicate the status of the initiator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
 <ul>
 <li><strong><code>N</code></strong> = <strong><code>N</code></strong>o static key for initiator</li>
@@ -543,10 +544,10 @@ KK:
 </table>
 
 <p>The <code>XX</code> pattern is the most generically useful, since it supports mutual authentication and transmission of static public keys.</p>
-<p>All interactive patterns allow some encryption of handshake payloads:</p>
+<p>All fundamental patterns allow some encryption of handshake payloads:</p>
 <ul>
 <li><p>Patterns where the initiator has pre-knowledge of the responder's static public key (i.e. patterns ending in <code>K</code>) allow <strong>zero-RTT</strong> encryption, meaning the initiator can encrypt the first handshake payload.</p></li>
-<li><p>All interactive patterns allow <strong>half-RTT</strong> encryption of the first response payload, but the encryption only targets an initiator static public key in patterns starting with <code>K</code> or <code>I</code>.</p></li>
+<li><p>All fundamental patterns allow <strong>half-RTT</strong> encryption of the first response payload, but the encryption only targets an initiator static public key in patterns starting with <code>K</code> or <code>I</code>.</p></li>
 </ul>
 <p>The security properties for handshake payloads are usually weaker than the final security properties achieved by transport payloads, so these early encryptions must be used with caution.</p>
 <p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with <code>K</code> or <code>I</code> have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
@@ -1388,7 +1389,7 @@ XXfallback:
 <li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
-<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
+<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, Olaoluwa Osuntokun, and Nadim Kobeissi.</p>
 <p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.</p>
 <p>Helpful input and feedback on the key derivation design came from: Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>

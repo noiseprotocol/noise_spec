@@ -718,17 +718,21 @@ Handshake patterns must be **valid** in the following senses:
     more than one occurrence of `"e"`, and one occurrence of `"s"`, in the
     messages sent by any party).
 
- 3. After performing a DH between a remote public key and any local private key
+ 3. Parties must not perform a DH calculation more than once per handshake (i.e.
+    there must be no more than one occurrence of `"ee"`, `"es"`, `"se"`, or `"ss"`
+    per handshake).
+
+ 4. After performing a DH between a remote public key and any local private key
     that is not the ephemeral private key, the local party must not call
     `ENCRYPT()` unless it has also performed a DH between the ephemeral
     private key and the remote public key.  
 
 Patterns failing the first check are obviously nonsense.
 
-The second check outlaws redundant transmission of values to simplify
-implementation and testing.
+The second and third checks outlaw redundant transmission of values, and
+redundant computation, to simplify implementation and testing.
 
-The third check is necessary because Noise uses DH outputs involving ephemeral
+The fourth check is necessary because Noise uses DH outputs involving ephemeral
 keys to randomize the shared secret keys, and to provide forward secrecy.
 Patterns failing this check could result in subtle but catastrophic security
 flaws.
@@ -2076,7 +2080,7 @@ Noise is inspired by:
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany
 Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
-Ermishkin, and Olaoluwa Osuntokun.
+Ermishkin, Olaoluwa Osuntokun, and Nadim Kobeissi.
 
 Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
 Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi,
@@ -2479,13 +2483,15 @@ The security properties are labelled using the notation from [Section 7.6](#payl
 
  * Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.
 
- * Clarified DH() definition so that the identity element is an invalid value which may be rejected.
+ * Clarified DH() definition so that the identity element is an invalid value (not a generator), thus may be rejected.
 
  * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
 
  * Clarified the order of hashing pre-message public keys.
 
  * Rewrote handshake patterns explanation for clarity.
+
+ * Added new validity rule to disallow repeating the same DH operation.
 
  * Removed parenthesized list of keys from pattern notation, as it was redundant. 
 
