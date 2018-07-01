@@ -2479,26 +2479,26 @@ The security properties are labelled using the notation from [Section 7.6](#payl
 
  * Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.
 
- * Removed parenthesized list of keys from pattern notation, as it was redundant. 
-
- * Added deferred patterns.
-
- * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
-
  * Clarified DH() definition so that the identity element is an invalid value which may be rejected.
 
- * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
-
- * Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
+ * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
 
  * Clarified the order of hashing pre-message public keys.
 
  * Rewrote handshake patterns explanation for clarity.
 
- * Rewrote section on compound protocols and pipes for clarity, including
-   clearer distinction between "switch protocol" and "fallback patterns".
+ * Removed parenthesized list of keys from pattern notation, as it was redundant. 
+
+ * Added deferred patterns.
 
  * Renamed "Authentication" and "Confidentiality" security properties to "Source" and "Destination" to avoid confusion.
+
+ * Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
+
+ * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
+
+ * Rewrote section on compound protocols and pipes for clarity, including
+   clearer distinction between "switch protocol" and "fallback patterns".
 
  * De-emphasised "type byte" suggestion, and added a more general discussion of negotiation data.
 
