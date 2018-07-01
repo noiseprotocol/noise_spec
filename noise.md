@@ -228,12 +228,13 @@ Noise depends on the following **DH functions** (and an associated constant):
    on this function must be unsolvable by any practical cryptanalytic adversary
    [@gapdh].  
 
-     The `public_key` either encodes some value in a large prime-order group
-     (which may have multiple equivalent encodings), or is an invalid value.
-     Implementations must handle invalid public keys either by returning some
-     output which is purely a function of the public key and does not depend on
-     the private key, or by signaling an error to the caller.  The DH function
-     may define more specific rules for handling invalid values.
+     The `public_key` either encodes some value which is a generator in a large
+     prime-order group (which value may have multiple equivalent encodings), or
+     is an invalid value.  Implementations must handle invalid public keys
+     either by returning some output which is purely a function of the public
+     key and does not depend on the private key, or by signaling an error to
+     the caller.  The DH function may define more specific rules for handling
+     invalid values.
 
  * **`DHLEN`** = A constant specifying the size in bytes of public keys and DH
    outputs.  For security reasons, `DHLEN` must be 32 or greater.
@@ -2483,6 +2484,8 @@ The security properties are labelled using the notation from [Section 7.6](#payl
  * Added deferred patterns.
 
  * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
+
+ * Clarified DH() definition so that the identity element is an invalid value which may be rejected.
 
  * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
 

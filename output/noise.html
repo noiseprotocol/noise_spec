@@ -176,7 +176,7 @@
 <ul>
 <li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Generates a new Diffie-Hellman key pair. A DH key pair consists of <code>public_key</code> and <code>private_key</code> elements. A <code>public_key</code> represents an encoding of a DH public key into a byte sequence of length <code>DHLEN</code>. The <code>public_key</code> encoding details are specific to each set of DH functions.</p></li>
 <li><p><strong><code>DH(key_pair, public_key)</code></strong>: Performs a Diffie-Hellman calculation between the private key in <code>key_pair</code> and the <code>public_key</code> and returns an output sequence of bytes of length <code>DHLEN</code>. For security, the Gap-DH problem based on this function must be unsolvable by any practical cryptanalytic adversary <span class="citation">[<a href="#ref-gapdh">2</a>]</span>.</p>
-<p>The <code>public_key</code> either encodes some value in a large prime-order group (which may have multiple equivalent encodings), or is an invalid value. Implementations must handle invalid public keys either by returning some output which is purely a function of the public key and does not depend on the private key, or by signaling an error to the caller. The DH function may define more specific rules for handling invalid values.</p></li>
+<p>The <code>public_key</code> either encodes some value which is a generator in a large prime-order group (which value may have multiple equivalent encodings), or is an invalid value. Implementations must handle invalid public keys either by returning some output which is purely a function of the public key and does not depend on the private key, or by signaling an error to the caller. The DH function may define more specific rules for handling invalid values.</p></li>
 <li><p><strong><code>DHLEN</code></strong> = A constant specifying the size in bytes of public keys and DH outputs. For security reasons, <code>DHLEN</code> must be 32 or greater.</p></li>
 </ul>
 <h2 id="cipher-functions">4.2. Cipher functions</h2>
@@ -1843,6 +1843,7 @@ XXfallback:
 <li><p>Removed parenthesized list of keys from pattern notation, as it was redundant.</p></li>
 <li><p>Added deferred patterns.</p></li>
 <li><p>Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.</p></li>
+<li><p>Clarified DH() definition so that the identity element is an invalid value which may be rejected.</p></li>
 <li><p>Replaced &quot;fallback patterns&quot; concept with Bob-initiated pattern notation.</p></li>
 <li><p>Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack.</p></li>
 <li><p>Clarified the order of hashing pre-message public keys.</p></li>
