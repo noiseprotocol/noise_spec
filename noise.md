@@ -786,7 +786,7 @@ The following handshake patterns represent interactive protocols.  These
 12 patterns are called the **fundamental** interactive handshake patterns.
 
 The fundamental interactive patterns are named with two characters, which
-indicate the status of the initator and responder's static keys:
+indicate the status of the initiator and responder's static keys:
 
 The first character refers to the initiator's static key:
 
@@ -847,13 +847,13 @@ The second character refers to the responder's static key:
 The `XX` pattern is the most generically useful, since it supports mutual
 authentication and transmission of static public keys.
 
-All interactive patterns allow some encryption of handshake payloads:
+All fundamental patterns allow some encryption of handshake payloads:
 
  * Patterns where the initiator has pre-knowledge of the responder's static
    public key (i.e. patterns ending in `K`) allow **zero-RTT** encryption,
    meaning the initiator can encrypt the first handshake payload.  
 
- * All interactive patterns allow **half-RTT** encryption of the first response
+ * All fundamental patterns allow **half-RTT** encryption of the first response
    payload, but the encryption only targets an initiator static public key in
    patterns starting with `K` or `I`.
 
