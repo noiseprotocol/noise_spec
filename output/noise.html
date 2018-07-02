@@ -1276,16 +1276,19 @@ XXfallback:
 <li><p><strong>Authentication</strong>: A Noise protocol with static public keys verifies that the corresponding private keys are possessed by the participant(s), but it's up to the application to determine whether the remote party's static public key is acceptable. Methods for doing so include certificates which sign the public key (and which may be passed in handshake payloads), preconfigured lists of public keys, or &quot;pinning&quot; / &quot;key-continuity&quot; approaches where parties remember public keys they encounter and check whether the same party presents the same public key in the future.</p></li>
 <li><p><strong>Session termination</strong>: Preventing attackers from truncating a stream of transport messages is an application responsibility. See previous section.</p></li>
 <li><p><strong>Rollback</strong>: If parties decide on a Noise protocol based on some previous negotiation that is not included as prologue, then a rollback attack might be possible. This is a particular risk with compound protocols, and requires careful attention if a Noise handshake is preceded by communication between the parties.</p></li>
+<li><p><strong>Static key reuse</strong>: A static key pair used with Noise should be used with a single hash algorithm. The key pair should not be used outside of Noise, nor with multiple hash algorithms. It is acceptable to use the static key pair with different Noise protocols, provided the same hash algorithm is used in all of them. (Reusing a Noise static key pair outside of Noise would require extremely careful analysis to ensure the uses don't compromise each other, and security proofs are preserved).</p></li>
+<li><p><strong>PSK reuse</strong>: A PSK used with Noise should be used with a single hash algorithm. The PSK should not be used outside of Noise, nor with multiple hash algorithms.</p></li>
+<li><p><strong>Ephemeral key reuse</strong>: Every party in a Noise protocol must send a fresh ephemeral public key prior to sending any encrypted data. Ephemeral keys must never be reused. Violating these rules is likely to cause catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#handshake-pattern-validity">Section 7.3</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Misusing public keys as secrets</strong>: It might be tempting to use a pattern with a pre-message public key and assume that a successful handshake implies the other party's knowledge of the public key. Unfortunately, this is not the case, since setting public keys to invalid values might cause predictable DH output. For example, a <code>Noise_NK_25519</code> initiator might send an invalid ephemeral public key to cause a known DH output of all zeros, despite not knowing the responder's static public key. If the parties want to authenticate with a shared secret, it should be used as a PSK.</p></li>
 <li><p><strong>Channel binding</strong>: Depending on the DH functions, it might be possible for a malicious party to engage in multiple sessions that derive the same shared secret key by setting public keys to invalid values that cause predictable DH output (as in the previous bullet). It might also be possible to set public keys to equivalent values that cause the same DH output for different inputs. This is why a higher-level protocol should use the handshake hash (<code>h</code>) for a unique channel binding, instead of <code>ck</code>, as explained in <a href="#channel-binding">Section 11.2</a>.</p></li>
 <li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for <code>n</code> with the same key <code>k</code> for encryption would be catastrophic. Implementations must carefully follow the rules for nonces. Nonces are not allowed to wrap back to zero due to integer overflow, and the maximum nonce value is reserved. This means parties are not allowed to send more than 2<sup>64</sup>-1 transport messages.</p></li>
-<li><p><strong>Fresh ephemerals</strong>: Every party in a Noise protocol must send a fresh ephemeral public key prior to sending any encrypted data. Ephemeral keys must never be reused. Violating these rules is likely to cause catastrophic key reuse. This is one rationale behind the patterns in <a href="#handshake-patterns">Section 7</a>, and the validity rules in <a href="#handshake-pattern-validity">Section 7.3</a>. It's also the reason why one-way handshakes only allow transport messages from the sender, not the recipient.</p></li>
 <li><p><strong>Protocol names</strong>: The protocol name used with <code>Initialize()</code> must uniquely identify the combination of handshake pattern and crypto functions for every key it's used with (whether ephemeral key pair, static key pair, or PSK). If the same secret key was reused with the same protocol name but a different set of cryptographic operations then bad interactions could occur.</p></li>
 <li><p><strong>Pre-shared symmetric keys</strong>: Pre-shared symmetric keys must be secret values with 256 bits of entropy.</p></li>
 <li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher functions suffer a gradual reduction in security as the volume of data encrypted under a single key increases. Due to this, parties should not send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by a single key. If sending such large volumes of data is a possibility then different cipher functions should be chosen.</p></li>
 <li><p><strong>Hash collisions</strong>: If an attacker can find hash collisions on prologue data or the handshake hash, they may be able to perform &quot;transcript collision&quot; attacks that trick the parties into having different views of handshake data. It is important to use Noise with collision-resistant hash functions, and replace the hash function at any sign of weakness.</p></li>
 <li><p><strong>Implementation fingerprinting</strong>: If this protocol is used in settings with anonymous parties, care should be taken that implementations behave identically in all cases. This may require mandating exact behavior for handling of invalid DH public keys.</p></li>
 </ul>
+
 <h1 id="rationales">15. Rationales</h1>
 <p>This section collects various design rationales.</p>
 <h2 id="ciphers-and-encryption">15.1. Ciphers and encryption</h2>
@@ -1389,6 +1392,7 @@ XXfallback:
 </ul>
 <h1 id="ipr">16. IPR</h1>
 <p>The Noise specification (this document) is hereby placed in the public domain.</p>
+
 <h1 id="acknowledgements">17. Acknowledgements</h1>
 <p>Noise is inspired by:</p>
 <ul>
@@ -1400,8 +1404,8 @@ XXfallback:
 <li>Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE <span class="citation">[<a href="#ref-moderncryptostrobe">21</a>], [<a href="#ref-strobe">22</a>]</span>.</li>
 <li>The KDF chains used in the Double Ratchet Algorithm <span class="citation">[<a href="#ref-doubleratchet">23</a>]</span>.</li>
 </ul>
-<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, Olaoluwa Osuntokun, and Nadim Kobeissi.</p>
-<p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.</p>
+<p>General feedback on the spec and design came from: Moxie Marlinspike, Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey Ermishkin, Olaoluwa Osuntokun, Karthik Bhargavan, and Nadim Kobeissi.</p>
+<p>Helpful editorial feedback came from: Tom Ritter, Karthik Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.</p>
 <p>Helpful input and feedback on the key derivation design came from: Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
 <p>The deferred patterns resulted from discussions with Justin Cormack. The pattern derivation rules in the Appendix are also from Justin Cormack.</p>
@@ -1849,7 +1853,7 @@ XXfallback:
 </tbody>
 </table>
 <h2 id="pattern-derivation-rules">18.3. Pattern derivation rules</h2>
-<p>The following rules are used to derive the one-way, fundamental, and deferred handshake patterns.</p>
+<p>The following rules were used to derive the one-way, fundamental, and deferred handshake patterns.</p>
 <p>First, populate the pre-message contents as defined by the pattern name.</p>
 <p>Next populate the initiator's first message by applying the first rule from the below table which matches. Then delete the matching rule and repeat this process until no more rules can be applied. If this is a one-way pattern, it is now complete.</p>
 <p>Otherwise, populate the responder's first message in the same way. Once no more responder rules can be applied, then switch to the initiator's next message and repeat this process, switching messages until no more rules can be applied by either party.</p>
@@ -1885,10 +1889,11 @@ XXfallback:
 <li><p>Removed parenthesized list of keys from pattern notation, as it was redundant.</p></li>
 <li><p>Added deferred patterns.</p></li>
 <li><p>Renamed &quot;Authentication&quot; and &quot;Confidentiality&quot; security properties to &quot;Source&quot; and &quot;Destination&quot; to avoid confusion.</p></li>
-<li><p>Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack.</p></li>
+<li><p><strong>[SECURITY]</strong> Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack.</p></li>
 <li><p>Replaced &quot;fallback patterns&quot; concept with Bob-initiated pattern notation.</p></li>
 <li><p>Rewrote section on compound protocols and pipes for clarity, including clearer distinction between &quot;switch protocol&quot; and &quot;fallback patterns&quot;.</p></li>
 <li><p>De-emphasized &quot;type byte&quot; suggestion, and added a more general discussion of negotiation data.</p></li>
+<li><p><strong>[SECURITY]</strong> Added security considerations regarding static key reuse and PSK reuse.</p></li>
 <li><p>Added pattern derivation rules to Appendix.</p></li>
 </ul>
 

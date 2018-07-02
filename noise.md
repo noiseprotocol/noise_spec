@@ -1845,6 +1845,26 @@ This section collects various security considerations:
    and requires careful attention if a Noise handshake is preceded by
    communication between the parties.
 
+ * **Static key reuse**:  A static key pair used with Noise should be used with
+   a single hash algorithm.  The key pair should not be used outside of Noise,
+   nor with multiple hash algorithms.  It is acceptable to use the static key
+   pair with different Noise protocols, provided the same hash algorithm is
+   used in all of them.  (Reusing a Noise static key pair outside of Noise
+   would require extremely careful analysis to ensure the uses don't compromise
+   each other, and security proofs are preserved).
+
+ * **PSK reuse**:  A PSK used with Noise should be used with a single hash
+   algorithm.  The PSK should not be used outside of Noise, nor with multiple
+   hash algorithms.
+
+ * **Ephemeral key reuse**:  Every party in a Noise protocol must send a fresh
+   ephemeral public key prior to sending any encrypted data.  Ephemeral keys
+   must never be reused.  Violating these rules is likely to cause catastrophic
+   key reuse. This is one rationale behind the patterns in [Section
+   7](#handshake-patterns), and the validity rules in [Section
+   7.3](#handshake-pattern-validity).  It's also the reason why one-way
+   handshakes only allow transport messages from the sender, not the recipient.
+
  * **Misusing public keys as secrets**: It might be tempting to use a pattern
    with a pre-message public key and assume that a successful handshake implies
    the other party's knowledge of the public key.  Unfortunately, this is not
@@ -1868,14 +1888,6 @@ This section collects various security considerations:
    follow the rules for nonces.  Nonces are not allowed to wrap back to zero
    due to integer overflow, and the maximum nonce value is reserved.  This
    means parties are not allowed to send more than 2^64^-1 transport messages.
-
- * **Fresh ephemerals**:  Every party in a Noise protocol must send a fresh
-   ephemeral public key prior to sending any encrypted data.  Ephemeral keys
-   must never be reused.  Violating these rules is likely to cause catastrophic
-   key reuse. This is one rationale behind the patterns in [Section   7](#handshake-patterns), 
-   and the validity rules in [Section 7.3](#handshake-pattern-validity).  It's also the 
-   reason why one-way handshakes only allow transport messages from the sender, 
-   not the recipient.
 
  * **Protocol names**:  The protocol name used with `Initialize()` must
    uniquely identify the combination of handshake pattern and crypto functions
@@ -1905,6 +1917,7 @@ This section collects various security considerations:
    identically in all cases.  This may require mandating exact behavior for
    handling of invalid DH public keys.
 
+\newpage
 
 # 15. Rationales
 
@@ -2084,6 +2097,8 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
 # 16. IPR
 
 The Noise specification (this document) is hereby placed in the public domain.
+
+\newpage
 
 # 17. Acknowledgements
 
@@ -2498,7 +2513,7 @@ The security properties are labelled using the notation from [Section 7.6](#payl
 
 ## 18.3. Pattern derivation rules
 
-The following rules are used to derive the one-way, fundamental, and deferred handshake patterns.
+The following rules were used to derive the one-way, fundamental, and deferred handshake patterns.
 
 First, populate the pre-message contents as defined by the pattern name.
 
@@ -2551,7 +2566,7 @@ Otherwise, populate the responder's first message in the same way.  Once no more
 
  * Renamed "Authentication" and "Confidentiality" security properties to "Source" and "Destination" to avoid confusion.
 
- * Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
+ * **[SECURITY]** Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
 
  * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
 
@@ -2559,6 +2574,8 @@ Otherwise, populate the responder's first message in the same way.  Once no more
    clearer distinction between "switch protocol" and "fallback patterns".
 
  * De-emphasized "type byte" suggestion, and added a more general discussion of negotiation data.
+
+ * **[SECURITY]** Added security considerations regarding static key reuse and PSK reuse.
 
  * Added pattern derivation rules to Appendix.
 
