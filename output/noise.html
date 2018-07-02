@@ -300,7 +300,7 @@
 <li><p>Calls <code>MixHash()</code> once for each public key listed in the pre-messages from <code>handshake_pattern</code>, with the specified public key as input (see <a href="#handshake-patterns">Section 7</a> for an explanation of pre-messages). If both initiator and responder have pre-messages, the initiator's public keys are hashed first. If multiple public keys are listed in either party's pre-message, the public keys are hashed in the order that they are listed.</p></li>
 <li><p>Sets <code>message_patterns</code> to the message patterns from <code>handshake_pattern</code>.</p></li>
 </ul></li>
-<li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps, aborting if any <code>EncryptAndHash()</code> call returns an error: </p>
+<li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>: Takes a <code>payload</code> byte sequence which may be zero-length, and a <code>message_buffer</code> to write the output into. Performs the following steps, aborting if any <code>EncryptAndHash()</code> call returns an error:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
 <ul>
@@ -314,6 +314,9 @@
 <li><p>Appends <code>EncryptAndHash(payload)</code> to the buffer.</p></li>
 <li><p>If there are no more message patterns returns two new <code>CipherState</code> objects by calling <code>Split()</code>.</p></li>
 </ul></li>
+</ul>
+
+<ul>
 <li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>: Takes a byte sequence containing a Noise handshake message, and a <code>payload_buffer</code> to write the message's plaintext payload into. Performs the following steps, aborting if any <code>DecryptAndHash()</code> call returns an error:</p>
 <ul>
 <li><p>Fetches and deletes the next message pattern from <code>message_patterns</code>, then sequentially processes each token from the message pattern:</p>
@@ -410,17 +413,24 @@ KK:
 <li><p>Parties can only perform DH between private keys and public keys they possess.</p></li>
 <li><p>Parties must not send their static public key or ephemeral public key more than once per handshake (i.e. including the pre-messages, there must be no more than one occurrence of <code>&quot;e&quot;</code>, and one occurrence of <code>&quot;s&quot;</code>, in the messages sent by any party).</p></li>
 <li><p>Parties must not perform a DH calculation more than once per handshake (i.e. there must be no more than one occurrence of <code>&quot;ee&quot;</code>, <code>&quot;es&quot;</code>, <code>&quot;se&quot;</code>, or <code>&quot;ss&quot;</code> per handshake).</p></li>
-<li><p>After performing a DH between a remote public key and any local private key that is not the ephemeral private key, the local party must not call <code>ENCRYPT()</code> unless it has also performed a DH between the ephemeral private key and the remote public key.</p></li>
+<li><p>After performing a DH between a remote public key (either static or ephemeral) and the local static key, the local party must not call <code>ENCRYPT()</code> unless it has also performed a DH between its local ephemeral key and the remote public key. In particular, this means that (using canonical notation):</p>
+<p>After an <code>&quot;se&quot;</code> token, the initiator must not send a handshake payload or transport payload unless there has also been an <code>&quot;ee&quot;</code> token.</p>
+<p>After an <code>&quot;ss&quot;</code> token, the initiator must not send a handshake payload or transport payload unless there has also been an <code>&quot;es&quot;</code> token.</p>
+<p>After an <code>&quot;es&quot;</code> token, the responder must not send a handshake payload or transport payload unless there has also been an <code>&quot;ee&quot;</code> token.</p>
+<p>After an <code>&quot;ss&quot;</code> token, the responder must not send a handshake payload or transport payload unless there has also been an <code>&quot;se&quot;</code> token.</p></li>
 </ol>
 <p>Patterns failing the first check are obviously nonsense.</p>
 <p>The second and third checks outlaw redundant transmission of values, and redundant computation, to simplify implementation and testing.</p>
-<p>The fourth check is necessary because Noise uses DH outputs involving ephemeral keys to randomize the shared secret keys, and to provide forward secrecy. Patterns failing this check could result in subtle but catastrophic security flaws.</p>
+<p>The fourth check accomplishes two purposes:</p>
+<ul>
+<li><p>First, it is necessary because Noise relies on DH outputs involving ephemeral keys to randomize the shared secret keys. Patterns failing this check could result in catastrophic key reuse, because the victim might send a message encrypted with a key that doesn't include a contribution from their local ephemeral key (or where the contribution from their local ephemeral was nullified by an invalid ephemeral from the other party).</p></li>
+<li><p>Second, this check guarantees that ephemeral keys are used to provide important security properties such as forward-secrecy and key-compromise impersonation resistance.</p></li>
+</ul>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
 <h2 id="one-way-handshake-patterns">7.3. One-way handshake patterns</h2>
 <p>The following handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
 <p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#handshake-pattern-validity">Section 7.3</a>).</p>
 <p>One-way patterns are named with a single character, which indicates the status of the sender's static key:</p>
-
 <ul>
 <li><strong><code>N</code></strong> = <strong><code>N</code></strong>o static key for sender</li>
 <li><strong><code>K</code></strong> = Static key for sender <strong><code>K</code></strong>nown to recipient</li>
@@ -1847,8 +1857,8 @@ XXfallback:
 <ol style="list-style-type: decimal">
 <li>Send <code>&quot;e&quot;</code>.</li>
 <li>Perform <code>&quot;ee&quot;</code> if <code>&quot;e&quot;</code> has been sent, and received.</li>
-<li>Perform <code>&quot;se&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies.</li>
-<li>Perform <code>&quot;es&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Perform <code>&quot;se&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.</li>
+<li>Perform <code>&quot;es&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.</li>
 <li>Perform <code>&quot;ss&quot;</code> if <code>&quot;s&quot;</code> has been sent, and received, and <code>&quot;es&quot;</code> has been performed, and this is the first message, and initiator authentication is not deferred.</li>
 <li>Send <code>&quot;s&quot;</code> if this is the first message and initiator is &quot;I&quot; or one-way &quot;X&quot;.</li>
 <li>Send <code>&quot;s&quot;</code> if this is not the first message and initiator is &quot;X&quot;.</li>
@@ -1857,8 +1867,8 @@ XXfallback:
 <ol style="list-style-type: decimal">
 <li>Send <code>&quot;e&quot;</code>.</li>
 <li>Perform <code>&quot;ee&quot;</code> if <code>&quot;e&quot;</code> has been sent, and received.</li>
-<li>Perform <code>&quot;se&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies.</li>
-<li>Perform <code>&quot;es&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Perform <code>&quot;se&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.</li>
+<li>Perform <code>&quot;es&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.</li>
 <li>Send <code>&quot;s&quot;</code> if responder is &quot;X&quot;.</li>
 </ol>
 
@@ -1871,6 +1881,7 @@ XXfallback:
 <li><p>Clarified the order of hashing pre-message public keys.</p></li>
 <li><p>Rewrote handshake patterns explanation for clarity.</p></li>
 <li><p>Added new validity rule to disallow repeating the same DH operation.</p></li>
+<li><p>Clarified the complex validity rule regarding ephemeral keys and key re-use.</p></li>
 <li><p>Removed parenthesized list of keys from pattern notation, as it was redundant.</p></li>
 <li><p>Added deferred patterns.</p></li>
 <li><p>Renamed &quot;Authentication&quot; and &quot;Confidentiality&quot; security properties to &quot;Source&quot; and &quot;Destination&quot; to avoid confusion.</p></li>

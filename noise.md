@@ -501,7 +501,6 @@ A `HandshakeState` responds to the following functions:
 
   * **`WriteMessage(payload, message_buffer)`**: Takes a `payload` byte sequence
    which may be zero-length, and a `message_buffer` to write the output into.  Performs the following steps, aborting if any `EncryptAndHash()` call returns an error:
-\newpage
 
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
@@ -523,6 +522,8 @@ A `HandshakeState` responds to the following functions:
 
       * If there are no more message patterns returns two new `CipherState`
         objects by calling `Split()`.
+
+\newpage
 
   * **`ReadMessage(message, payload_buffer)`**: Takes a byte sequence
     containing a Noise handshake message, and a `payload_buffer` to write the
@@ -722,20 +723,41 @@ Handshake patterns must be **valid** in the following senses:
     there must be no more than one occurrence of `"ee"`, `"es"`, `"se"`, or `"ss"`
     per handshake).
 
- 4. After performing a DH between a remote public key and any local private key
-    that is not the ephemeral private key, the local party must not call
-    `ENCRYPT()` unless it has also performed a DH between the ephemeral
-    private key and the remote public key.  
+ 4. After performing a DH between a remote public key (either static or
+    ephemeral) and the local static key, the local party must not call
+    `ENCRYPT()` unless it has also performed a DH between its local ephemeral
+    key and the remote public key.  In particular, this means that (using
+    canonical notation):
+
+    After an `"se"` token, the initiator must not send a handshake payload
+    or transport payload unless there has also been an `"ee"` token.
+
+    After an `"ss"` token, the initiator must not send a handshake payload
+    or transport payload unless there has also been an `"es"` token.
+
+    After an `"es"` token, the responder must not send a handshake payload
+    or transport payload unless there has also been an `"ee"` token.
+
+    After an `"ss"` token, the responder must not send a handshake payload
+    or transport payload unless there has also been an `"se"` token.
 
 Patterns failing the first check are obviously nonsense.
 
 The second and third checks outlaw redundant transmission of values, and
 redundant computation, to simplify implementation and testing.
 
-The fourth check is necessary because Noise uses DH outputs involving ephemeral
-keys to randomize the shared secret keys, and to provide forward secrecy.
-Patterns failing this check could result in subtle but catastrophic security
-flaws.
+The fourth check accomplishes two purposes:
+
+ * First, it is necessary because Noise relies on DH outputs involving
+   ephemeral keys to randomize the shared secret keys.  Patterns failing this
+   check could result in catastrophic key reuse, because the victim might
+   send a message encrypted with a key that doesn't include a contribution from
+   their local ephemeral key (or where the contribution from their local
+   ephemeral was nullified by an invalid ephemeral from the other party).
+
+ * Second, this check guarantees that ephemeral keys are used to provide
+   important security properties such as forward-secrecy and key-compromise
+   impersonation resistance.
 
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
@@ -753,8 +775,6 @@ send any messages using it (as this would violate the rules in [Section 7.3](#ha
 
 One-way patterns are named with a single character, which indicates the 
 status of the sender's static key:
-
-\newpage
 
  * **`N`** = **`N`**o static key for sender
  * **`K`** = Static key for sender **`K`**nown to recipient
@@ -2490,8 +2510,8 @@ Otherwise, populate the responder's first message in the same way.  Once no more
 
   1. Send `"e"`.
   2. Perform `"ee"` if `"e"` has been sent, and received.
-  3. Perform `"se"` if `"s"` has been sent, and `"e"` received. If initiator authentication is deferred, skip this rule for the first message in which it applies.
-  4. Perform `"es"` if `"e"` has been sent, and `"s"` received. If responder authentication is deferred, skip this rule for the first message in which it applies.
+  3. Perform `"se"` if `"s"` has been sent, and `"e"` received. If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.
+  4. Perform `"es"` if `"e"` has been sent, and `"s"` received. If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.
   5. Perform `"ss"` if `"s"` has been sent, and received, and `"es"` has been performed, and this is the first message, and initiator authentication is not deferred.
   6. Send `"s"` if this is the first message and initiator is "I" or one-way "X".
   7. Send `"s"` if this is not the first message and initiator is "X".
@@ -2500,8 +2520,8 @@ Otherwise, populate the responder's first message in the same way.  Once no more
 
   1. Send `"e"`.
   2. Perform `"ee"` if `"e"` has been sent, and received.
-  3. Perform `"se"` if `"e"` has been sent, and `"s"` received.  If initiator authentication is deferred, skip this rule for the first message in which it applies.
-  4. Perform `"es"` if `"s"` has been sent, and `"e"` received.  If responder authentication is deferred, skip this rule for the first message in which it applies.
+  3. Perform `"se"` if `"e"` has been sent, and `"s"` received.  If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.
+  4. Perform `"es"` if `"s"` has been sent, and `"e"` received.  If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.
   5. Send `"s"` if responder is "X".
 
 \newpage
@@ -2522,6 +2542,8 @@ Otherwise, populate the responder's first message in the same way.  Once no more
  * Rewrote handshake patterns explanation for clarity.
 
  * Added new validity rule to disallow repeating the same DH operation.
+
+ * Clarified the complex validity rule regarding ephemeral keys and key re-use.
 
  * Removed parenthesized list of keys from pattern notation, as it was redundant. 
 
