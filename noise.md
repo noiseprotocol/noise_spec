@@ -2100,9 +2100,9 @@ Noise is inspired by:
 General feedback on the spec and design came from: Moxie Marlinspike, Jason
 Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany
 Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
-Ermishkin, Olaoluwa Osuntokun, and Nadim Kobeissi.
+Ermishkin, Olaoluwa Osuntokun, Karthik Bhargavan, and Nadim Kobeissi.
 
-Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David
+Helpful editorial feedback came from: Tom Ritter, Karthik Bhargavan, David
 Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi,
 Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.
 
