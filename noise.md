@@ -2093,7 +2093,8 @@ and Jason Donenfeld.
 The PSK approach was largely motivated and designed by Jason Donenfeld, based
 on his experience with PSKs in WireGuard.
 
-The deferred patterns resulted from discussions with Justin Cormack.
+The deferred patterns resulted from discussions with Justin Cormack.  The pattern
+derivation rules in the Appendix are also from Justin Cormack.
 
 The security properties table for deferred patterns was derived by the 
 Noise Explorer tool, from Nadim Kobeissi.
@@ -2111,7 +2112,7 @@ versions.
 
 # 18. Appendices
 
-## 18.1 Deferred patterns
+## 18.1. Deferred patterns
 
 The following table lists all 23 deferred handshake patterns in the right
 column, with their corresponding fundamental handshake pattern in the left
@@ -2475,8 +2476,37 @@ The security properties are labelled using the notation from [Section 7.6](#payl
 |       ->                        2                5           |         
 +--------------------------------------------------------------+
 
+## 18.3. Pattern derivation rules
 
-# 18.3. Change log
+The following rules are used to derive the one-way, fundamental, and deferred handshake patterns.
+
+First, populate the pre-message contents as defined by the pattern name.
+
+Next populate the initiator's first message by applying the first rule from the below table which matches.  Then delete the matching rule and repeat this process until no more rules can be applied.  If this is a one-way pattern, it is now complete.
+
+Otherwise, populate the responder's first message in the same way.  Once no more responder rules can be applied, then switch to the initiator's next message and repeat this process, switching messages until no more rules can be applied by either party.
+
+**Initiator rules:**
+
+  1. Send `"e"`.
+  2. Perform `"ee"` if `"e"` has been sent, and received.
+  3. Perform `"se"` if `"s"` has been sent, and `"e"` received. If initiator authentication is deferred, skip this rule for the first message in which it applies.
+  4. Perform `"es"` if `"e"` has been sent, and `"s"` received. If responder authentication is deferred, skip this rule for the first message in which it applies.
+  5. Perform `"ss"` if `"s"` has been sent, and received, and `"es"` has been performed, and this is the first message, and initiator authentication is not deferred.
+  6. Send `"s"` if this is the first message and initiator is "I" or one-way "X".
+  7. Send `"s"` if this is not the first message and initiator is "X".
+
+**Responder rules:**
+
+  1. Send `"e"`.
+  2. Perform `"ee"` if `"e"` has been sent, and received.
+  3. Perform `"se"` if `"e"` has been sent, and `"s"` received.  If initiator authentication is deferred, skip this rule for the first message in which it applies.
+  4. Perform `"es"` if `"s"` has been sent, and `"e"` received.  If responder authentication is deferred, skip this rule for the first message in which it applies.
+  5. Send `"s"` if responder is "X".
+
+\newpage
+
+## 18.4. Change log
 
 
 **Revision 34:**
@@ -2506,8 +2536,10 @@ The security properties are labelled using the notation from [Section 7.6](#payl
  * Rewrote section on compound protocols and pipes for clarity, including
    clearer distinction between "switch protocol" and "fallback patterns".
 
- * De-emphasised "type byte" suggestion, and added a more general discussion of negotiation data.
+ * De-emphasized "type byte" suggestion, and added a more general discussion of negotiation data.
 
+ * Added pattern derivation rules to Appendix.
 
+\newpage
 
 # 19.  References

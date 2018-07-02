@@ -93,10 +93,11 @@
 <li><a href="#ipr">16. IPR</a></li>
 <li><a href="#acknowledgements">17. Acknowledgements</a></li>
 <li><a href="#appendices">18. Appendices</a><ul>
-<li><a href="#deferred-patterns">18.1 Deferred patterns</a></li>
+<li><a href="#deferred-patterns">18.1. Deferred patterns</a></li>
 <li><a href="#security-properties-for-deferred-patterns">18.2. Security properties for deferred patterns</a></li>
+<li><a href="#pattern-derivation-rules">18.3. Pattern derivation rules</a></li>
+<li><a href="#change-log">18.4. Change log</a></li>
 </ul></li>
-<li><a href="#change-log">18.3. Change log</a></li>
 <li><a href="#references">19. References</a></li>
 </ul>
 </div>
@@ -1393,14 +1394,14 @@ XXfallback:
 <p>Helpful editorial feedback came from: Tom Ritter, Karthikeyan Bhargavan, David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.</p>
 <p>Helpful input and feedback on the key derivation design came from: Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson, and Jason Donenfeld.</p>
 <p>The PSK approach was largely motivated and designed by Jason Donenfeld, based on his experience with PSKs in WireGuard.</p>
-<p>The deferred patterns resulted from discussions with Justin Cormack.</p>
+<p>The deferred patterns resulted from discussions with Justin Cormack. The pattern derivation rules in the Appendix are also from Justin Cormack.</p>
 <p>The security properties table for deferred patterns was derived by the Noise Explorer tool, from Nadim Kobeissi.</p>
 <p>The rekey design benefited from discussions with Rhys Weatherley, Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
 <p>The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and Zooko) provided helpful discussion on using BLAKE2 with Noise.</p>
 <p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier versions.</p>
 
 <h1 id="appendices">18. Appendices</h1>
-<h2 id="deferred-patterns">18.1 Deferred patterns</h2>
+<h2 id="deferred-patterns">18.1. Deferred patterns</h2>
 <p>The following table lists all 23 deferred handshake patterns in the right column, with their corresponding fundamental handshake pattern in the left column. See <a href="#handshake-patterns">Section 7</a> for an explanation of fundamental and deferred patterns.</p>
 <table style="width:85%;">
 <colgroup>
@@ -1837,22 +1838,49 @@ XXfallback:
 </tr>
 </tbody>
 </table>
-<h1 id="change-log">18.3. Change log</h1>
+<h2 id="pattern-derivation-rules">18.3. Pattern derivation rules</h2>
+<p>The following rules are used to derive the one-way, fundamental, and deferred handshake patterns.</p>
+<p>First, populate the pre-message contents as defined by the pattern name.</p>
+<p>Next populate the initiator's first message by applying the first rule from the below table which matches. Then delete the matching rule and repeat this process until no more rules can be applied. If this is a one-way pattern, it is now complete.</p>
+<p>Otherwise, populate the responder's first message in the same way. Once no more responder rules can be applied, then switch to the initiator's next message and repeat this process, switching messages until no more rules can be applied by either party.</p>
+<p><strong>Initiator rules:</strong></p>
+<ol style="list-style-type: decimal">
+<li>Send <code>&quot;e&quot;</code>.</li>
+<li>Perform <code>&quot;ee&quot;</code> if <code>&quot;e&quot;</code> has been sent, and received.</li>
+<li>Perform <code>&quot;se&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Perform <code>&quot;es&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Perform <code>&quot;ss&quot;</code> if <code>&quot;s&quot;</code> has been sent, and received, and <code>&quot;es&quot;</code> has been performed, and this is the first message, and initiator authentication is not deferred.</li>
+<li>Send <code>&quot;s&quot;</code> if this is the first message and initiator is &quot;I&quot; or one-way &quot;X&quot;.</li>
+<li>Send <code>&quot;s&quot;</code> if this is not the first message and initiator is &quot;X&quot;.</li>
+</ol>
+<p><strong>Responder rules:</strong></p>
+<ol style="list-style-type: decimal">
+<li>Send <code>&quot;e&quot;</code>.</li>
+<li>Perform <code>&quot;ee&quot;</code> if <code>&quot;e&quot;</code> has been sent, and received.</li>
+<li>Perform <code>&quot;se&quot;</code> if <code>&quot;e&quot;</code> has been sent, and <code>&quot;s&quot;</code> received. If initiator authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Perform <code>&quot;es&quot;</code> if <code>&quot;s&quot;</code> has been sent, and <code>&quot;e&quot;</code> received. If responder authentication is deferred, skip this rule for the first message in which it applies.</li>
+<li>Send <code>&quot;s&quot;</code> if responder is &quot;X&quot;.</li>
+</ol>
+
+<h2 id="change-log">18.4. Change log</h2>
 <p><strong>Revision 34:</strong></p>
 <ul>
 <li><p>Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.</p></li>
-<li><p>Clarified DH() definition so that the identity element is an invalid value which may be rejected.</p></li>
+<li><p>Clarified DH() definition so that the identity element is an invalid value (not a generator), thus may be rejected.</p></li>
 <li><p>Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.</p></li>
 <li><p>Clarified the order of hashing pre-message public keys.</p></li>
 <li><p>Rewrote handshake patterns explanation for clarity.</p></li>
+<li><p>Added new validity rule to disallow repeating the same DH operation.</p></li>
 <li><p>Removed parenthesized list of keys from pattern notation, as it was redundant.</p></li>
 <li><p>Added deferred patterns.</p></li>
 <li><p>Renamed &quot;Authentication&quot; and &quot;Confidentiality&quot; security properties to &quot;Source&quot; and &quot;Destination&quot; to avoid confusion.</p></li>
 <li><p>Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack.</p></li>
 <li><p>Replaced &quot;fallback patterns&quot; concept with Bob-initiated pattern notation.</p></li>
 <li><p>Rewrote section on compound protocols and pipes for clarity, including clearer distinction between &quot;switch protocol&quot; and &quot;fallback patterns&quot;.</p></li>
-<li><p>De-emphasised &quot;type byte&quot; suggestion, and added a more general discussion of negotiation data.</p></li>
+<li><p>De-emphasized &quot;type byte&quot; suggestion, and added a more general discussion of negotiation data.</p></li>
+<li><p>Added pattern derivation rules to Appendix.</p></li>
 </ul>
+
 <h1 id="references" class="unnumbered">19. References</h1>
 <div id="refs" class="references">
 <div id="ref-Rogaway:2002">
