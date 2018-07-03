@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Trevor Perrin (noise@trevp.net)" />
-  <meta name="date" content="2018-07-01" />
+  <meta name="date" content="2018-07-02" />
   <title>The Noise Protocol Framework</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
@@ -15,7 +15,7 @@
 <h1 class="title">The Noise Protocol Framework</h1>
 <b>Author:</b> Trevor Perrin (noise@trevp.net)<br/>
 <b>Revision:</b> 34draft<br/>
-<b>Date:</b> 2018-07-01<br/>
+<b>Date:</b> 2018-07-02<br/>
 <b>Status:</b> official/unstable<br/>
 <b>PDF:</b> <a href="noise.pdf">noise.pdf</a><br/>
 </div>
@@ -43,11 +43,11 @@
 <li><a href="#handshake-pattern-basics">7.1. Handshake pattern basics</a></li>
 <li><a href="#alice-and-bob">7.2. Alice and Bob</a></li>
 <li><a href="#handshake-pattern-validity">7.3. Handshake pattern validity</a></li>
-<li><a href="#one-way-handshake-patterns">7.3. One-way handshake patterns</a></li>
-<li><a href="#interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</a></li>
-<li><a href="#interactive-handshake-patterns-deferred">7.5. Interactive handshake patterns (deferred)</a></li>
-<li><a href="#payload-security-properties">7.6. Payload security properties</a></li>
-<li><a href="#identity-hiding">7.7. Identity hiding</a></li>
+<li><a href="#one-way-handshake-patterns">7.4. One-way handshake patterns</a></li>
+<li><a href="#interactive-handshake-patterns-fundamental">7.5. Interactive handshake patterns (fundamental)</a></li>
+<li><a href="#interactive-handshake-patterns-deferred">7.6. Interactive handshake patterns (deferred)</a></li>
+<li><a href="#payload-security-properties">7.7. Payload security properties</a></li>
+<li><a href="#identity-hiding">7.8. Identity hiding</a></li>
 </ul></li>
 <li><a href="#protocol-names-and-modifiers">8. Protocol names and modifiers</a><ul>
 <li><a href="#handshake-pattern-name-section">8.1. Handshake pattern name section</a></li>
@@ -363,7 +363,7 @@
   -&gt; e
   &lt;- e, ee, s, es
   -&gt; s, se</code></pre>
-<p>The handshake pattern names are <code>NN</code> and <code>XX</code>. This naming convention will be explained in <a href="#interactive-handshake-patterns">Section 7.4</a>.</p>
+<p>The handshake pattern names are <code>NN</code> and <code>XX</code>. This naming convention will be explained in <a href="#interactive-handshake-patterns-fundamental">Section 7.5</a>.</p>
 <p>Non-empty pre-messages are shown as pre-message patterns prior to the delimiter <code>&quot;...&quot;</code>. If both parties have a pre-message, the initiator's is listed first, and hashed first. During <code>Initialize()</code>, <code>MixHash()</code> is called on any pre-message public keys, as described in <a href="#the-handshakestate-object">Section 5.3</a>.</p>
 <p>The following handshake pattern describes a handshake where the initiator has pre-knowledge of the responder's static public key and uses it for &quot;zero-RTT&quot; encryption:</p>
 <pre><code>NK:
@@ -427,7 +427,7 @@ KK:
 <li><p>Second, this check guarantees that ephemeral keys are used to provide important security properties such as forward-secrecy and key-compromise impersonation resistance.</p></li>
 </ul>
 <p>Users are recommended to only use the handshake patterns listed below, or other patterns that have been vetted by experts to satisfy the above checks.</p>
-<h2 id="one-way-handshake-patterns">7.3. One-way handshake patterns</h2>
+<h2 id="one-way-handshake-patterns">7.4. One-way handshake patterns</h2>
 <p>The following handshake patterns represent &quot;one-way&quot; handshakes supporting a one-way stream of data from a sender to a recipient. These patterns could be used to encrypt files, database records, or other non-interactive data streams.</p>
 <p>Following a one-way handshake the sender can send a stream of transport messages, encrypting them using the first <code>CipherState</code> returned by <code>Split()</code>. The second <code>CipherState</code> from <code>Split()</code> is discarded - the recipient must not send any messages using it (as this would violate the rules in <a href="#handshake-pattern-validity">Section 7.3</a>).</p>
 <p>One-way patterns are named with a single character, which indicates the status of the sender's static key:</p>
@@ -464,7 +464,7 @@ KK:
 </table>
 <p><code>N</code> is a conventional DH-based public-key encryption. The other patterns add sender authentication, where the sender's public key is either known to the recipient beforehand (<code>K</code>) or transmitted under encryption (<code>X</code>).</p>
 
-<h2 id="interactive-handshake-patterns-fundamental">7.4. Interactive handshake patterns (fundamental)</h2>
+<h2 id="interactive-handshake-patterns-fundamental">7.5. Interactive handshake patterns (fundamental)</h2>
 <p>The following handshake patterns represent interactive protocols. These 12 patterns are called the <strong>fundamental</strong> interactive handshake patterns.</p>
 <p>The fundamental interactive patterns are named with two characters, which indicate the status of the initiator and responder's static keys:</p>
 <p>The first character refers to the initiator's static key:</p>
@@ -562,14 +562,14 @@ KK:
 </ul>
 <p>The security properties for handshake payloads are usually weaker than the final security properties achieved by transport payloads, so these early encryptions must be used with caution.</p>
 <p>In some patterns the security properties of transport payloads can also vary. In particular: patterns starting with <code>K</code> or <code>I</code> have the caveat that the responder is only guaranteed &quot;weak&quot; forward secrecy for the transport messages it sends until it receives a transport message from the initiator. After receiving a transport message from the initiator, the responder becomes assured of &quot;strong&quot; forward secrecy.</p>
-<p>More analysis of these payload security properties is in <a href="#payload-security-properties">Section 7.6</a>.</p>
-<h2 id="interactive-handshake-patterns-deferred">7.5. Interactive handshake patterns (deferred)</h2>
+<p>More analysis of these payload security properties is in <a href="#payload-security-properties">Section 7.7</a>.</p>
+<h2 id="interactive-handshake-patterns-deferred">7.6. Interactive handshake patterns (deferred)</h2>
 <p>The fundamental handshake patterns in the previous section perform DH operations for authentication (<code>&quot;es&quot;</code> and <code>&quot;se&quot;</code>) as early as possible.</p>
 <p>An additional set of handshake patterns can be described which defer these authentication DHs to the next message. To name these <strong>deferred handshake patterns</strong>, the numeral &quot;1&quot; is used after the first and/or second character in a fundamental pattern name to indicate that the initiator and/or responder's authentication DH is deferred to the next message.</p>
 <p>Deferred patterns might be useful for several reasons:</p>
 <ul>
 <li><p>The initiator might have prior knowledge of the responder's static public key, but not wish to send any 0-RTT encrypted data.</p></li>
-<li><p>In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see <a href="#identity-hiding">Section 7.7</a>).</p></li>
+<li><p>In some cases, deferring authentication can improve the identity-hiding properties of the handshake (see <a href="#identity-hiding">Section 7.8</a>).</p></li>
 <li><p>Future extensions to Noise might be capable of replacing DH operations with signatures or KEM ciphertexts, but would only be able to do so if the sender is authenticating themselves (signatures) or the sender is authenticating the recipient (KEM ciphertexts). Thus every fundamental handshake pattern is only capable of having each authentication DH replaced with a signature <em>or</em> KEM ciphertext, but the deferred variants make both replacements possible.</p></li>
 </ul>
 <p>Below are two examples showing a fundamental handshake pattern on the left, and deferred variant(s) on the right. The full set of 23 deferred handshake patterns are in the <a href="#deferred-patterns">Appendix</a>.</p>
@@ -615,8 +615,8 @@ KK:
 </tr>
 </tbody>
 </table>
-<h2 id="payload-security-properties">7.6. Payload security properties</h2>
-<p>The following table lists the security properties for Noise handshake and transport payloads for all the one-way patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. Each payload is assigned a &quot;source&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;destination&quot; property regarding the degree of confidentiality provided to the sender.</p>
+<h2 id="payload-security-properties">7.7. Payload security properties</h2>
+<p>The following table lists the security properties for Noise handshake and transport payloads for all the one-way patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental patterns in <a href="#interactive-handshake-patterns-fundamental">Section 7.5</a>. Each payload is assigned a &quot;source&quot; property regarding the degree of authentication of the sender provided to the recipient, and a &quot;destination&quot; property regarding the degree of confidentiality provided to the sender.</p>
 <p>The source properties are:</p>
 <ol start="0" style="list-style-type: decimal">
 <li><p><strong>No authentication.</strong> This payload may have been sent by any party, including an active attacker.</p></li>
@@ -747,8 +747,8 @@ KK:
 </tr>
 </tbody>
 </table>
-<h2 id="identity-hiding">7.7. Identity hiding</h2>
-<p>The following table lists the identity-hiding properties for all the one-way handshake patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental handshake patterns in <a href="#interactive-handshake-patterns">Section 7.5</a>. In addition, we list a few deferred handshake patterns which have different identity-hiding properties than the corresponding fundamental pattern.</p>
+<h2 id="identity-hiding">7.8. Identity hiding</h2>
+<p>The following table lists the identity-hiding properties for all the one-way handshake patterns in <a href="#one-way-handshake-patterns">Section 7.4</a> and the fundamental handshake patterns in <a href="#interactive-handshake-patterns-fundamental">Section 7.5</a>. In addition, we list a few deferred handshake patterns which have different identity-hiding properties than the corresponding fundamental pattern.</p>
 <p>Each pattern is assigned properties describing the confidentiality supplied to the initiator's static public key, and to the responder's static public key. The underlying assumptions are that ephemeral private keys are secure, and that parties abort the handshake if they receive a static public key from the other party which they don't trust.</p>
 <p>This section only considers identity leakage through static public key fields in handshakes. Of course, the identities of Noise participants might be exposed through other means, including payload fields, traffic analysis, or metadata such as IP addresses.</p>
 <p>The properties for the relevant public key are:</p>
@@ -1635,7 +1635,7 @@ XXfallback:
 </table>
 
 <h2 id="security-properties-for-deferred-patterns">18.2. Security properties for deferred patterns</h2>
-<p>The following table lists the the security properties for the Noise handshake and transport payloads for all the deferred patterns in the previous section. The security properties are labelled using the notation from <a href="#payload-security-properties">Section 7.6</a>.</p>
+<p>The following table lists the the security properties for the Noise handshake and transport payloads for all the deferred patterns in the previous section. The security properties are labelled using the notation from <a href="#payload-security-properties">Section 7.7</a>.</p>
 <table style="width:88%;">
 <colgroup>
 <col width="87%" />
