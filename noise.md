@@ -570,7 +570,7 @@ remove options, Alice and Bob could include the list as prologue data.
 Note that while the parties confirm their prologues are identical, they don't
 mix prologue data into encryption keys. If an input contains secret data that’s
 intended to strengthen the encryption, a PSK handshake should be used
-instead (see [Section 9](pre-shared-symmetric-keys)).  
+instead (see [Section 9](#pre-shared-symmetric-keys)).  
 
 
 # 7. Handshake patterns 
