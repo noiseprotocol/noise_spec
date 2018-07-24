@@ -476,7 +476,7 @@ A `HandshakeState` responds to the following functions:
     Public keys are only passed in if the `handshake_pattern` uses pre-messages 
     (see [Section 7](#handshake-patterns)).  The ephemeral values `(e, re)` are typically
     left empty, since they are created and exchanged during the handshake; but there are
-    exceptions (see [Section 10](#compound-patterns)).
+    exceptions (see [Section 10](#compound-protocols)).
 
     Performs the following steps:
 
