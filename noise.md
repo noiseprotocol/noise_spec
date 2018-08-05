@@ -570,7 +570,7 @@ remove options, Alice and Bob could include the list as prologue data.
 Note that while the parties confirm their prologues are identical, they don't
 mix prologue data into encryption keys. If an input contains secret data that’s
 intended to strengthen the encryption, a PSK handshake should be used
-instead (see [Section 9](pre-shared-symmetric-keys)).  
+instead (see [Section 9](#pre-shared-symmetric-keys)).
 
 
 # 7. Handshake patterns 
@@ -581,7 +581,7 @@ A **message pattern** is some sequence of tokens from the set `("e", "s", "ee",
 "es", "se", "ss", "psk")`.  The handling of these tokens within
 `WriteMessage()` and `ReadMessage()` has been described previously, except for
 the `"psk"` token, which will be described in [Section
-9](pre-shared-symmetric-keys).  Future specifications might introduce other
+9](#pre-shared-symmetric-keys).  Future specifications might introduce other
 tokens.
 
 A **pre-message pattern** is one of the following sequences of tokens:
