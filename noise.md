@@ -1737,11 +1737,11 @@ This feature must be used with extreme caution.  In particular, it would be a ca
 ## 12.3. The `ChaChaPoly` cipher functions
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
-   `AEAD_CHACHA20_POLY1305` from [@rfc7539].  The 96-bit nonce is formed by
-   encoding 32 bits of zeros followed by little-endian encoding of `n`.
-   (Earlier implementations of ChaCha20 used a 64-bit nonce; with these
-   implementations it's compatible to encode `n` directly into the ChaCha20
-   nonce without the 32-bit zero prefix).
+   `AEAD_CHACHA20_POLY1305` from [@rfc7539] with a 128-bit tag appended to the
+   ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros followed
+   by little-endian encoding of `n`. (Earlier implementations of ChaCha20 used a
+   64-bit nonce; with these implementations it's compatible to encode `n`
+   directly into the ChaCha20 nonce without the 32-bit zero prefix).
 
 ## 12.4. The `AESGCM` cipher functions
 
