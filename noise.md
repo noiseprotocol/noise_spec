@@ -534,7 +534,7 @@ A `HandshakeState` responds to the following functions:
         then sequentially processes each token from the message pattern:
 
           * For `"e"`: Sets `re` (which must be empty) to the next `DHLEN`
-            bytes from the message.  Calls `MixHash(re.public_key)`. 
+            bytes from the message.  Calls `MixHash(re)`.
 
           * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
             `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` (which must be empty)
